@@ -5,36 +5,37 @@ hook-enforced rules). Keep this file current when the build, layout, or public A
 
 ## What this is
 
-Sneakers identity service: users, groups and SSO (with its gRPC API)
-
-<!-- Fill in: what the project does, what it ships (library, service, action, CLI), and the one or
-two things an agent must understand before changing it. -->
-
-## Using sneakers-identity
-
-<!-- If this project is consumed by others (a library/plugin/action), describe the contract a
-consumer must respect: the single entry point, the public surface, required options, and anything
-that must not be bypassed. Delete this section for a leaf application. -->
+Sneakers identity service: the directory of record. A gRPC service
+(`sneakers.identity.v1.IdentityService`) over Postgres that holds users, groups, memberships,
+second factors, service accounts and tokens. Before changing it, know that every verify path
+(TOTP, email codes, API and personal tokens, OIDC links) fails closed and answers alike for every
+failure, so a caller can't tell why; keep it that way. Passwords never live here: lldap or Kratos
+holds them (`AUTH_BACKEND`).
 
 ## Layout
 
-<!-- The directories that matter and what lives in each. Keep it short; point at the entry points. -->
-
-- `src/` - <what>
-- `<tests dir>/` - <what>
+- `cmd/identity/` - the service entrypoint: config, migrations, optional features, the gRPC server.
+- `cmd/cutover/` - the one-shot move of every user onto Kratos; `cmd/seed/` - dev demo data.
+- `internal/grpcsvc/` - the service, its Postgres queries and the tests (`*_pg_test.go` need
+  Postgres).
+- `internal/lldap/`, `internal/kratos/` - the directory clients; `internal/email/` - the SMTP
+  sender; `internal/secrets/` - the at-rest cipher for TOTP secrets.
+- `internal/config/`, `internal/server/` - the env loader and the gRPC server bootstrap.
+- `proto/` - the API; `gen/go/` - the generated Go (committed, checked current in CI).
+- `migrations/` - the Postgres schema, forward only.
+- `test/kratos/` - the Kratos config the integration tests run against.
+- `docs/` - configuration, API and runbook.
 
 ## Build, test, lint
 
-<!-- The exact commands. Pull these from package.json scripts (npm), the Taskfile (Go/Task), or
-pyproject (Python) so they stay accurate. -->
-
-- Build: `<command>`
-- Test: `<command>` (note any service/fixture the integration tests require)
-- Lint: `<command>`
-- Package checks (npm packages), after a build: `npm run check:pack` (contents and ceiling),
-  `npm run check:pack:growth` (growth against the last release), `npm run check:install`
-  (install the tarball, import ESM and CJS); see CLAUDE.md "npm package contents"
-- License headers / docs: `<command>`
+- Build: `task build`
+- Test: `task test`; set `IDENTITY_PG_DSN` (Postgres) and `KRATOS_TEST_ADMIN_URL` /
+  `KRATOS_TEST_PUBLIC_URL` (a Kratos started from `test/kratos`) to run the integration tests
+  (see README.md), otherwise they are skipped.
+- Lint: `task lint`, plus `buf lint` for the proto.
+- Generated code: `buf generate` with the plugin versions pinned in
+  `.github/workflows/job-go-lang-ci.yaml`.
+- License headers: `task license` (golic, the Apache-2.0 SPDX header in `.golic.yaml`).
 
 ## Logging
 
@@ -56,4 +57,8 @@ Follow the logging rules in `CLAUDE.md`. In short:
   `.claude/hooks` (run `bash .claude/hooks/install.sh` once per clone).
 - Open every PR as a draft. CI skips drafts, so run the full checks locally, push once they pass,
   and mark the PR ready when the work is finished; see CLAUDE.md "CI and Actions minutes".
-- <project-specific conventions, non-obvious constraints, and traps an agent should know>
+- Every commit carries a DCO sign-off (`git commit -s`); the `checks / scrub` job fails without it.
+- No real identifiers anywhere: fixtures use example.org, 192.0.2.0/24, 2001:db8::/32 and invented
+  names.
+- `keycloak_subject` and `GetUserByKeycloakSubject` keep their names for wire compatibility; the
+  value is the login subject of whichever directory is in use.
