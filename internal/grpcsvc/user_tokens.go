@@ -152,11 +152,11 @@ func (s *Server) VerifyUserToken(ctx context.Context, req *identityv1.VerifyUser
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "verify user token: %v", err)
 	}
-	groups, err := s.userGroupNames(ctx, userID)
+	groups, groupIDs, err := s.userGroups(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
-	return &identityv1.VerifyUserTokenResponse{Valid: true, TokenId: tokenID, User: u, GroupNames: groups}, nil
+	return &identityv1.VerifyUserTokenResponse{Valid: true, TokenId: tokenID, User: u, GroupNames: groups, GroupIds: groupIDs}, nil
 }
 
 func (s *Server) SetUserDisabled(ctx context.Context, req *identityv1.SetUserDisabledRequest) (*identityv1.SetUserDisabledResponse, error) {

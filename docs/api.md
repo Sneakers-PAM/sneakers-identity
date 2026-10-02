@@ -30,7 +30,7 @@ admin RPCs before calling identity; the recovery role is the one rule identity a
 | `ListGroups`, `GetGroup`, `CreateGroup` | Read groups, and create one in identity's `groups` table. |
 | `AddGroupMember`, `RemoveGroupMember`, `ListGroupMembers`, `ListUserGroups` | Memberships. They live only in identity. |
 | `SetUserRoles`, `UpdateUser`, `SetUserDisabled` | Change a user's roles, profile (name, email, username) or disabled state. A disabled user can't sign in, and their personal tokens stop verifying. |
-| `ResolveUserContext` | The user, their group names and roles, keyed by login subject. The gateway builds each request's actor from it. |
+| `ResolveUserContext` | The user, their group names and roles, keyed by login subject, with the groups' ids in the same order (`group_ids`). The gateway builds each request's actor from it, so a rule can name a group by name or by id. |
 | `SetUserAdGroups`, `ListUsersByAdGroups`, `UserAdGroups` | Retired. Kept for wire compatibility: the first returns `Unimplemented`, the others return empty results. |
 
 Groups live only in identity, managed in the Sneakers admin console. Group names are unique
@@ -82,7 +82,7 @@ Every verify RPC answers a plain `ok=false` for any failure, without saying why.
 | `CreateServiceAccount`, `ListServiceAccounts`, `DisableServiceAccount` | Non-human principals. Disabling one stops its tokens and OIDC link from resolving. |
 | `MintApiToken`, `ListApiTokens`, `RevokeApiToken`, `VerifyApiToken` | Opaque bearer tokens for a service account, with an optional expiry and a scope of groups. The token value is returned once, at mint; only its SHA-256 hash is stored. |
 | `LinkOidcClient`, `UnlinkOidcClient`, `ResolveServiceAccountByOidc` | Bind an OAuth2 client (issuer and client id) to a service account, with an allowed-groups bound. A client's groups are its token's scope intersected with that bound; an empty bound grants nothing. |
-| `MintUserToken`, `ListUserTokens`, `RevokeUserToken`, `VerifyUserToken` | Personal tokens (prefix `snk_u_`). They prove which user is calling and carry no scope, so the user's current groups apply on every call. |
+| `MintUserToken`, `ListUserTokens`, `RevokeUserToken`, `VerifyUserToken` | Personal tokens (prefix `snk_u_`). They prove which user is calling and carry no scope, so the user's current groups apply on every call; `VerifyUserToken` returns their names and ids, pair for pair. |
 
 Scopes and allowed groups name groups by id, by exact name, or by a slug (the name lowercased, with
 spaces turned into `-`). They are stored as group ids, so a rename never moves a grant to another

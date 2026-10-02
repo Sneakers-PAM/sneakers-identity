@@ -2662,10 +2662,13 @@ func (x *ResolveUserContextRequest) GetSubject() string {
 }
 
 type ResolveUserContextResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	User          *User                  `protobuf:"bytes,1,opt,name=user,proto3" json:"user,omitempty"`
-	GroupNames    []string               `protobuf:"bytes,2,rep,name=group_names,json=groupNames,proto3" json:"group_names,omitempty"` // directory group names only
-	Roles         []string               `protobuf:"bytes,3,rep,name=roles,proto3" json:"roles,omitempty"`
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	User       *User                  `protobuf:"bytes,1,opt,name=user,proto3" json:"user,omitempty"`
+	GroupNames []string               `protobuf:"bytes,2,rep,name=group_names,json=groupNames,proto3" json:"group_names,omitempty"` // directory group names only
+	Roles      []string               `protobuf:"bytes,3,rep,name=roles,proto3" json:"roles,omitempty"`
+	// The ids of the same groups as group_names, in the same order, so a rule
+	// that names a group by id matches.
+	GroupIds      []string `protobuf:"bytes,4,rep,name=group_ids,json=groupIds,proto3" json:"group_ids,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2717,6 +2720,13 @@ func (x *ResolveUserContextResponse) GetGroupNames() []string {
 func (x *ResolveUserContextResponse) GetRoles() []string {
 	if x != nil {
 		return x.Roles
+	}
+	return nil
+}
+
+func (x *ResolveUserContextResponse) GetGroupIds() []string {
+	if x != nil {
+		return x.GroupIds
 	}
 	return nil
 }
@@ -5952,11 +5962,13 @@ func (x *VerifyUserTokenRequest) GetToken() string {
 }
 
 type VerifyUserTokenResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Valid         bool                   `protobuf:"varint,1,opt,name=valid,proto3" json:"valid,omitempty"`
-	TokenId       string                 `protobuf:"bytes,2,opt,name=token_id,json=tokenId,proto3" json:"token_id,omitempty"`
-	User          *User                  `protobuf:"bytes,3,opt,name=user,proto3" json:"user,omitempty"`
-	GroupNames    []string               `protobuf:"bytes,4,rep,name=group_names,json=groupNames,proto3" json:"group_names,omitempty"`
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	Valid      bool                   `protobuf:"varint,1,opt,name=valid,proto3" json:"valid,omitempty"`
+	TokenId    string                 `protobuf:"bytes,2,opt,name=token_id,json=tokenId,proto3" json:"token_id,omitempty"`
+	User       *User                  `protobuf:"bytes,3,opt,name=user,proto3" json:"user,omitempty"`
+	GroupNames []string               `protobuf:"bytes,4,rep,name=group_names,json=groupNames,proto3" json:"group_names,omitempty"`
+	// The ids of the same groups as group_names, in the same order.
+	GroupIds      []string `protobuf:"bytes,5,rep,name=group_ids,json=groupIds,proto3" json:"group_ids,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -6015,6 +6027,13 @@ func (x *VerifyUserTokenResponse) GetUser() *User {
 func (x *VerifyUserTokenResponse) GetGroupNames() []string {
 	if x != nil {
 		return x.GroupNames
+	}
+	return nil
+}
+
+func (x *VerifyUserTokenResponse) GetGroupIds() []string {
+	if x != nil {
+		return x.GroupIds
 	}
 	return nil
 }
@@ -6776,12 +6795,13 @@ const file_sneakers_identity_v1_identity_proto_rawDesc = "" +
 	"\x14UserAdGroupsResponse\x12\x14\n" +
 	"\x05names\x18\x01 \x03(\tR\x05names:\x02\x18\x01\";\n" +
 	"\x19ResolveUserContextRequest\x12\x18\n" +
-	"\asubject\x18\x02 \x01(\tR\asubjectJ\x04\b\x01\x10\x02\"\x83\x01\n" +
+	"\asubject\x18\x02 \x01(\tR\asubjectJ\x04\b\x01\x10\x02\"\xa0\x01\n" +
 	"\x1aResolveUserContextResponse\x12.\n" +
 	"\x04user\x18\x01 \x01(\v2\x1a.sneakers.identity.v1.UserR\x04user\x12\x1f\n" +
 	"\vgroup_names\x18\x02 \x03(\tR\n" +
 	"groupNames\x12\x14\n" +
-	"\x05roles\x18\x03 \x03(\tR\x05roles\",\n" +
+	"\x05roles\x18\x03 \x03(\tR\x05roles\x12\x1b\n" +
+	"\tgroup_ids\x18\x04 \x03(\tR\bgroupIds\",\n" +
 	"\x11EnrollTotpRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\"M\n" +
 	"\x12EnrollTotpResponse\x12\x16\n" +
@@ -6976,13 +6996,14 @@ const file_sneakers_identity_v1_identity_proto_rawDesc = "" +
 	"\x17RevokeUserTokenResponse\x123\n" +
 	"\x04meta\x18\x01 \x01(\v2\x1f.sneakers.identity.v1.UserTokenR\x04meta\".\n" +
 	"\x16VerifyUserTokenRequest\x12\x14\n" +
-	"\x05token\x18\x01 \x01(\tR\x05token\"\x9b\x01\n" +
+	"\x05token\x18\x01 \x01(\tR\x05token\"\xb8\x01\n" +
 	"\x17VerifyUserTokenResponse\x12\x14\n" +
 	"\x05valid\x18\x01 \x01(\bR\x05valid\x12\x19\n" +
 	"\btoken_id\x18\x02 \x01(\tR\atokenId\x12.\n" +
 	"\x04user\x18\x03 \x01(\v2\x1a.sneakers.identity.v1.UserR\x04user\x12\x1f\n" +
 	"\vgroup_names\x18\x04 \x03(\tR\n" +
-	"groupNames\"s\n" +
+	"groupNames\x12\x1b\n" +
+	"\tgroup_ids\x18\x05 \x03(\tR\bgroupIds\"s\n" +
 	"\x16SetUserDisabledRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x1a\n" +
 	"\bdisabled\x18\x02 \x01(\bR\bdisabled\x12$\n" +

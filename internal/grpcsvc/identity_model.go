@@ -487,41 +487,44 @@ func (s *Server) ResolveUserContext(ctx context.Context, req *identityv1.Resolve
 		}
 		return nil, status.Errorf(codes.Internal, "resolve user: %v", err)
 	}
-	groupNames, err := s.userGroupNames(ctx, u.GetId())
+	groupNames, groupIDs, err := s.userGroups(ctx, u.GetId())
 	if err != nil {
 		return nil, err
 	}
 	return &identityv1.ResolveUserContextResponse{
 		User:       u,
 		GroupNames: groupNames,
+		GroupIds:   groupIDs,
 		Roles:      u.GetRoles(),
 	}, nil
 }
 
 // --- helpers ---
 
-func (s *Server) userGroupNames(ctx context.Context, userID string) ([]string, error) {
+// userGroups returns the names and ids of the user's directory groups, pair
+// for pair, ordered by name.
+func (s *Server) userGroups(ctx context.Context, userID string) (names, ids []string, err error) {
 	rows, err := s.db.Query(ctx, `
-		SELECT g.name FROM groups g
+		SELECT g.name, g.id FROM groups g
 		  JOIN group_membership m ON m.group_id = g.id
 		 WHERE m.user_id = $1
-		 ORDER BY g.name`, userID)
+		 ORDER BY g.name, g.id`, userID)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "resolve group names: %v", err)
+		return nil, nil, status.Errorf(codes.Internal, "resolve group names: %v", err)
 	}
 	defer rows.Close()
-	var groupNames []string
 	for rows.Next() {
-		var n string
-		if err := rows.Scan(&n); err != nil {
-			return nil, status.Errorf(codes.Internal, "scan group name: %v", err)
+		var n, id string
+		if err := rows.Scan(&n, &id); err != nil {
+			return nil, nil, status.Errorf(codes.Internal, "scan group name: %v", err)
 		}
-		groupNames = append(groupNames, n)
+		names = append(names, n)
+		ids = append(ids, id)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, status.Errorf(codes.Internal, "group names: %v", err)
+		return nil, nil, status.Errorf(codes.Internal, "group names: %v", err)
 	}
-	return groupNames, nil
+	return names, ids, nil
 }
 
 // prefixCols returns userCols with each column prefixed by the given table
