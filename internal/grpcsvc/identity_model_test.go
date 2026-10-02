@@ -32,7 +32,7 @@ func TestRetiredAdGroupRPCs(t *testing.T) {
 	ctx := context.Background()
 	s := New(nil)
 
-	_, err := s.SetUserAdGroups(ctx, &identityv1.SetUserAdGroupsRequest{UserId: "u1", Names: []string{"CN=Vault-Admins"}})
+	_, err := s.SetUserAdGroups(ctx, &identityv1.SetUserAdGroupsRequest{UserId: "u1", Names: []string{"CN=Example-Admins"}})
 	if status.Code(err) != codes.Unimplemented {
 		t.Fatalf("SetUserAdGroups code = %v (err %v), want Unimplemented", status.Code(err), err)
 	}
@@ -41,7 +41,7 @@ func TestRetiredAdGroupRPCs(t *testing.T) {
 	if err != nil || len(uag.GetNames()) != 0 {
 		t.Fatalf("UserAdGroups = %v err %v, want empty", uag, err)
 	}
-	byAd, err := s.ListUsersByAdGroups(ctx, &identityv1.ListUsersByAdGroupsRequest{Names: []string{"CN=Vault-Admins"}})
+	byAd, err := s.ListUsersByAdGroups(ctx, &identityv1.ListUsersByAdGroupsRequest{Names: []string{"CN=Example-Admins"}})
 	if err != nil || len(byAd.GetUsers()) != 0 {
 		t.Fatalf("ListUsersByAdGroups = %v err %v, want empty", byAd, err)
 	}

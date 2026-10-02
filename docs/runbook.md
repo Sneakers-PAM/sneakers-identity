@@ -75,5 +75,5 @@ and stack go only to the log (at error level) and to the active trace span.
 
 The schema is one baseline migration, `migrations/0001_baseline.up.sql`, applied at every start
 (it is skipped once applied). Later changes are new numbered, forward-only files starting at
-`0002`. Installs of the earlier service move over by export and import, not by migrating. Back the
-database up like any other system of record.
+`0002`. Installs from another system move over with sneakers-migrate (export and import), not by
+migrating. Back the database up like any other system of record.

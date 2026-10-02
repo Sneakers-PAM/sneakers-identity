@@ -126,7 +126,7 @@ func TestPGResolveUserContextDirectoryOnly(t *testing.T) {
 		}
 	}
 	// The retired claim-sync write path must not be able to add groups.
-	if _, err := s.SetUserAdGroups(ctx, &identityv1.SetUserAdGroupsRequest{UserId: id, Names: []string{"CN=Vault-Admins"}}); status.Code(err) != codes.Unimplemented {
+	if _, err := s.SetUserAdGroups(ctx, &identityv1.SetUserAdGroupsRequest{UserId: id, Names: []string{"CN=Example-Admins"}}); status.Code(err) != codes.Unimplemented {
 		t.Fatalf("SetUserAdGroups code = %v (err %v), want Unimplemented", status.Code(err), err)
 	}
 

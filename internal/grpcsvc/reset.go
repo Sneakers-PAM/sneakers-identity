@@ -14,7 +14,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// Self-service password reset. "Our login only, never Keycloak": identity
+// Self-service password reset. Identity's own login, never Keycloak: identity
 // mints/emails/verifies a reset code, then sets the new password in lldap (which
 // Keycloak federates, so the lldap password IS the login password). Never routes
 // through Keycloak admin. Keyed by email since the user is unauthenticated.

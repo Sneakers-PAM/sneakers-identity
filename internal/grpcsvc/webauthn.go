@@ -24,8 +24,8 @@ import (
 // Passkey / WebAuthn. Identity is the Relying Party (go-webauthn). Options +
 // credential payloads cross the wire as opaque JSON strings. Challenge state
 // (go-webauthn SessionData) persists single-use in webauthn_sessions between a
-// begin and its finish; credentials live in user_webauthn_credentials. "Our
-// login only, never Keycloak" — this is a first-class identity factor.
+// begin and its finish; credentials live in user_webauthn_credentials. This is
+// identity's own login, never Keycloak: a first-class identity factor.
 
 const (
 	webauthnSessionTTL  = 5 * time.Minute
