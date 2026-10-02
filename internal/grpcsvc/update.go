@@ -11,6 +11,7 @@ import (
 
 	postgres "github.com/Bugs5382/go-postgres"
 	identityv1 "github.com/Sneakers-PAM/sneakers-identity/gen/go/sneakers/identity/v1"
+	"github.com/Sneakers-PAM/sneakers-identity/internal/audit"
 	"github.com/jackc/pgx/v5/pgconn"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -29,10 +30,32 @@ func (s *Server) UpdateUser(ctx context.Context, req *identityv1.UpdateUserReque
 	if err != nil {
 		return nil, err
 	}
+	var resp *identityv1.UpdateUserResponse
 	if in.usernameChanged {
-		return s.updateUserWithRename(ctx, cur, in)
+		resp, err = s.updateUserWithRename(ctx, cur, in)
+	} else {
+		resp, err = s.updateUserProfile(ctx, cur, in)
 	}
-	return s.updateUserProfile(ctx, cur, in)
+	if err != nil {
+		return nil, err
+	}
+	var changed []string
+	if in.name != cur.GetName() {
+		changed = append(changed, "name")
+	}
+	if in.email != cur.GetEmail() {
+		changed = append(changed, "email")
+	}
+	if in.usernameChanged {
+		changed = append(changed, "username")
+	}
+	if len(changed) > 0 {
+		s.record(ctx, audit.Event{
+			Action: audit.ActionUserUpdate, ActorUserID: actorOr(req.GetActingUserId(), ""), Subject: in.id,
+			Attributes: map[string]string{"changed": joinSorted(changed)},
+		})
+	}
+	return resp, nil
 }
 
 // updateUserInput holds the trimmed, validated inputs for UpdateUser.

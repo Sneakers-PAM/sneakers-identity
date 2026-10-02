@@ -64,3 +64,34 @@ Every verify RPC answers a plain `ok=false` for any failure, without saying why.
 Scopes and allowed groups name groups by id, by exact name, or by a slug (the name lowercased, with
 spaces turned into `-`). They are stored as group ids, so a rename never moves a grant to another
 group. A slug two groups share, or a name two groups share, grants nothing.
+
+## Audit events
+
+When `AUDIT_ADDR` is set, identity records each event below in the audit service's tamper-evident
+tier once the change is made. A failed send is logged at `error` and never fails the change. An
+event holds ids, kinds and outcomes only: never a password, code, TOTP secret or token value.
+
+| Action | Recorded by | Subject | Attributes |
+|---|---|---|---|
+| `auth.signin` | `AdoptOrProvisionFederatedUser`: the password step Kratos accepted | user | `step`, `result` (`existing`, `adopted` or `provisioned`), `outcome` |
+| `auth.password_reset` | `ConfirmPasswordReset` for a known email, right or wrong code | user | `outcome` |
+| `mfa.verify` | `VerifyTotp`, `VerifyEmailOtp`, `WebauthnAssertFinish`, at sign-in or at a step-up | user | `factor`, `outcome`, `purpose` (email codes) |
+| `mfa.enroll` | `ConfirmTotp` (first confirmation), `WebauthnRegisterFinish` | user | `factor`, `credential_id` (passkeys) |
+| `mfa.remove` | `DisableTotp`, `RemoveFactor`, `RemoveWebauthnCredential`, when a factor was removed | user | `factor`, `credential_id` (passkeys) |
+| `user.create` | `CreateLocalUser`, `PreCreateLocalUser`, `BootstrapRoot`, and a first sign-in that provisions a user | user | `source` (`local`, `precreate`, `bootstrap` or `signin`), `username`, `roles`, `root` |
+| `user.update` | `UpdateUser`, when a field changed | user | `changed` (`email`, `name`, `username`) |
+| `user.roles.set` | `SetUserRoles` | user | `roles`, `added`, `removed` |
+| `user.disable`, `user.enable` | `SetUserDisabled` | user | |
+| `group.create` | `CreateGroup` | group | `name` |
+| `group.member.add`, `group.member.remove` | `AddGroupMember`, `RemoveGroupMember`, when membership changed | user (the group is the event's group) | `user_id`, `group_id` |
+| `service_account.create`, `service_account.disable` | `CreateServiceAccount`, `DisableServiceAccount` | service account | `name` |
+| `service_account.oidc.link`, `service_account.oidc.unlink` | `LinkOidcClient`, `UnlinkOidcClient` | service account | `oidc_issuer`, `oidc_subject`, `allowed_groups` |
+| `api_token.mint`, `api_token.revoke` | `MintApiToken`, `RevokeApiToken` | token id | `service_account_id`, `scope`, `expires_at_unix` |
+| `user_token.mint`, `user_token.revoke` | `MintUserToken`, `RevokeUserToken` | token id | `user_id`, `label`, `client_name`, `expires_at_unix` |
+
+The actor is the request's `acting_user_id` (or `created_by` and `acting_admin` where the request
+already had those): the signed-in user the gateway acts for. When it is empty, a user's own change
+(a second factor, a personal token, a sign-in) names that user, and an administrative change is
+recorded with no actor. Role, list and lookup values come back sorted and comma-separated.
+
+A password Kratos rejects never reaches identity, so the gateway records that failed sign-in.

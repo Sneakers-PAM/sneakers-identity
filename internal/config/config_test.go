@@ -30,3 +30,19 @@ func TestLoadMissingRequired(t *testing.T) {
 		t.Fatal("expected error for missing DATABASE_DSN")
 	}
 }
+
+func TestLoadAuditAddr(t *testing.T) {
+	t.Setenv("DATABASE_DSN", "postgres://x")
+	t.Setenv("AUDIT_ADDR", "")
+	c, err := Load()
+	if err != nil {
+		t.Fatalf("unexpected err: %v", err)
+	}
+	if c.AuditAddr != "" {
+		t.Fatalf("AuditAddr unset got %q, want empty (audit off)", c.AuditAddr)
+	}
+	t.Setenv("AUDIT_ADDR", "sneakers-audit:9194")
+	if c, _ = Load(); c.AuditAddr != "sneakers-audit:9194" {
+		t.Fatalf("AuditAddr got %q", c.AuditAddr)
+	}
+}

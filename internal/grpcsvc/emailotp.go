@@ -135,6 +135,7 @@ func (s *Server) VerifyEmailOtp(ctx context.Context, req *identityv1.VerifyEmail
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "verify email otp: %v", err)
 	}
+	s.recordMfaVerify(ctx, req.GetUserId(), factorKindEmail, purpose, ok)
 	return &identityv1.VerifyEmailOtpResponse{Ok: ok}, nil
 }
 
@@ -198,6 +199,7 @@ func (s *Server) RemoveFactor(ctx context.Context, req *identityv1.RemoveFactorR
 		if tag.RowsAffected() == 0 {
 			return nil, status.Error(codes.NotFound, "no totp enrollment to remove")
 		}
+		s.recordMfaRemove(ctx, req.GetActingUserId(), req.GetUserId(), factorKindTotp, nil)
 		return &identityv1.RemoveFactorResponse{}, nil
 	case factorKindEmail:
 		return nil, status.Error(codes.FailedPrecondition, "the email factor is implicit and cannot be removed")

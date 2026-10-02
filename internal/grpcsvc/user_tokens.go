@@ -6,12 +6,14 @@ package grpcsvc
 import (
 	"context"
 	"errors"
+	"strconv"
 	"strings"
 	"time"
 
 	log "github.com/Bugs5382/go-log"
 	postgres "github.com/Bugs5382/go-postgres"
 	identityv1 "github.com/Sneakers-PAM/sneakers-identity/gen/go/sneakers/identity/v1"
+	"github.com/Sneakers-PAM/sneakers-identity/internal/audit"
 	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -74,6 +76,15 @@ func (s *Server) MintUserToken(ctx context.Context, req *identityv1.MintUserToke
 	}
 	lg := s.lg(ctx)
 	lg.Info("user token minted", log.F("token_id", meta.GetId()), log.F("user_id", userID))
+	s.record(ctx, audit.Event{
+		Action: audit.ActionUserTokenMint, ActorUserID: userID, Subject: meta.GetId(),
+		Attributes: map[string]string{
+			"user_id":         userID,
+			"label":           meta.GetLabel(),
+			"client_name":     meta.GetClientName(),
+			"expires_at_unix": strconv.FormatInt(meta.GetExpiresAtUnix(), 10),
+		},
+	})
 	return &identityv1.MintUserTokenResponse{Token: token, Meta: meta}, nil
 }
 
@@ -110,6 +121,10 @@ func (s *Server) RevokeUserToken(ctx context.Context, req *identityv1.RevokeUser
 	}
 	lg := s.lg(ctx)
 	lg.Info("user token revoked", log.F("token_id", meta.GetId()), log.F("user_id", meta.GetUserId()))
+	s.record(ctx, audit.Event{
+		Action: audit.ActionUserTokenRevoke, ActorUserID: actorOr(req.GetActingUserId(), meta.GetUserId()), Subject: meta.GetId(),
+		Attributes: map[string]string{"user_id": meta.GetUserId()},
+	})
 	return &identityv1.RevokeUserTokenResponse{Meta: meta}, nil
 }
 
@@ -157,5 +172,10 @@ func (s *Server) SetUserDisabled(ctx context.Context, req *identityv1.SetUserDis
 	}
 	lg := s.lg(ctx)
 	lg.Info("user disabled state changed", log.F("user_id", u.GetId()), log.F("disabled", req.GetDisabled()))
+	action := audit.ActionUserEnable
+	if req.GetDisabled() {
+		action = audit.ActionUserDisable
+	}
+	s.record(ctx, audit.Event{Action: action, ActorUserID: actorOr(req.GetActingUserId(), ""), Subject: u.GetId()})
 	return &identityv1.SetUserDisabledResponse{User: u}, nil
 }

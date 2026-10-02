@@ -525,6 +525,7 @@ func (x *GetGroupResponse) GetGroup() *Group {
 type CreateGroupRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	ActingUserId  string                 `protobuf:"bytes,2,opt,name=acting_user_id,json=actingUserId,proto3" json:"acting_user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -562,6 +563,13 @@ func (*CreateGroupRequest) Descriptor() ([]byte, []int) {
 func (x *CreateGroupRequest) GetName() string {
 	if x != nil {
 		return x.Name
+	}
+	return ""
+}
+
+func (x *CreateGroupRequest) GetActingUserId() string {
+	if x != nil {
+		return x.ActingUserId
 	}
 	return ""
 }
@@ -857,6 +865,7 @@ type PreCreateLocalUserRequest struct {
 	Email         string                 `protobuf:"bytes,1,opt,name=email,proto3" json:"email,omitempty"`
 	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
 	Roles         []string               `protobuf:"bytes,3,rep,name=roles,proto3" json:"roles,omitempty"`
+	ActingUserId  string                 `protobuf:"bytes,4,opt,name=acting_user_id,json=actingUserId,proto3" json:"acting_user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -910,6 +919,13 @@ func (x *PreCreateLocalUserRequest) GetRoles() []string {
 		return x.Roles
 	}
 	return nil
+}
+
+func (x *PreCreateLocalUserRequest) GetActingUserId() string {
+	if x != nil {
+		return x.ActingUserId
+	}
+	return ""
 }
 
 type PreCreateLocalUserResponse struct {
@@ -966,6 +982,7 @@ type CreateLocalUserRequest struct {
 	Email         string                 `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
 	Name          string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
 	Password      string                 `protobuf:"bytes,4,opt,name=password,proto3" json:"password,omitempty"`
+	ActingUserId  string                 `protobuf:"bytes,5,opt,name=acting_user_id,json=actingUserId,proto3" json:"acting_user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1028,6 +1045,13 @@ func (x *CreateLocalUserRequest) GetPassword() string {
 	return ""
 }
 
+func (x *CreateLocalUserRequest) GetActingUserId() string {
+	if x != nil {
+		return x.ActingUserId
+	}
+	return ""
+}
+
 type CreateLocalUserResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	User          *User                  `protobuf:"bytes,1,opt,name=user,proto3" json:"user,omitempty"`
@@ -1079,6 +1103,7 @@ type SetUserRolesRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	Roles         []string               `protobuf:"bytes,2,rep,name=roles,proto3" json:"roles,omitempty"`
+	ActingUserId  string                 `protobuf:"bytes,3,opt,name=acting_user_id,json=actingUserId,proto3" json:"acting_user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1125,6 +1150,13 @@ func (x *SetUserRolesRequest) GetRoles() []string {
 		return x.Roles
 	}
 	return nil
+}
+
+func (x *SetUserRolesRequest) GetActingUserId() string {
+	if x != nil {
+		return x.ActingUserId
+	}
+	return ""
 }
 
 type SetUserRolesResponse struct {
@@ -1184,6 +1216,7 @@ type UpdateUserRequest struct {
 	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
 	Email         string                 `protobuf:"bytes,3,opt,name=email,proto3" json:"email,omitempty"`
 	Username      string                 `protobuf:"bytes,4,opt,name=username,proto3" json:"username,omitempty"`
+	ActingUserId  string                 `protobuf:"bytes,5,opt,name=acting_user_id,json=actingUserId,proto3" json:"acting_user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1242,6 +1275,13 @@ func (x *UpdateUserRequest) GetEmail() string {
 func (x *UpdateUserRequest) GetUsername() string {
 	if x != nil {
 		return x.Username
+	}
+	return ""
+}
+
+func (x *UpdateUserRequest) GetActingUserId() string {
+	if x != nil {
+		return x.ActingUserId
 	}
 	return ""
 }
@@ -1895,6 +1935,7 @@ type AddGroupMemberRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	GroupId       string                 `protobuf:"bytes,2,opt,name=group_id,json=groupId,proto3" json:"group_id,omitempty"`
+	ActingUserId  string                 `protobuf:"bytes,3,opt,name=acting_user_id,json=actingUserId,proto3" json:"acting_user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1939,6 +1980,13 @@ func (x *AddGroupMemberRequest) GetUserId() string {
 func (x *AddGroupMemberRequest) GetGroupId() string {
 	if x != nil {
 		return x.GroupId
+	}
+	return ""
+}
+
+func (x *AddGroupMemberRequest) GetActingUserId() string {
+	if x != nil {
+		return x.ActingUserId
 	}
 	return ""
 }
@@ -1999,6 +2047,7 @@ type RemoveGroupMemberRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	GroupId       string                 `protobuf:"bytes,2,opt,name=group_id,json=groupId,proto3" json:"group_id,omitempty"`
+	ActingUserId  string                 `protobuf:"bytes,3,opt,name=acting_user_id,json=actingUserId,proto3" json:"acting_user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2043,6 +2092,13 @@ func (x *RemoveGroupMemberRequest) GetUserId() string {
 func (x *RemoveGroupMemberRequest) GetGroupId() string {
 	if x != nil {
 		return x.GroupId
+	}
+	return ""
+}
+
+func (x *RemoveGroupMemberRequest) GetActingUserId() string {
+	if x != nil {
+		return x.ActingUserId
 	}
 	return ""
 }
@@ -3044,6 +3100,7 @@ func (x *GetMfaStatusResponse) GetEnrolled() bool {
 type DisableTotpRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	ActingUserId  string                 `protobuf:"bytes,2,opt,name=acting_user_id,json=actingUserId,proto3" json:"acting_user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3081,6 +3138,13 @@ func (*DisableTotpRequest) Descriptor() ([]byte, []int) {
 func (x *DisableTotpRequest) GetUserId() string {
 	if x != nil {
 		return x.UserId
+	}
+	return ""
+}
+
+func (x *DisableTotpRequest) GetActingUserId() string {
+	if x != nil {
+		return x.ActingUserId
 	}
 	return ""
 }
@@ -4271,6 +4335,7 @@ type RemoveWebauthnCredentialRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	CredentialId  string                 `protobuf:"bytes,2,opt,name=credential_id,json=credentialId,proto3" json:"credential_id,omitempty"`
+	ActingUserId  string                 `protobuf:"bytes,3,opt,name=acting_user_id,json=actingUserId,proto3" json:"acting_user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -4315,6 +4380,13 @@ func (x *RemoveWebauthnCredentialRequest) GetUserId() string {
 func (x *RemoveWebauthnCredentialRequest) GetCredentialId() string {
 	if x != nil {
 		return x.CredentialId
+	}
+	return ""
+}
+
+func (x *RemoveWebauthnCredentialRequest) GetActingUserId() string {
+	if x != nil {
+		return x.ActingUserId
 	}
 	return ""
 }
@@ -4509,6 +4581,7 @@ type RemoveFactorRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	Kind          string                 `protobuf:"bytes,2,opt,name=kind,proto3" json:"kind,omitempty"`
+	ActingUserId  string                 `protobuf:"bytes,3,opt,name=acting_user_id,json=actingUserId,proto3" json:"acting_user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -4553,6 +4626,13 @@ func (x *RemoveFactorRequest) GetUserId() string {
 func (x *RemoveFactorRequest) GetKind() string {
 	if x != nil {
 		return x.Kind
+	}
+	return ""
+}
+
+func (x *RemoveFactorRequest) GetActingUserId() string {
+	if x != nil {
+		return x.ActingUserId
 	}
 	return ""
 }
@@ -5003,6 +5083,7 @@ func (x *ListServiceAccountsResponse) GetServiceAccounts() []*ServiceAccount {
 type DisableServiceAccountRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	ActingUserId  string                 `protobuf:"bytes,2,opt,name=acting_user_id,json=actingUserId,proto3" json:"acting_user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -5040,6 +5121,13 @@ func (*DisableServiceAccountRequest) Descriptor() ([]byte, []int) {
 func (x *DisableServiceAccountRequest) GetId() string {
 	if x != nil {
 		return x.Id
+	}
+	return ""
+}
+
+func (x *DisableServiceAccountRequest) GetActingUserId() string {
+	if x != nil {
+		return x.ActingUserId
 	}
 	return ""
 }
@@ -5304,6 +5392,7 @@ func (x *ListApiTokensResponse) GetTokens() []*ApiToken {
 type RevokeApiTokenRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	ActingUserId  string                 `protobuf:"bytes,2,opt,name=acting_user_id,json=actingUserId,proto3" json:"acting_user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -5341,6 +5430,13 @@ func (*RevokeApiTokenRequest) Descriptor() ([]byte, []int) {
 func (x *RevokeApiTokenRequest) GetId() string {
 	if x != nil {
 		return x.Id
+	}
+	return ""
+}
+
+func (x *RevokeApiTokenRequest) GetActingUserId() string {
+	if x != nil {
+		return x.ActingUserId
 	}
 	return ""
 }
@@ -5706,6 +5802,7 @@ type RevokeUserTokenRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	UserId        string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	ActingUserId  string                 `protobuf:"bytes,3,opt,name=acting_user_id,json=actingUserId,proto3" json:"acting_user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -5750,6 +5847,13 @@ func (x *RevokeUserTokenRequest) GetId() string {
 func (x *RevokeUserTokenRequest) GetUserId() string {
 	if x != nil {
 		return x.UserId
+	}
+	return ""
+}
+
+func (x *RevokeUserTokenRequest) GetActingUserId() string {
+	if x != nil {
+		return x.ActingUserId
 	}
 	return ""
 }
@@ -5916,6 +6020,7 @@ type SetUserDisabledRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	Disabled      bool                   `protobuf:"varint,2,opt,name=disabled,proto3" json:"disabled,omitempty"`
+	ActingUserId  string                 `protobuf:"bytes,3,opt,name=acting_user_id,json=actingUserId,proto3" json:"acting_user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -5962,6 +6067,13 @@ func (x *SetUserDisabledRequest) GetDisabled() bool {
 		return x.Disabled
 	}
 	return false
+}
+
+func (x *SetUserDisabledRequest) GetActingUserId() string {
+	if x != nil {
+		return x.ActingUserId
+	}
+	return ""
 }
 
 type SetUserDisabledResponse struct {
@@ -6548,9 +6660,10 @@ const file_sneakers_identity_v1_identity_proto_rawDesc = "" +
 	"\x0fGetGroupRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"E\n" +
 	"\x10GetGroupResponse\x121\n" +
-	"\x05group\x18\x01 \x01(\v2\x1b.sneakers.identity.v1.GroupR\x05group\"(\n" +
+	"\x05group\x18\x01 \x01(\v2\x1b.sneakers.identity.v1.GroupR\x05group\"N\n" +
 	"\x12CreateGroupRequest\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\"H\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12$\n" +
+	"\x0eacting_user_id\x18\x02 \x01(\tR\factingUserId\"H\n" +
 	"\x13CreateGroupResponse\x121\n" +
 	"\x05group\x18\x01 \x01(\v2\x1b.sneakers.identity.v1.GroupR\x05group\"@\n" +
 	"\x12SearchUsersRequest\x12\x14\n" +
@@ -6564,30 +6677,34 @@ const file_sneakers_identity_v1_identity_proto_rawDesc = "" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\"T\n" +
 	"\x19ResolveUserLabelsResponse\x127\n" +
-	"\x06labels\x18\x01 \x03(\v2\x1f.sneakers.identity.v1.UserLabelR\x06labels\"[\n" +
+	"\x06labels\x18\x01 \x03(\v2\x1f.sneakers.identity.v1.UserLabelR\x06labels\"\x81\x01\n" +
 	"\x19PreCreateLocalUserRequest\x12\x14\n" +
 	"\x05email\x18\x01 \x01(\tR\x05email\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x14\n" +
-	"\x05roles\x18\x03 \x03(\tR\x05roles\"L\n" +
+	"\x05roles\x18\x03 \x03(\tR\x05roles\x12$\n" +
+	"\x0eacting_user_id\x18\x04 \x01(\tR\factingUserId\"L\n" +
 	"\x1aPreCreateLocalUserResponse\x12.\n" +
-	"\x04user\x18\x01 \x01(\v2\x1a.sneakers.identity.v1.UserR\x04user\"z\n" +
+	"\x04user\x18\x01 \x01(\v2\x1a.sneakers.identity.v1.UserR\x04user\"\xa0\x01\n" +
 	"\x16CreateLocalUserRequest\x12\x1a\n" +
 	"\busername\x18\x01 \x01(\tR\busername\x12\x14\n" +
 	"\x05email\x18\x02 \x01(\tR\x05email\x12\x12\n" +
 	"\x04name\x18\x03 \x01(\tR\x04name\x12\x1a\n" +
-	"\bpassword\x18\x04 \x01(\tR\bpassword\"I\n" +
+	"\bpassword\x18\x04 \x01(\tR\bpassword\x12$\n" +
+	"\x0eacting_user_id\x18\x05 \x01(\tR\factingUserId\"I\n" +
 	"\x17CreateLocalUserResponse\x12.\n" +
-	"\x04user\x18\x01 \x01(\v2\x1a.sneakers.identity.v1.UserR\x04user\"D\n" +
+	"\x04user\x18\x01 \x01(\v2\x1a.sneakers.identity.v1.UserR\x04user\"j\n" +
 	"\x13SetUserRolesRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x14\n" +
-	"\x05roles\x18\x02 \x03(\tR\x05roles\"F\n" +
+	"\x05roles\x18\x02 \x03(\tR\x05roles\x12$\n" +
+	"\x0eacting_user_id\x18\x03 \x01(\tR\factingUserId\"F\n" +
 	"\x14SetUserRolesResponse\x12.\n" +
-	"\x04user\x18\x01 \x01(\v2\x1a.sneakers.identity.v1.UserR\x04user\"r\n" +
+	"\x04user\x18\x01 \x01(\v2\x1a.sneakers.identity.v1.UserR\x04user\"\x98\x01\n" +
 	"\x11UpdateUserRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x14\n" +
 	"\x05email\x18\x03 \x01(\tR\x05email\x12\x1a\n" +
-	"\busername\x18\x04 \x01(\tR\busername\"D\n" +
+	"\busername\x18\x04 \x01(\tR\busername\x12$\n" +
+	"\x0eacting_user_id\x18\x05 \x01(\tR\factingUserId\"D\n" +
 	"\x12UpdateUserResponse\x12.\n" +
 	"\x04user\x18\x01 \x01(\v2\x1a.sneakers.identity.v1.UserR\x04user\"\x92\x01\n" +
 	"$AdoptOrProvisionFederatedUserRequest\x12\x14\n" +
@@ -6620,16 +6737,18 @@ const file_sneakers_identity_v1_identity_proto_rawDesc = "" +
 	"\bpassword\x18\x03 \x01(\tR\bpassword\x12\x12\n" +
 	"\x04name\x18\x04 \x01(\tR\x04name\"G\n" +
 	"\x15BootstrapRootResponse\x12.\n" +
-	"\x04user\x18\x01 \x01(\v2\x1a.sneakers.identity.v1.UserR\x04user\"K\n" +
+	"\x04user\x18\x01 \x01(\v2\x1a.sneakers.identity.v1.UserR\x04user\"q\n" +
 	"\x15AddGroupMemberRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x19\n" +
-	"\bgroup_id\x18\x02 \x01(\tR\agroupId\"L\n" +
+	"\bgroup_id\x18\x02 \x01(\tR\agroupId\x12$\n" +
+	"\x0eacting_user_id\x18\x03 \x01(\tR\factingUserId\"L\n" +
 	"\x16AddGroupMemberResponse\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x19\n" +
-	"\bgroup_id\x18\x02 \x01(\tR\agroupId\"N\n" +
+	"\bgroup_id\x18\x02 \x01(\tR\agroupId\"t\n" +
 	"\x18RemoveGroupMemberRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x19\n" +
-	"\bgroup_id\x18\x02 \x01(\tR\agroupId\"O\n" +
+	"\bgroup_id\x18\x02 \x01(\tR\agroupId\x12$\n" +
+	"\x0eacting_user_id\x18\x03 \x01(\tR\factingUserId\"O\n" +
 	"\x19RemoveGroupMemberResponse\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x19\n" +
 	"\bgroup_id\x18\x02 \x01(\tR\agroupId\"4\n" +
@@ -6678,9 +6797,10 @@ const file_sneakers_identity_v1_identity_proto_rawDesc = "" +
 	"\x13GetMfaStatusRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\"2\n" +
 	"\x14GetMfaStatusResponse\x12\x1a\n" +
-	"\benrolled\x18\x01 \x01(\bR\benrolled\"-\n" +
+	"\benrolled\x18\x01 \x01(\bR\benrolled\"S\n" +
 	"\x12DisableTotpRequest\x12\x17\n" +
-	"\auser_id\x18\x01 \x01(\tR\x06userId\"\x15\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\x12$\n" +
+	"\x0eacting_user_id\x18\x02 \x01(\tR\factingUserId\"\x15\n" +
 	"\x13DisableTotpResponse\"H\n" +
 	"\x13SendEmailOtpRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x18\n" +
@@ -6749,10 +6869,11 @@ const file_sneakers_identity_v1_identity_proto_rawDesc = "" +
 	"\x1eListWebauthnCredentialsRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\"m\n" +
 	"\x1fListWebauthnCredentialsResponse\x12J\n" +
-	"\vcredentials\x18\x01 \x03(\v2(.sneakers.identity.v1.WebauthnCredentialR\vcredentials\"_\n" +
+	"\vcredentials\x18\x01 \x03(\v2(.sneakers.identity.v1.WebauthnCredentialR\vcredentials\"\x85\x01\n" +
 	"\x1fRemoveWebauthnCredentialRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12#\n" +
-	"\rcredential_id\x18\x02 \x01(\tR\fcredentialId\"\"\n" +
+	"\rcredential_id\x18\x02 \x01(\tR\fcredentialId\x12$\n" +
+	"\x0eacting_user_id\x18\x03 \x01(\tR\factingUserId\"\"\n" +
 	" RemoveWebauthnCredentialResponse\"A\n" +
 	"\n" +
 	"UserFactor\x12\x12\n" +
@@ -6762,10 +6883,11 @@ const file_sneakers_identity_v1_identity_proto_rawDesc = "" +
 	"\x16ListUserFactorsRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\"U\n" +
 	"\x17ListUserFactorsResponse\x12:\n" +
-	"\afactors\x18\x01 \x03(\v2 .sneakers.identity.v1.UserFactorR\afactors\"B\n" +
+	"\afactors\x18\x01 \x03(\v2 .sneakers.identity.v1.UserFactorR\afactors\"h\n" +
 	"\x13RemoveFactorRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x12\n" +
-	"\x04kind\x18\x02 \x01(\tR\x04kind\"\x16\n" +
+	"\x04kind\x18\x02 \x01(\tR\x04kind\x12$\n" +
+	"\x0eacting_user_id\x18\x03 \x01(\tR\factingUserId\"\x16\n" +
 	"\x14RemoveFactorResponse\"\xad\x02\n" +
 	"\x0eServiceAccount\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
@@ -6797,9 +6919,10 @@ const file_sneakers_identity_v1_identity_proto_rawDesc = "" +
 	"\x0fservice_account\x18\x01 \x01(\v2$.sneakers.identity.v1.ServiceAccountR\x0eserviceAccount\"\x1c\n" +
 	"\x1aListServiceAccountsRequest\"n\n" +
 	"\x1bListServiceAccountsResponse\x12O\n" +
-	"\x10service_accounts\x18\x01 \x03(\v2$.sneakers.identity.v1.ServiceAccountR\x0fserviceAccounts\".\n" +
+	"\x10service_accounts\x18\x01 \x03(\v2$.sneakers.identity.v1.ServiceAccountR\x0fserviceAccounts\"T\n" +
 	"\x1cDisableServiceAccountRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"n\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12$\n" +
+	"\x0eacting_user_id\x18\x02 \x01(\tR\factingUserId\"n\n" +
 	"\x1dDisableServiceAccountResponse\x12M\n" +
 	"\x0fservice_account\x18\x01 \x01(\v2$.sneakers.identity.v1.ServiceAccountR\x0eserviceAccount\"\xa0\x01\n" +
 	"\x13MintApiTokenRequest\x12,\n" +
@@ -6814,9 +6937,10 @@ const file_sneakers_identity_v1_identity_proto_rawDesc = "" +
 	"\x14ListApiTokensRequest\x12,\n" +
 	"\x12service_account_id\x18\x01 \x01(\tR\x10serviceAccountId\"O\n" +
 	"\x15ListApiTokensResponse\x126\n" +
-	"\x06tokens\x18\x01 \x03(\v2\x1e.sneakers.identity.v1.ApiTokenR\x06tokens\"'\n" +
+	"\x06tokens\x18\x01 \x03(\v2\x1e.sneakers.identity.v1.ApiTokenR\x06tokens\"M\n" +
 	"\x15RevokeApiTokenRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"L\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12$\n" +
+	"\x0eacting_user_id\x18\x02 \x01(\tR\factingUserId\"L\n" +
 	"\x16RevokeApiTokenResponse\x122\n" +
 	"\x04meta\x18\x01 \x01(\v2\x1e.sneakers.identity.v1.ApiTokenR\x04meta\"\x8e\x02\n" +
 	"\tUserToken\x12\x0e\n" +
@@ -6841,10 +6965,11 @@ const file_sneakers_identity_v1_identity_proto_rawDesc = "" +
 	"\x15ListUserTokensRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\"Q\n" +
 	"\x16ListUserTokensResponse\x127\n" +
-	"\x06tokens\x18\x01 \x03(\v2\x1f.sneakers.identity.v1.UserTokenR\x06tokens\"A\n" +
+	"\x06tokens\x18\x01 \x03(\v2\x1f.sneakers.identity.v1.UserTokenR\x06tokens\"g\n" +
 	"\x16RevokeUserTokenRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
-	"\auser_id\x18\x02 \x01(\tR\x06userId\"N\n" +
+	"\auser_id\x18\x02 \x01(\tR\x06userId\x12$\n" +
+	"\x0eacting_user_id\x18\x03 \x01(\tR\factingUserId\"N\n" +
 	"\x17RevokeUserTokenResponse\x123\n" +
 	"\x04meta\x18\x01 \x01(\v2\x1f.sneakers.identity.v1.UserTokenR\x04meta\".\n" +
 	"\x16VerifyUserTokenRequest\x12\x14\n" +
@@ -6854,10 +6979,11 @@ const file_sneakers_identity_v1_identity_proto_rawDesc = "" +
 	"\btoken_id\x18\x02 \x01(\tR\atokenId\x12.\n" +
 	"\x04user\x18\x03 \x01(\v2\x1a.sneakers.identity.v1.UserR\x04user\x12\x1f\n" +
 	"\vgroup_names\x18\x04 \x03(\tR\n" +
-	"groupNames\"M\n" +
+	"groupNames\"s\n" +
 	"\x16SetUserDisabledRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x1a\n" +
-	"\bdisabled\x18\x02 \x01(\bR\bdisabled\"I\n" +
+	"\bdisabled\x18\x02 \x01(\bR\bdisabled\x12$\n" +
+	"\x0eacting_user_id\x18\x03 \x01(\tR\factingUserId\"I\n" +
 	"\x17SetUserDisabledResponse\x12.\n" +
 	"\x04user\x18\x01 \x01(\v2\x1a.sneakers.identity.v1.UserR\x04user\"-\n" +
 	"\x15VerifyApiTokenRequest\x12\x14\n" +

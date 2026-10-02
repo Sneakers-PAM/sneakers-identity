@@ -12,6 +12,7 @@ import (
 	log "github.com/Bugs5382/go-log"
 	postgres "github.com/Bugs5382/go-postgres"
 	identityv1 "github.com/Sneakers-PAM/sneakers-identity/gen/go/sneakers/identity/v1"
+	"github.com/Sneakers-PAM/sneakers-identity/internal/audit"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgconn"
 	"google.golang.org/grpc/codes"
@@ -64,6 +65,10 @@ func (s *Server) PreCreateLocalUser(ctx context.Context, req *identityv1.PreCrea
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "load created user: %v", err)
 	}
+	s.record(ctx, audit.Event{
+		Action: audit.ActionUserCreate, ActorUserID: actorOr(req.GetActingUserId(), ""), Subject: id,
+		Attributes: map[string]string{"source": "precreate", "roles": joinSorted(roles)},
+	})
 	return &identityv1.PreCreateLocalUserResponse{User: u}, nil
 }
 
@@ -115,6 +120,10 @@ func (s *Server) CreateLocalUser(ctx context.Context, req *identityv1.CreateLoca
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "load created user: %v", err)
 	}
+	s.record(ctx, audit.Event{
+		Action: audit.ActionUserCreate, ActorUserID: actorOr(req.GetActingUserId(), ""), Subject: id,
+		Attributes: map[string]string{"source": "local", "username": in.username},
+	})
 	// Email the new account a verification code (username + email in the body)
 	// so a misspelling is caught. Best-effort: never fail the create on a send error.
 	if verr := s.sendVerificationEmail(ctx, id); verr != nil {
@@ -172,17 +181,29 @@ func (s *Server) SetUserRoles(ctx context.Context, req *identityv1.SetUserRolesR
 	if roles == nil {
 		roles = []string{}
 	}
-	ct, err := s.db.Exec(ctx, `UPDATE users SET roles=$2 WHERE id=$1`, id, roles)
+	// The old set comes back from the same statement, so the recorded change
+	// is exactly the one this call made.
+	var before []string
+	err := s.db.QueryRow(ctx,
+		`UPDATE users u SET roles=$2
+		   FROM (SELECT id, roles FROM users WHERE id=$1 FOR UPDATE) old
+		  WHERE u.id = old.id
+		 RETURNING old.roles`, id, roles).Scan(&before)
 	if err != nil {
+		if errors.Is(err, postgres.ErrNoRows) {
+			return nil, status.Error(codes.NotFound, "user not found")
+		}
 		return nil, status.Errorf(codes.Internal, "set user roles: %v", err)
-	}
-	if ct.RowsAffected() == 0 {
-		return nil, status.Error(codes.NotFound, "user not found")
 	}
 	u, err := s.getUserByID(ctx, id)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "load user: %v", err)
 	}
+	added, removed := roleDiff(before, roles)
+	s.record(ctx, audit.Event{
+		Action: audit.ActionUserRolesSet, ActorUserID: actorOr(req.GetActingUserId(), ""), Subject: id,
+		Attributes: map[string]string{"roles": joinSorted(roles), "added": joinSorted(added), "removed": joinSorted(removed)},
+	})
 	return &identityv1.SetUserRolesResponse{User: u}, nil
 }
 
@@ -209,6 +230,7 @@ func (s *Server) AdoptOrProvisionFederatedUser(ctx context.Context, req *identit
 
 	// 1. Already adopted.
 	if u, err := s.getUserBySubject(ctx, sub); err == nil {
+		s.recordSignIn(ctx, u.GetId(), "existing")
 		return &identityv1.AdoptOrProvisionFederatedUserResponse{User: u}, nil
 	} else if !errors.Is(err, postgres.ErrNoRows) {
 		return nil, status.Errorf(codes.Internal, "lookup by subject: %v", err)
@@ -236,6 +258,7 @@ func (s *Server) AdoptOrProvisionFederatedUser(ctx context.Context, req *identit
 			if gerr != nil {
 				return nil, status.Errorf(codes.Internal, "load adopted user: %v", gerr)
 			}
+			s.recordSignIn(ctx, id, "adopted")
 			return &identityv1.AdoptOrProvisionFederatedUserResponse{User: u}, nil
 		case errors.Is(err, postgres.ErrNoRows):
 			// no adoptable row — fall through to provision
@@ -261,7 +284,26 @@ func (s *Server) AdoptOrProvisionFederatedUser(ctx context.Context, req *identit
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "load provisioned user: %v", err)
 	}
+	if newID == id {
+		s.record(ctx, audit.Event{
+			Action: audit.ActionUserCreate, ActorUserID: newID, Subject: newID,
+			Attributes: map[string]string{"source": "signin", "username": username},
+		})
+		s.recordSignIn(ctx, newID, "provisioned")
+	} else {
+		s.recordSignIn(ctx, newID, "existing")
+	}
 	return &identityv1.AdoptOrProvisionFederatedUserResponse{User: u}, nil
+}
+
+// recordSignIn records a completed first sign-in step: the gateway calls
+// AdoptOrProvisionFederatedUser once Kratos has accepted the password. A
+// rejected password never reaches identity, so the gateway records that one.
+func (s *Server) recordSignIn(ctx context.Context, userID, result string) {
+	s.record(ctx, audit.Event{
+		Action: audit.ActionSignIn, ActorUserID: userID, Subject: userID,
+		Attributes: map[string]string{"step": "password", "result": result, "outcome": audit.OutcomeOK},
+	})
 }
 
 // GetUserBySubject fetches a user by login subject; NotFound when unmapped.
@@ -295,10 +337,17 @@ func (s *Server) AddGroupMember(ctx context.Context, req *identityv1.AddGroupMem
 	if err := s.requireExists(ctx, `groups`, groupID, "group_id"); err != nil {
 		return nil, err
 	}
-	if _, err := s.db.Exec(ctx,
+	tag, err := s.db.Exec(ctx,
 		`INSERT INTO group_membership (user_id, group_id) VALUES ($1,$2) ON CONFLICT DO NOTHING`,
-		userID, groupID); err != nil {
+		userID, groupID)
+	if err != nil {
 		return nil, status.Errorf(codes.Internal, "add group member: %v", err)
+	}
+	if tag.RowsAffected() > 0 {
+		s.record(ctx, audit.Event{
+			Action: audit.ActionGroupMemberAdd, ActorUserID: actorOr(req.GetActingUserId(), ""), Subject: userID, GroupID: groupID,
+			Attributes: map[string]string{"user_id": userID, "group_id": groupID},
+		})
 	}
 	return &identityv1.AddGroupMemberResponse{UserId: userID, GroupId: groupID}, nil
 }
@@ -309,9 +358,16 @@ func (s *Server) RemoveGroupMember(ctx context.Context, req *identityv1.RemoveGr
 	if userID == "" || groupID == "" {
 		return nil, status.Error(codes.InvalidArgument, "user_id and group_id are required")
 	}
-	if _, err := s.db.Exec(ctx,
-		`DELETE FROM group_membership WHERE user_id=$1 AND group_id=$2`, userID, groupID); err != nil {
+	tag, err := s.db.Exec(ctx,
+		`DELETE FROM group_membership WHERE user_id=$1 AND group_id=$2`, userID, groupID)
+	if err != nil {
 		return nil, status.Errorf(codes.Internal, "remove group member: %v", err)
+	}
+	if tag.RowsAffected() > 0 {
+		s.record(ctx, audit.Event{
+			Action: audit.ActionGroupMemberRemove, ActorUserID: actorOr(req.GetActingUserId(), ""), Subject: userID, GroupID: groupID,
+			Attributes: map[string]string{"user_id": userID, "group_id": groupID},
+		})
 	}
 	return &identityv1.RemoveGroupMemberResponse{UserId: userID, GroupId: groupID}, nil
 }

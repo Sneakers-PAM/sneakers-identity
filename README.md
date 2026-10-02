@@ -12,6 +12,7 @@ the sign-in flow and asks identity who the user is and which factors they have.
 - 🧑‍🤝‍🧑 **Directory:** users, groups and memberships, with search and label lookups for the UI.
 - 🔐 **Second factors:** TOTP (secrets encrypted at rest), email codes and passkeys (WebAuthn).
 - 🤖 **Machine access:** service accounts with scoped, expiring API tokens and OIDC client links.
+- 📜 **Audit:** sign-ins, second-factor checks and every user, group, role, service-account and token change go to the audit service.
 - 🔑 **Credential directory:** sign-in uses Ory: Ory Kratos holds the passwords and identity provisions them. Ory Polis (SAML SSO) and Ory Hydra (machine OAuth) sit at the gateway.
 
 ## 🚀 Run it
@@ -47,6 +48,7 @@ task build    # go build ./...
 task test     # go test ./...
 task lint     # tests, gofmt check, golangci-lint and yamllint
 task license  # check the Apache-2.0 headers (golic)
+scripts/proto-generate.sh  # regenerate gen/, with the audit client pinned in proto-refs.env
 ```
 
 ## 📚 Where to look

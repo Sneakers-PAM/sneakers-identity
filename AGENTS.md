@@ -18,10 +18,13 @@ holds them.
 - `cmd/seed/` - dev demo data.
 - `internal/grpcsvc/` - the service, its Postgres queries and the tests (`*_pg_test.go` need
   Postgres).
+- `internal/audit/` - the events identity records and the audit-service client.
 - `internal/kratos/` - the Ory Kratos admin client; `internal/email/` - the SMTP
   sender; `internal/secrets/` - the at-rest cipher for TOTP secrets.
 - `internal/config/`, `internal/server/` - the env loader and the gRPC server bootstrap.
 - `proto/` - the API; `gen/go/` - the generated Go (committed, checked current in CI).
+  `gen/go/thirdparty/` holds the audit client stubs, generated from the sneakers-audit proto at
+  the commit pinned in `proto-refs.env` (pin-and-fetch, never a Go module import).
 - `migrations/` - the Postgres schema, forward only.
 - `test/kratos/` - the Kratos config the integration tests run against.
 - `docs/` - configuration, API and runbook.
@@ -33,7 +36,8 @@ holds them.
   `KRATOS_TEST_PUBLIC_URL` (a Kratos started from `test/kratos`) to run the integration tests
   (see README.md), otherwise they are skipped.
 - Lint: `task lint`, plus `buf lint` for the proto.
-- Generated code: `buf generate` with the plugin versions pinned in
+- Generated code: `scripts/proto-generate.sh` (fetches the pinned callee protos into the
+  git-ignored `.protos/`, then runs `buf generate`) with the plugin versions pinned in
   `.github/workflows/job-go-lang-ci.yaml`.
 - License headers: `task license` (golic, the Apache-2.0 SPDX header in `.golic.yaml`).
 
@@ -61,3 +65,6 @@ Follow the logging rules in `CLAUDE.md`. In short:
 - No real identifiers anywhere: fixtures use example.org, 192.0.2.0/24, 2001:db8::/32 and invented
   names.
 - A user's `subject` is their Ory Kratos identity id.
+- Every change to a user, group, role, factor, service account or token records an audit event
+  (`internal/grpcsvc/audit.go`, listed in `docs/api.md`). An event never carries a password,
+  code, secret or token value; a new mutating RPC records one too.

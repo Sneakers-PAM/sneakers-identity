@@ -14,6 +14,8 @@ import (
 	otel "github.com/Bugs5382/go-otel"
 	postgres "github.com/Bugs5382/go-postgres"
 	otelpg "github.com/Bugs5382/go-postgres/otel"
+	auditv1 "github.com/Sneakers-PAM/sneakers-identity/gen/go/thirdparty/audit/v1"
+	"github.com/Sneakers-PAM/sneakers-identity/internal/audit"
 	"github.com/Sneakers-PAM/sneakers-identity/internal/config"
 	"github.com/Sneakers-PAM/sneakers-identity/internal/email"
 	"github.com/Sneakers-PAM/sneakers-identity/internal/grpcsvc"
@@ -22,6 +24,9 @@ import (
 	"github.com/Sneakers-PAM/sneakers-identity/internal/server"
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 const serviceName = "identity"
@@ -140,6 +145,22 @@ func main() { //nolint:gocognit,gocyclo // wiring/bootstrap complexity
 	srv := grpcsvc.New(db).WithLogger(svcLog).WithCipher(cipher).WithEmail(sender, devEcho).
 		WithTotpIssuer(getOr("TOTP_ISSUER", "Sneakers")).WithWebauthn(wa).
 		WithKratos(kratos.NewAdmin(adminURL))
+
+	// Audit: sign-ins, second factors and every user, group, role, service
+	// account and token change are recorded in the audit service.
+	if cfg.AuditAddr != "" {
+		auditConn, err := grpc.NewClient(cfg.AuditAddr,
+			grpc.WithTransportCredentials(insecure.NewCredentials()),
+			grpc.WithStatsHandler(otelgrpc.NewClientHandler()))
+		if err != nil {
+			logger.Fatal().Err(err).Str("audit_addr", cfg.AuditAddr).Msg("dial audit")
+		}
+		defer func() { _ = auditConn.Close() }()
+		srv = srv.WithAudit(audit.NewClient(auditv1.NewAuditServiceClient(auditConn)))
+		logger.Info().Str("audit_addr", cfg.AuditAddr).Msg("audit: recording identity events")
+	} else {
+		logger.Warn().Msg("audit: disabled (AUDIT_ADDR unset); no identity events are recorded")
+	}
 	logger.Info().Str("kratos_admin_url", adminURL).Msg("user directory: kratos")
 
 	logger.Info().Str("port", cfg.GRPCPort).Msg("starting")
