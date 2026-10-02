@@ -16,6 +16,7 @@ import (
 	log "github.com/Bugs5382/go-log"
 	postgres "github.com/Bugs5382/go-postgres"
 	identityv1 "github.com/Sneakers-PAM/sneakers-identity/gen/go/sneakers/identity/v1"
+	"github.com/Sneakers-PAM/sneakers-identity/internal/audit"
 	"github.com/Sneakers-PAM/sneakers-identity/internal/email"
 	"github.com/Sneakers-PAM/sneakers-identity/internal/secrets"
 	"github.com/go-webauthn/webauthn/webauthn"
@@ -56,6 +57,8 @@ type Server struct {
 	// (WEBAUTHN_RP_ID unset/"-"): the ceremony RPCs return Unavailable, but
 	// list/remove (plain store reads) still work.
 	webauthn *webauthn.WebAuthn
+	// audit records identity's security events. nil = none recorded.
+	audit audit.Recorder
 }
 
 func New(db *postgres.DB) *Server {
@@ -201,7 +204,16 @@ func (s *Server) CreateGroup(ctx context.Context, req *identityv1.CreateGroupReq
 	if taken {
 		return nil, status.Error(codes.AlreadyExists, "a group with that name already exists")
 	}
-	return s.createIdentityGroup(ctx, name)
+	resp, err := s.createIdentityGroup(ctx, name)
+	if err != nil {
+		return nil, err
+	}
+	gid := resp.GetGroup().GetId()
+	s.record(ctx, audit.Event{
+		Action: audit.ActionGroupCreate, ActorUserID: actorOr(req.GetActingUserId(), ""), Subject: gid, GroupID: gid,
+		Attributes: map[string]string{"name": name},
+	})
+	return resp, nil
 }
 
 // SearchUsers backs the search-as-you-type user picker: substring match on

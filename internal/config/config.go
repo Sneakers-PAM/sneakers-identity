@@ -12,6 +12,8 @@ type Config struct {
 	DatabaseDSN  string
 	GRPCPort     string
 	OTLPEndpoint string
+	// AuditAddr is the audit service's gRPC address. Empty records no events.
+	AuditAddr string
 }
 
 func Load() (Config, error) {
@@ -19,6 +21,7 @@ func Load() (Config, error) {
 		DatabaseDSN:  os.Getenv("DATABASE_DSN"),
 		GRPCPort:     getOr("GRPC_PORT", "9090"),
 		OTLPEndpoint: getOr("OTEL_EXPORTER_OTLP_ENDPOINT", "localhost:4317"),
+		AuditAddr:    os.Getenv("AUDIT_ADDR"),
 	}
 	if c.DatabaseDSN == "" {
 		return c, fmt.Errorf("DATABASE_DSN is required")

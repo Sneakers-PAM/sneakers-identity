@@ -10,6 +10,13 @@ option go_package = "github.com/Sneakers-PAM/sneakers-identity/gen/go/sneakers/i
 // Identity: the directory of users and groups the vault's RBAC and the UI's
 // people pickers resolve against. Ory Kratos holds the credentials; identity
 // holds the users, groups and memberships.
+//
+// Audit: every change to a user, group, role, second factor, service account
+// or token, and every sign-in and second-factor check, is recorded in the
+// audit service. acting_user_id on a request is the signed-in user making the
+// change, set by the gateway; it becomes the event's actor. Where a request
+// has no acting_user_id, or leaves it empty, the actor is the user the request
+// names (user_id) for a user's own change, and empty otherwise.
 
 message User {
   string id = 1;
@@ -40,7 +47,7 @@ message GetGroupResponse { Group group = 1; }
 
 // CreateGroup creates a new directory group and returns it.
 // Admin-gated at the gateway. Mirrors the CreateLocalUser provisioning path.
-message CreateGroupRequest  { string name = 1; }
+message CreateGroupRequest  { string name = 1; string acting_user_id = 2; }
 message CreateGroupResponse { Group group = 1; }
 
 // Typeahead search over users (name/email substring, case-insensitive);
@@ -58,20 +65,20 @@ message ResolveUserLabelsResponse { repeated UserLabel labels = 1; }
 
 // PreCreateLocalUser inserts a local account up-front with an empty subject
 // (and the given email/name/roles); a later login adopts it by email match.
-message PreCreateLocalUserRequest  { string email = 1; string name = 2; repeated string roles = 3; }
+message PreCreateLocalUserRequest  { string email = 1; string name = 2; repeated string roles = 3; string acting_user_id = 4; }
 message PreCreateLocalUserResponse { User user = 1; }
 
 // CreateLocalUser fully provisions a loginable local account: it creates the
 // Kratos identity + sets the supplied password, then persists the local
 // identity row with the Kratos identity id as its subject.
 // Admin-gated.
-message CreateLocalUserRequest  { string username = 1; string email = 2; string name = 3; string password = 4; }
+message CreateLocalUserRequest  { string username = 1; string email = 2; string name = 3; string password = 4; string acting_user_id = 5; }
 message CreateLocalUserResponse { User user = 1; }
 
 // SetUserRoles replaces a user's role set (e.g. grant/revoke the "admin" role).
 // Admin-gated at the gateway. root's admin authority derives from is_root, so it
 // survives an empty role set. Returns the updated user.
-message SetUserRolesRequest  { string user_id = 1; repeated string roles = 2; }
+message SetUserRolesRequest  { string user_id = 1; repeated string roles = 2; string acting_user_id = 3; }
 message SetUserRolesResponse { User user = 1; }
 
 // UpdateUser edits a user's profile: display name, email, and username. Admin-
@@ -81,7 +88,7 @@ message SetUserRolesResponse { User user = 1; }
 // username change only updates the identity row; the Kratos identity keeps its
 // id and the row keeps its subject. Name/email edits update the Kratos traits.
 // The password is never disturbed. Returns the updated user.
-message UpdateUserRequest  { string user_id = 1; string name = 2; string email = 3; string username = 4; }
+message UpdateUserRequest  { string user_id = 1; string name = 2; string email = 3; string username = 4; string acting_user_id = 5; }
 message UpdateUserResponse { User user = 1; }
 
 // AdoptOrProvisionFederatedUser is the login path. Given the login subject
@@ -142,9 +149,9 @@ message BootstrapRootResponse { User user = 1; }
 
 // --- Group membership (identity is the source of truth) ---
 
-message AddGroupMemberRequest  { string user_id = 1; string group_id = 2; }
+message AddGroupMemberRequest  { string user_id = 1; string group_id = 2; string acting_user_id = 3; }
 message AddGroupMemberResponse { string user_id = 1; string group_id = 2; }
-message RemoveGroupMemberRequest  { string user_id = 1; string group_id = 2; }
+message RemoveGroupMemberRequest  { string user_id = 1; string group_id = 2; string acting_user_id = 3; }
 message RemoveGroupMemberResponse { string user_id = 1; string group_id = 2; }
 message ListGroupMembersRequest  { string group_id = 1; }
 message ListGroupMembersResponse { repeated User users = 1; }
@@ -226,7 +233,7 @@ message GetMfaStatusRequest  { string user_id = 1; }
 message GetMfaStatusResponse { bool enrolled = 1; }
 
 // DisableTotp removes the user's TOTP factor (pending or confirmed).
-message DisableTotpRequest  { string user_id = 1; }
+message DisableTotpRequest  { string user_id = 1; string acting_user_id = 2; }
 message DisableTotpResponse {}
 
 // --- MFA email OTP + generalized factor model ---
@@ -287,7 +294,7 @@ message WebauthnAssertFinishResponse  { bool ok = 1; }
 message WebauthnCredential { string id = 1; string label = 2; string created_at = 3; string last_used_at = 4; repeated string transports = 5; }
 message ListWebauthnCredentialsRequest  { string user_id = 1; }
 message ListWebauthnCredentialsResponse { repeated WebauthnCredential credentials = 1; }
-message RemoveWebauthnCredentialRequest  { string user_id = 1; string credential_id = 2; }
+message RemoveWebauthnCredentialRequest  { string user_id = 1; string credential_id = 2; string acting_user_id = 3; }
 message RemoveWebauthnCredentialResponse {}
 
 // UserFactor describes one second factor the user can satisfy.
@@ -308,7 +315,7 @@ message ListUserFactorsResponse { repeated UserFactor factors = 1; }
 // RemoveFactor deletes the user's credential for the given kind. "totp" removes
 // the TOTP enrollment; "email" is implicit (derived from the address) and
 // cannot be removed.
-message RemoveFactorRequest  { string user_id = 1; string kind = 2; }
+message RemoveFactorRequest  { string user_id = 1; string kind = 2; string acting_user_id = 3; }
 message RemoveFactorResponse {}
 
 // --- Governed machine access: service accounts + API tokens ---
@@ -362,7 +369,7 @@ message ListServiceAccountsResponse { repeated ServiceAccount service_accounts =
 
 // DisableServiceAccount is a soft-disable (no delete): tokens already minted
 // keep their own expiry/revocation state independently.
-message DisableServiceAccountRequest  { string id = 1; }
+message DisableServiceAccountRequest  { string id = 1; string acting_user_id = 2; }
 message DisableServiceAccountResponse { ServiceAccount service_account = 1; }
 
 // MintApiToken is the ONLY place a token value ever appears. expires_at_unix=0
@@ -384,7 +391,7 @@ message MintApiTokenResponse {
 message ListApiTokensRequest  { string service_account_id = 1; }
 message ListApiTokensResponse { repeated ApiToken tokens = 1; }
 
-message RevokeApiTokenRequest  { string id = 1; }
+message RevokeApiTokenRequest  { string id = 1; string acting_user_id = 2; }
 message RevokeApiTokenResponse { ApiToken meta = 1; }
 
 // A personal token proves which user is calling and nothing more: it carries
@@ -415,7 +422,7 @@ message ListUserTokensResponse { repeated UserToken tokens = 1; }
 
 // user_id must own the token, so a caller can only ever revoke tokens it has
 // already resolved to their owner.
-message RevokeUserTokenRequest  { string id = 1; string user_id = 2; }
+message RevokeUserTokenRequest  { string id = 1; string user_id = 2; string acting_user_id = 3; }
 message RevokeUserTokenResponse { UserToken meta = 1; }
 
 // valid=false does not say why (unknown, revoked, expired or disabled user).
@@ -428,7 +435,7 @@ message VerifyUserTokenResponse {
   repeated string group_names = 4;
 }
 
-message SetUserDisabledRequest  { string user_id = 1; bool disabled = 2; }
+message SetUserDisabledRequest  { string user_id = 1; bool disabled = 2; string acting_user_id = 3; }
 message SetUserDisabledResponse { User user = 1; }
 
 // VerifyApiToken is the gateway's machine-auth check: present the opaque

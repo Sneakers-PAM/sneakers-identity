@@ -5,6 +5,9 @@
 *.out
 coverage.*
 
+# callee protos fetched by scripts/proto-generate.sh
+/.protos/
+
 # local design notes - never committed
 .local/
 

@@ -10,6 +10,7 @@ import (
 
 	postgres "github.com/Bugs5382/go-postgres"
 	identityv1 "github.com/Sneakers-PAM/sneakers-identity/gen/go/sneakers/identity/v1"
+	"github.com/Sneakers-PAM/sneakers-identity/internal/audit"
 	"github.com/pquerna/otp/totp"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -155,6 +156,10 @@ func (s *Server) ConfirmTotp(ctx context.Context, req *identityv1.ConfirmTotpReq
 		`UPDATE user_totp SET confirmed_at=now(), updated_at=now() WHERE user_id=$1`, userID); err != nil {
 		return nil, status.Errorf(codes.Internal, "confirm totp: %v", err)
 	}
+	s.record(ctx, audit.Event{
+		Action: audit.ActionMfaEnroll, ActorUserID: userID, Subject: userID,
+		Attributes: map[string]string{"factor": factorKindTotp},
+	})
 	return &identityv1.ConfirmTotpResponse{}, nil
 }
 
@@ -180,18 +185,22 @@ func (s *Server) VerifyTotp(ctx context.Context, req *identityv1.VerifyTotpReque
 		Scan(&sealed, &confirmedAt)
 	if err != nil {
 		if errors.Is(err, postgres.ErrNoRows) {
+			s.recordMfaVerify(ctx, req.GetUserId(), factorKindTotp, "", false)
 			return &identityv1.VerifyTotpResponse{Ok: false}, nil
 		}
 		return nil, status.Errorf(codes.Internal, "load totp: %v", err)
 	}
 	if confirmedAt == nil {
+		s.recordMfaVerify(ctx, req.GetUserId(), factorKindTotp, "", false)
 		return &identityv1.VerifyTotpResponse{Ok: false}, nil
 	}
 	secret, err := s.cipher.Open(sealed)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "open totp secret: %v", err)
 	}
-	return &identityv1.VerifyTotpResponse{Ok: totp.Validate(req.GetCode(), secret)}, nil
+	ok := totp.Validate(req.GetCode(), secret)
+	s.recordMfaVerify(ctx, req.GetUserId(), factorKindTotp, "", ok)
+	return &identityv1.VerifyTotpResponse{Ok: ok}, nil
 }
 
 // GetMfaStatus reports whether the user has a CONFIRMED TOTP factor. It does not
@@ -221,8 +230,32 @@ func (s *Server) DisableTotp(ctx context.Context, req *identityv1.DisableTotpReq
 	if req.GetUserId() == "" {
 		return nil, status.Error(codes.InvalidArgument, "user_id is required")
 	}
-	if _, err := s.db.Exec(ctx, `DELETE FROM user_totp WHERE user_id=$1`, req.GetUserId()); err != nil {
+	tag, err := s.db.Exec(ctx, `DELETE FROM user_totp WHERE user_id=$1`, req.GetUserId())
+	if err != nil {
 		return nil, status.Errorf(codes.Internal, "disable totp: %v", err)
 	}
+	if tag.RowsAffected() > 0 {
+		s.recordMfaRemove(ctx, req.GetActingUserId(), req.GetUserId(), factorKindTotp, nil)
+	}
 	return &identityv1.DisableTotpResponse{}, nil
+}
+
+// recordMfaVerify records a second-factor check, at sign-in or at a step-up.
+// purpose is set for emailed codes only.
+func (s *Server) recordMfaVerify(ctx context.Context, userID, factor, purpose string, ok bool) {
+	attrs := map[string]string{"factor": factor, "outcome": outcome(ok)}
+	if purpose != "" {
+		attrs["purpose"] = purpose
+	}
+	s.record(ctx, audit.Event{Action: audit.ActionMfaVerify, ActorUserID: userID, Subject: userID, Attributes: attrs})
+}
+
+// recordMfaRemove records a removed second factor. The actor is the user
+// themselves unless the gateway names an admin removing it for them.
+func (s *Server) recordMfaRemove(ctx context.Context, acting, userID, factor string, extra map[string]string) {
+	attrs := map[string]string{"factor": factor}
+	for k, v := range extra {
+		attrs[k] = v
+	}
+	s.record(ctx, audit.Event{Action: audit.ActionMfaRemove, ActorUserID: actorOr(acting, userID), Subject: userID, Attributes: attrs})
 }

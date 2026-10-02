@@ -15,6 +15,12 @@ off and their RPCs answer `Unavailable`; the service still starts.
 | `LOG_LEVEL` | `info` | `trace`, `debug`, `info`, `warn`, `error`, `fatal`, `panic` or `disabled`. |
 | `LOG_FORMAT` | `json` | `json`, `console` (or `pretty`), or `both` (JSON on stdout, console on stderr). |
 
+## Audit
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `AUDIT_ADDR` | (unset) | The audit service's gRPC address, for example `sneakers-audit:9194`. Identity records sign-ins, second-factor checks and every user, group, role, service-account and token change there (see [api.md](api.md#audit-events)). When unset no events are recorded, and the service logs a warning at start. |
+
 ## Credential directory
 
 Sign-in uses Ory: Ory Kratos holds the passwords, never identity. Identity provisions Kratos
@@ -68,6 +74,7 @@ SMTP_HOST=smtp.example.org
 SMTP_PORT=587
 SMTP_TLS=true
 SMTP_FROM=no-reply@example.org
+AUDIT_ADDR=sneakers-audit:9194
 OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector.example.org:4317
 LOG_LEVEL=info
 ```

@@ -10,6 +10,7 @@ import (
 	log "github.com/Bugs5382/go-log"
 	postgres "github.com/Bugs5382/go-postgres"
 	identityv1 "github.com/Sneakers-PAM/sneakers-identity/gen/go/sneakers/identity/v1"
+	"github.com/Sneakers-PAM/sneakers-identity/internal/audit"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -96,12 +97,21 @@ func (s *Server) ConfirmPasswordReset(ctx context.Context, req *identityv1.Confi
 		return nil, status.Errorf(codes.Internal, "verify code: %v", verr)
 	}
 	if !verified {
+		s.recordPasswordReset(ctx, id, false)
 		return &identityv1.ConfirmPasswordResetResponse{Ok: false}, nil
 	}
 	if serr := s.setDirectoryPassword(ctx, id, req.GetEmail(), req.GetNewPassword()); serr != nil {
 		return nil, status.Errorf(codes.Internal, "set password: %v", serr)
 	}
+	s.recordPasswordReset(ctx, id, true)
 	return &identityv1.ConfirmPasswordResetResponse{Ok: true}, nil
+}
+
+func (s *Server) recordPasswordReset(ctx context.Context, userID string, ok bool) {
+	s.record(ctx, audit.Event{
+		Action: audit.ActionPasswordReset, ActorUserID: userID, Subject: userID,
+		Attributes: map[string]string{"outcome": outcome(ok)},
+	})
 }
 
 // setDirectoryPassword writes the new password on the user's Kratos identity:

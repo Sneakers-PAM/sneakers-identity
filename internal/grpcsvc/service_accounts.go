@@ -10,12 +10,14 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
+	"strconv"
 	"strings"
 	"time"
 
 	log "github.com/Bugs5382/go-log"
 	postgres "github.com/Bugs5382/go-postgres"
 	identityv1 "github.com/Sneakers-PAM/sneakers-identity/gen/go/sneakers/identity/v1"
+	"github.com/Sneakers-PAM/sneakers-identity/internal/audit"
 	"github.com/jackc/pgx/v5/pgconn"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -135,7 +137,12 @@ func (s *Server) CreateServiceAccount(ctx context.Context, req *identityv1.Creat
 		}
 		return nil, status.Errorf(codes.Internal, "create service account: %v", err)
 	}
-	return &identityv1.CreateServiceAccountResponse{ServiceAccount: toServiceAccountProto(row)}, nil
+	sa := toServiceAccountProto(row)
+	s.record(ctx, audit.Event{
+		Action: audit.ActionServiceAccountCreate, ActorUserID: req.GetCreatedBy(), Subject: sa.GetId(),
+		Attributes: map[string]string{"name": name},
+	})
+	return &identityv1.CreateServiceAccountResponse{ServiceAccount: sa}, nil
 }
 
 // ListServiceAccounts returns every service account (including disabled ones —
@@ -167,6 +174,7 @@ func (s *Server) DisableServiceAccount(ctx context.Context, req *identityv1.Disa
 		}
 		return nil, status.Errorf(codes.Internal, "disable service account: %v", err)
 	}
+	s.record(ctx, audit.Event{Action: audit.ActionServiceAccountDisable, ActorUserID: actorOr(req.GetActingUserId(), ""), Subject: id})
 	return &identityv1.DisableServiceAccountResponse{ServiceAccount: toServiceAccountProto(row)}, nil
 }
 
@@ -217,7 +225,16 @@ func (s *Server) MintApiToken(ctx context.Context, req *identityv1.MintApiTokenR
 	}
 	lg := s.lg(ctx)
 	lg.Info("api token minted", log.F("token_id", row.ID), log.F("service_account_id", saID))
-	return &identityv1.MintApiTokenResponse{Token: token, Meta: toApiTokenProto(row)}, nil
+	meta := toApiTokenProto(row)
+	s.record(ctx, audit.Event{
+		Action: audit.ActionAPITokenMint, ActorUserID: req.GetCreatedBy(), Subject: meta.GetId(),
+		Attributes: map[string]string{
+			"service_account_id": saID,
+			"scope":              meta.GetScope(),
+			"expires_at_unix":    strconv.FormatInt(meta.GetExpiresAtUnix(), 10),
+		},
+	})
+	return &identityv1.MintApiTokenResponse{Token: token, Meta: meta}, nil
 }
 
 // ListApiTokens returns token METADATA for a service account — never a token
@@ -253,7 +270,12 @@ func (s *Server) RevokeApiToken(ctx context.Context, req *identityv1.RevokeApiTo
 	}
 	lg := s.lg(ctx)
 	lg.Info("api token revoked", log.F("token_id", id))
-	return &identityv1.RevokeApiTokenResponse{Meta: toApiTokenProto(row)}, nil
+	meta := toApiTokenProto(row)
+	s.record(ctx, audit.Event{
+		Action: audit.ActionAPITokenRevoke, ActorUserID: actorOr(req.GetActingUserId(), ""), Subject: id,
+		Attributes: map[string]string{"service_account_id": meta.GetServiceAccountId()},
+	})
+	return &identityv1.RevokeApiTokenResponse{Meta: meta}, nil
 }
 
 // LinkOidcClient binds an Ory Hydra OAuth2 client (issuer, subject=client_id)
@@ -298,6 +320,10 @@ func (s *Server) LinkOidcClient(ctx context.Context, req *identityv1.LinkOidcCli
 	}
 	lg := s.lg(ctx)
 	lg.Info("oidc client linked", log.F("service_account_id", saID), log.F("acting_admin", req.GetActingAdmin()), log.F("allowed_groups", allowed))
+	s.record(ctx, audit.Event{
+		Action: audit.ActionOidcClientLink, ActorUserID: req.GetActingAdmin(), Subject: saID,
+		Attributes: map[string]string{"oidc_issuer": issuer, "oidc_subject": subject, "allowed_groups": joinSorted(allowed)},
+	})
 	return &identityv1.LinkOidcClientResponse{ServiceAccount: toServiceAccountProto(row)}, nil
 }
 
@@ -317,6 +343,7 @@ func (s *Server) UnlinkOidcClient(ctx context.Context, req *identityv1.UnlinkOid
 	}
 	lg := s.lg(ctx)
 	lg.Info("oidc client unlinked", log.F("service_account_id", saID), log.F("acting_admin", req.GetActingAdmin()))
+	s.record(ctx, audit.Event{Action: audit.ActionOidcClientUnlink, ActorUserID: req.GetActingAdmin(), Subject: saID})
 	return &identityv1.UnlinkOidcClientResponse{ServiceAccount: toServiceAccountProto(row)}, nil
 }
 

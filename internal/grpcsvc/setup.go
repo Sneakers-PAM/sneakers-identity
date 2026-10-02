@@ -10,6 +10,7 @@ import (
 
 	log "github.com/Bugs5382/go-log"
 	identityv1 "github.com/Sneakers-PAM/sneakers-identity/gen/go/sneakers/identity/v1"
+	"github.com/Sneakers-PAM/sneakers-identity/internal/audit"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgconn"
 	"google.golang.org/grpc/codes"
@@ -101,6 +102,10 @@ func (s *Server) BootstrapRoot(ctx context.Context, req *identityv1.BootstrapRoo
 	}
 	lg := s.lg(ctx)
 	lg.Info("BootstrapRoot: first admin created", log.F("username", username), log.F("user_id", newID))
+	s.record(ctx, audit.Event{
+		Action: audit.ActionUserCreate, ActorUserID: newID, Subject: newID,
+		Attributes: map[string]string{"source": "bootstrap", "username": username, "root": "true", "roles": "site-admin"},
+	})
 	// Email the first admin a verification code (username + email in the body)
 	// so a typo in the bootstrap details is caught. Best-effort — never block setup.
 	if verr := s.sendVerificationEmail(ctx, newID); verr != nil {

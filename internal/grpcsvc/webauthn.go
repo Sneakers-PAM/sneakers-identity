@@ -15,6 +15,7 @@ import (
 	log "github.com/Bugs5382/go-log"
 	postgres "github.com/Bugs5382/go-postgres"
 	identityv1 "github.com/Sneakers-PAM/sneakers-identity/gen/go/sneakers/identity/v1"
+	"github.com/Sneakers-PAM/sneakers-identity/internal/audit"
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
 	"google.golang.org/grpc/codes"
@@ -247,6 +248,10 @@ func (s *Server) WebauthnRegisterFinish(ctx context.Context, req *identityv1.Web
 	if err != nil {
 		return nil, status.Errorf(codes.AlreadyExists, "store credential: %v", err)
 	}
+	s.record(ctx, audit.Event{
+		Action: audit.ActionMfaEnroll, ActorUserID: req.GetUserId(), Subject: req.GetUserId(),
+		Attributes: map[string]string{"factor": factorKindPasskey, "credential_id": credID},
+	})
 	return &identityv1.WebauthnRegisterFinishResponse{}, nil
 }
 
@@ -282,6 +287,14 @@ func (s *Server) WebauthnAssertBegin(ctx context.Context, req *identityv1.Webaut
 // assertion or a sign-count regression (cloned authenticator); it never advances
 // the counter on failure.
 func (s *Server) WebauthnAssertFinish(ctx context.Context, req *identityv1.WebauthnAssertFinishRequest) (*identityv1.WebauthnAssertFinishResponse, error) {
+	resp, err := s.webauthnAssertFinish(ctx, req)
+	if err == nil {
+		s.recordMfaVerify(ctx, req.GetUserId(), factorKindPasskey, "", resp.GetOk())
+	}
+	return resp, err
+}
+
+func (s *Server) webauthnAssertFinish(ctx context.Context, req *identityv1.WebauthnAssertFinishRequest) (*identityv1.WebauthnAssertFinishResponse, error) {
 	if err := s.webauthnEnabled(); err != nil {
 		return nil, err
 	}
@@ -362,5 +375,6 @@ func (s *Server) RemoveWebauthnCredential(ctx context.Context, req *identityv1.R
 	if tag.RowsAffected() == 0 {
 		return nil, status.Error(codes.NotFound, "credential not found")
 	}
+	s.recordMfaRemove(ctx, req.GetActingUserId(), req.GetUserId(), factorKindPasskey, map[string]string{"credential_id": req.GetCredentialId()})
 	return &identityv1.RemoveWebauthnCredentialResponse{}, nil
 }
