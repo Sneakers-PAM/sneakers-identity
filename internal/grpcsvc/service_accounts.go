@@ -215,8 +215,8 @@ func (s *Server) MintApiToken(ctx context.Context, req *identityv1.MintApiTokenR
 		}
 		return nil, status.Errorf(codes.Internal, "mint api token: %v", err)
 	}
-	lg := log.Ctx(ctx)
-	lg.Info().Str("token_id", row.ID).Str("service_account_id", saID).Msg("api token minted")
+	lg := s.lg(ctx)
+	lg.Info("api token minted", log.F("token_id", row.ID), log.F("service_account_id", saID))
 	return &identityv1.MintApiTokenResponse{Token: token, Meta: toApiTokenProto(row)}, nil
 }
 
@@ -251,8 +251,8 @@ func (s *Server) RevokeApiToken(ctx context.Context, req *identityv1.RevokeApiTo
 		}
 		return nil, status.Errorf(codes.Internal, "revoke api token: %v", err)
 	}
-	lg := log.Ctx(ctx)
-	lg.Info().Str("token_id", id).Msg("api token revoked")
+	lg := s.lg(ctx)
+	lg.Info("api token revoked", log.F("token_id", id))
 	return &identityv1.RevokeApiTokenResponse{Meta: toApiTokenProto(row)}, nil
 }
 
@@ -296,9 +296,8 @@ func (s *Server) LinkOidcClient(ctx context.Context, req *identityv1.LinkOidcCli
 		}
 		return nil, status.Errorf(codes.Internal, "link oidc client: %v", err)
 	}
-	lg := log.Ctx(ctx)
-	lg.Info().Str("service_account_id", saID).Str("acting_admin", req.GetActingAdmin()).
-		Strs("allowed_groups", allowed).Msg("oidc client linked")
+	lg := s.lg(ctx)
+	lg.Info("oidc client linked", log.F("service_account_id", saID), log.F("acting_admin", req.GetActingAdmin()), log.F("allowed_groups", allowed))
 	return &identityv1.LinkOidcClientResponse{ServiceAccount: toServiceAccountProto(row)}, nil
 }
 
@@ -316,8 +315,8 @@ func (s *Server) UnlinkOidcClient(ctx context.Context, req *identityv1.UnlinkOid
 		}
 		return nil, status.Errorf(codes.Internal, "unlink oidc client: %v", err)
 	}
-	lg := log.Ctx(ctx)
-	lg.Info().Str("service_account_id", saID).Str("acting_admin", req.GetActingAdmin()).Msg("oidc client unlinked")
+	lg := s.lg(ctx)
+	lg.Info("oidc client unlinked", log.F("service_account_id", saID), log.F("acting_admin", req.GetActingAdmin()))
 	return &identityv1.UnlinkOidcClientResponse{ServiceAccount: toServiceAccountProto(row)}, nil
 }
 
@@ -361,7 +360,7 @@ func (s *Server) ResolveServiceAccountByOidc(ctx context.Context, req *identityv
 			return nil, status.Errorf(codes.Internal, "resolve service account by oidc: load groups: %v", err)
 		}
 		gs, blocked := ix.resolveScope(req.GetScope())
-		logBlockedScope(ctx, row.ID, blocked)
+		s.logBlockedScope(ctx, row.ID, blocked)
 		names = groupNames(ix.bound(gs, row.OidcAllowedGroups))
 	}
 	return &identityv1.ResolveServiceAccountByOidcResponse{
@@ -399,7 +398,7 @@ func (s *Server) VerifyApiToken(ctx context.Context, req *identityv1.VerifyApiTo
 			return nil, status.Errorf(codes.Internal, "verify api token: load groups: %v", err)
 		}
 		gs, blocked := ix.resolveScope(row.Scope)
-		logBlockedScope(ctx, row.ServiceAccountID, blocked)
+		s.logBlockedScope(ctx, row.ServiceAccountID, blocked)
 		names = groupNames(gs)
 	}
 	return &identityv1.VerifyApiTokenResponse{
@@ -483,11 +482,10 @@ func (s *Server) canonicalAllowedGroups(ctx context.Context, in []string) ([]str
 // account id and the directory-derived keys, never the token or the rest of
 // the caller's scope, so an operator can see which groups to rename or which
 // scope entries to switch to the ID form.
-func logBlockedScope(ctx context.Context, saID string, blocked []string) {
+func (s *Server) logBlockedScope(ctx context.Context, saID string, blocked []string) {
 	if len(blocked) == 0 {
 		return
 	}
-	lg := log.Ctx(ctx)
-	lg.Warn().Str("service_account_id", saID).Strs("ambiguous_group_refs", blocked).
-		Msg("machine scope entries match more than one group and grant nothing; use the group ID form")
+	lg := s.lg(ctx)
+	lg.Warn("machine scope entries match more than one group and grant nothing; use the group ID form", log.F("service_account_id", saID), log.F("ambiguous_group_refs", blocked))
 }

@@ -5,10 +5,10 @@ go 1.26.3
 toolchain go1.26.6
 
 require (
-	github.com/Bugs5382/go-log v1.1.0
+	github.com/Bugs5382/go-log v1.3.0
 	github.com/Bugs5382/go-otel v1.3.2
 	github.com/Bugs5382/go-postgres v1.2.2
-	github.com/Bugs5382/go-seed v1.0.0
+	github.com/Bugs5382/go-seed v1.0.1
 	github.com/go-ldap/ldap/v3 v3.4.14
 	github.com/go-webauthn/webauthn v0.17.4
 	github.com/google/uuid v1.6.0

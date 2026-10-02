@@ -119,8 +119,8 @@ func (s *Server) CreateLocalUser(ctx context.Context, req *identityv1.CreateLoca
 	// Email the new account a verification code (username + email in the body)
 	// so a misspelling is caught. Best-effort: never fail the create on a send error.
 	if verr := s.sendVerificationEmail(ctx, id); verr != nil {
-		lg := log.Ctx(ctx)
-		lg.Warn().Err(verr).Str("user_id", id).Msg("create local user: verification email not sent")
+		lg := s.lg(ctx)
+		lg.Warn("create local user: verification email not sent", log.F("error", verr.Error()), log.F("user_id", id))
 	}
 	return &identityv1.CreateLocalUserResponse{User: u}, nil
 }

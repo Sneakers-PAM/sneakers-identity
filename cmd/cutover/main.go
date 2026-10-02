@@ -47,7 +47,7 @@ func main() {
 	}
 	defer db.Close()
 
-	srv := grpcsvc.New(db)
+	srv := grpcsvc.New(db).WithLogger(log.NewLogger("identity-cutover"))
 	if *dryRun {
 		plan, err := srv.PlanCutover(ctx, kratos.NewAdmin(adminURL))
 		for _, o := range plan.Outcomes {

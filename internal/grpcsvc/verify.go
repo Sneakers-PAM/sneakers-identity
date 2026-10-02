@@ -41,7 +41,7 @@ func verificationEmailBody(username, email, code string) string {
 // lingers nor holds the re-issue cooldown. Callers that must not fail on a bad
 // send (the triggers) invoke this best-effort and log the error.
 func (s *Server) sendVerificationEmail(ctx context.Context, userID string) error {
-	lg := log.Ctx(ctx)
+	lg := s.lg(ctx)
 	var username, email string
 	if err := s.db.QueryRow(ctx, `SELECT username, email FROM users WHERE id=$1`, userID).Scan(&username, &email); err != nil {
 		if errors.Is(err, postgres.ErrNoRows) {
@@ -60,12 +60,11 @@ func (s *Server) sendVerificationEmail(ctx context.Context, userID string) error
 		return status.Errorf(codes.Internal, "create verification code: %v", cerr)
 	}
 	if s.devEcho {
-		lg.Info().Str("email", email).Str("username", username).Str("otp_code", code).
-			Msg("DEV: email-verification code (OTP_DEV_ECHO)")
+		lg.Info("DEV: email-verification code (OTP_DEV_ECHO)", log.F("email", email), log.F("username", username), log.F("otp_code", code))
 	}
 	if s.sender != nil {
 		if serr := s.sender.Send(email, "Verify your Sneakers account", verificationEmailBody(username, email, code)); serr != nil {
-			lg.Warn().Err(serr).Str("email", email).Msg("email verification: send failed")
+			lg.Warn("email verification: send failed", log.F("error", serr.Error()), log.F("email", email))
 			_ = s.cancelEmailOTP(ctx, otpID)
 			return status.Error(codes.Unavailable, "could not send the verification email")
 		}

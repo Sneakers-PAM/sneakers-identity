@@ -295,24 +295,19 @@ func (s *Server) RunGroupSync(ctx context.Context, interval time.Duration) {
 // SyncGroupsAndLog runs one SyncGroups pass (30s budget) and logs the report:
 // Info for the summary, Warn for skipped groups and referenced orphans.
 func (s *Server) SyncGroupsAndLog(ctx context.Context) {
-	lg := log.Ctx(ctx)
+	lg := s.lg(ctx)
 	runCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 	rep, err := s.SyncGroups(runCtx)
 	if err != nil {
-		lg.Warn().Err(err).Msg("group sync: failed; will retry on the next tick")
+		lg.Warn("group sync: failed; will retry on the next tick", log.F("error", err.Error()))
 		return
 	}
 	for _, sk := range rep.Skipped {
-		lg.Warn().Str("group_id", sk.ID).Str("group_name", sk.Name).Str("reason", sk.Reason).
-			Msg("group sync: lldap group NOT mirrored; rename it in lldap to resolve")
+		lg.Warn("group sync: lldap group NOT mirrored; rename it in lldap to resolve", log.F("group_id", sk.ID), log.F("group_name", sk.Name), log.F("reason", sk.Reason))
 	}
 	if len(rep.ReferencedOrphans) > 0 {
-		lg.Warn().Strs("group_ids", rep.ReferencedOrphans).
-			Msg("group sync: groups missing from lldap are still referenced by service accounts; kept, review by hand")
+		lg.Warn("group sync: groups missing from lldap are still referenced by service accounts; kept, review by hand", log.F("group_ids", rep.ReferencedOrphans))
 	}
-	lg.Info().Strs("inserted", rep.Inserted).Strs("renamed", rep.Renamed).
-		Int("unchanged", rep.Unchanged).Int("skipped", len(rep.Skipped)).
-		Int("ignored_builtin", rep.IgnoredBuiltin).Strs("orphans", rep.Orphans).
-		Msg("group sync: complete")
+	lg.Info("group sync: complete", log.F("inserted", rep.Inserted), log.F("renamed", rep.Renamed), log.F("unchanged", rep.Unchanged), log.F("skipped", len(rep.Skipped)), log.F("ignored_builtin", rep.IgnoredBuiltin), log.F("orphans", nonNil(rep.Orphans)))
 }

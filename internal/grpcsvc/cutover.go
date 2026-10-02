@@ -59,7 +59,7 @@ func (s *Server) Cutover(ctx context.Context, dir kratosDirectory, mail email.Se
 		return CutoverReport{}, err
 	}
 	rep := CutoverReport{Users: len(users)}
-	lg := log.Ctx(ctx)
+	lg := s.lg(ctx)
 	for _, u := range users {
 		outcome, err := s.cutoverOne(ctx, dir, mail, resetURL, u)
 		if err == nil {
@@ -67,13 +67,13 @@ func (s *Server) Cutover(ctx context.Context, dir kratosDirectory, mail email.Se
 			if outcome.Emailed {
 				rep.Emailed++
 			}
-			lg.Info().Str("user_id", u.id).Str("kratos_id", outcome.KratosID).Str("action", outcome.Action).Bool("emailed", outcome.Emailed).Msg("cutover: user migrated")
+			lg.Info("cutover: user migrated", log.F("user_id", u.id), log.F("kratos_id", outcome.KratosID), log.F("action", outcome.Action), log.F("emailed", outcome.Emailed))
 			continue
 		}
 		if u.privileged {
 			return rep, fmt.Errorf("cutover halted: privileged user %s: %w", u.id, err)
 		}
-		lg.Warn().Err(err).Str("user_id", u.id).Msg("cutover: user failed")
+		lg.Warn("cutover: user failed", log.F("error", err.Error()), log.F("user_id", u.id))
 		rep.Failures = append(rep.Failures, CutoverFailure{UserID: u.id, Err: err})
 	}
 	return rep, nil

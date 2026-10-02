@@ -43,10 +43,10 @@ func (s *Server) RequestPasswordReset(ctx context.Context, req *identityv1.Reque
 	if email == "" {
 		return nil, status.Error(codes.InvalidArgument, "email is required")
 	}
-	lg := log.Ctx(ctx)
+	lg := s.lg(ctx)
 	id, _, ok, err := s.resetUserByEmail(ctx, email)
 	if err != nil {
-		lg.Warn().Err(err).Msg("password reset: lookup failed")
+		lg.Warn("password reset: lookup failed", log.F("error", err.Error()))
 		return &identityv1.RequestPasswordResetResponse{}, nil // fail closed, no leak
 	}
 	if !ok {
@@ -55,17 +55,17 @@ func (s *Server) RequestPasswordReset(ctx context.Context, req *identityv1.Reque
 	code, otpID, cerr := s.createEmailOTP(ctx, id, emailOTPPurposeReset)
 	if cerr != nil {
 		// Rate-limited or otherwise — stay silent so the cooldown/existence never leaks.
-		lg.Info().Err(cerr).Msg("password reset: code not issued")
+		lg.Info("password reset: code not issued", log.F("error", cerr.Error()))
 		return &identityv1.RequestPasswordResetResponse{}, nil
 	}
 	if s.devEcho {
-		lg.Info().Str("email", email).Str("otp_code", code).Msg("DEV: password-reset code (OTP_DEV_ECHO)")
+		lg.Info("DEV: password-reset code (OTP_DEV_ECHO)", log.F("email", email), log.F("otp_code", code))
 	}
 	if s.sender != nil {
 		body := "Use this code to reset your Sneakers password:\n\n    " + code +
 			"\n\nThis code expires in 5 minutes and can be used once. If you did not request a reset, ignore this email."
 		if serr := s.sender.Send(email, "Reset your Sneakers password", body); serr != nil {
-			lg.Warn().Err(serr).Msg("password reset: email send failed")
+			lg.Warn("password reset: email send failed", log.F("error", serr.Error()))
 			_ = s.cancelEmailOTP(ctx, otpID)
 		}
 	}

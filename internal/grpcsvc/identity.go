@@ -36,6 +36,8 @@ type Server struct {
 	// multi-statement transactions.
 	db postgres.Querier
 	pg *postgres.DB
+	// log is the service logger; nil discards (tests that build a bare Server).
+	log log.Logger
 	// cipher seals/opens the TOTP shared secret at rest. nil = TOTP not
 	// configured (no TOTP_ENC_KEY): the TOTP RPCs then return Unavailable.
 	cipher *secrets.Cipher
@@ -68,6 +70,21 @@ func New(db *postgres.DB) *Server {
 		s.db = db.Querier()
 	}
 	return s
+}
+
+// WithLogger sets the logger the RPCs write through. Returns the receiver for
+// chaining.
+func (s *Server) WithLogger(l log.Logger) *Server {
+	s.log = l
+	return s
+}
+
+// lg returns the service logger correlated with the span in ctx.
+func (s *Server) lg(ctx context.Context) log.Logger {
+	if s.log == nil {
+		return log.Nop()
+	}
+	return s.log.Ctx(ctx)
 }
 
 // WithCipher wires the at-rest cipher for the TOTP secret. Returns the receiver
@@ -222,8 +239,8 @@ func (s *Server) CreateGroup(ctx context.Context, req *identityv1.CreateGroupReq
 		`INSERT INTO groups (id, name) VALUES ($1,$2) ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name`,
 		id, g.Name); err != nil {
 		if derr := s.lldap.DeleteGroup(ctx, g.ID); derr != nil {
-			lg := log.Ctx(ctx)
-			lg.Error().Err(derr).Str("group_id", id).Msg("create group: identity insert failed and lldap rollback failed; group sync will report it")
+			lg := s.lg(ctx)
+			lg.Error(derr, "create group: identity insert failed and lldap rollback failed; group sync will report it", log.F("group_id", id))
 		}
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {

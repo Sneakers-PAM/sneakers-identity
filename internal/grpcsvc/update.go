@@ -175,7 +175,7 @@ func (s *Server) updateUserWithRename(ctx context.Context, cur *identityv1.User,
 	if s.lldap == nil {
 		return nil, status.Error(codes.Unavailable, "lldap admin not configured")
 	}
-	lg := log.Ctx(ctx)
+	lg := s.lg(ctx)
 
 	if !strings.EqualFold(in.email, cur.GetEmail()) {
 		// New email is free: create-first keeps the row-update fail-closed.
@@ -187,8 +187,7 @@ func (s *Server) updateUserWithRename(ctx context.Context, cur *identityv1.User,
 			return nil, err
 		}
 		if derr := s.lldap.DeleteUser(ctx, cur.GetUsername()); derr != nil {
-			lg.Warn().Err(derr).Str("old_username", cur.GetUsername()).
-				Msg("update user: old lldap user not deleted after rename (orphaned)")
+			lg.Warn("update user: old lldap user not deleted after rename (orphaned)", log.F("error", derr.Error()), log.F("old_username", cur.GetUsername()))
 		}
 	} else {
 		// Email unchanged: delete-first to avoid the lldap email-uniqueness clash.
@@ -209,7 +208,7 @@ func (s *Server) updateUserWithRename(ctx context.Context, cur *identityv1.User,
 	// The recreated directory user has no password: force a reset so the user can
 	// set one (best-effort — never fail the update on a send error).
 	if _, rerr := s.RequestPasswordReset(ctx, &identityv1.RequestPasswordResetRequest{Email: in.email}); rerr != nil {
-		lg.Warn().Err(rerr).Str("user_id", in.id).Msg("update user: password-reset email not sent after rename")
+		lg.Warn("update user: password-reset email not sent after rename", log.F("error", rerr.Error()), log.F("user_id", in.id))
 	}
 	return s.loadUpdatedUser(ctx, in.id)
 }

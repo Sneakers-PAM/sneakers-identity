@@ -225,8 +225,8 @@ func (s *Server) WebauthnRegisterFinish(ctx context.Context, req *identityv1.Web
 	}
 	cred, cerr := s.webauthn.CreateCredential(wu, *session, parsed)
 	if cerr != nil {
-		lg := log.Ctx(ctx)
-		lg.Warn().Err(cerr).Msg("webauthn: credential verification failed")
+		lg := s.lg(ctx)
+		lg.Warn("webauthn: credential verification failed", log.F("error", cerr.Error()))
 		return nil, status.Error(codes.InvalidArgument, "credential verification failed")
 	}
 	label := req.GetLabel()
@@ -299,8 +299,8 @@ func (s *Server) WebauthnAssertFinish(ctx context.Context, req *identityv1.Webau
 	}
 	cred, verr := s.webauthn.ValidateLogin(wu, *session, parsed)
 	if verr != nil {
-		lg := log.Ctx(ctx)
-		lg.Info().Err(verr).Msg("webauthn: assertion failed")
+		lg := s.lg(ctx)
+		lg.Info("webauthn: assertion failed", log.F("error", verr.Error()))
 		return &identityv1.WebauthnAssertFinishResponse{Ok: false}, nil
 	}
 	// Anti-clone: a used authenticator's counter must strictly advance (unless
@@ -313,8 +313,8 @@ func (s *Server) WebauthnAssertFinish(ctx context.Context, req *identityv1.Webau
 	}
 	latest := int64(cred.Authenticator.SignCount)
 	if cred.Authenticator.CloneWarning || ((stored != 0 || latest != 0) && latest <= stored) {
-		lg := log.Ctx(ctx)
-		lg.Warn().Str("credential", credID).Msg("webauthn: sign-count regression / clone warning")
+		lg := s.lg(ctx)
+		lg.Warn("webauthn: sign-count regression / clone warning", log.F("credential", credID))
 		return &identityv1.WebauthnAssertFinishResponse{Ok: false}, nil
 	}
 	_, _ = s.db.Exec(ctx, `UPDATE user_webauthn_credentials SET sign_count=$3, last_used_at=now() WHERE credential_id=$1 AND user_id=$2`,

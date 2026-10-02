@@ -72,8 +72,8 @@ func (s *Server) MintUserToken(ctx context.Context, req *identityv1.MintUserToke
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "mint user token: %v", err)
 	}
-	lg := log.Ctx(ctx)
-	lg.Info().Str("token_id", meta.GetId()).Str("user_id", userID).Msg("user token minted")
+	lg := s.lg(ctx)
+	lg.Info("user token minted", log.F("token_id", meta.GetId()), log.F("user_id", userID))
 	return &identityv1.MintUserTokenResponse{Token: token, Meta: meta}, nil
 }
 
@@ -108,8 +108,8 @@ func (s *Server) RevokeUserToken(ctx context.Context, req *identityv1.RevokeUser
 		}
 		return nil, status.Errorf(codes.Internal, "revoke user token: %v", err)
 	}
-	lg := log.Ctx(ctx)
-	lg.Info().Str("token_id", meta.GetId()).Str("user_id", meta.GetUserId()).Msg("user token revoked")
+	lg := s.lg(ctx)
+	lg.Info("user token revoked", log.F("token_id", meta.GetId()), log.F("user_id", meta.GetUserId()))
 	return &identityv1.RevokeUserTokenResponse{Meta: meta}, nil
 }
 
@@ -155,7 +155,7 @@ func (s *Server) SetUserDisabled(ctx context.Context, req *identityv1.SetUserDis
 		}
 		return nil, status.Errorf(codes.Internal, "set user disabled: %v", err)
 	}
-	lg := log.Ctx(ctx)
-	lg.Info().Str("user_id", u.GetId()).Bool("disabled", req.GetDisabled()).Msg("user disabled state changed")
+	lg := s.lg(ctx)
+	lg.Info("user disabled state changed", log.F("user_id", u.GetId()), log.F("disabled", req.GetDisabled()))
 	return &identityv1.SetUserDisabledResponse{User: u}, nil
 }

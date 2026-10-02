@@ -99,12 +99,12 @@ func (s *Server) BootstrapRoot(ctx context.Context, req *identityv1.BootstrapRoo
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "load created root: %v", err)
 	}
-	lg := log.Ctx(ctx)
-	lg.Info().Str("username", username).Str("user_id", newID).Msg("BootstrapRoot: first admin created")
+	lg := s.lg(ctx)
+	lg.Info("BootstrapRoot: first admin created", log.F("username", username), log.F("user_id", newID))
 	// Email the first admin a verification code (username + email in the body)
 	// so a typo in the bootstrap details is caught. Best-effort — never block setup.
 	if verr := s.sendVerificationEmail(ctx, newID); verr != nil {
-		lg.Warn().Err(verr).Str("user_id", newID).Msg("BootstrapRoot: verification email not sent")
+		lg.Warn("BootstrapRoot: verification email not sent", log.F("error", verr.Error()), log.F("user_id", newID))
 	}
 	return &identityv1.BootstrapRootResponse{User: u}, nil
 }

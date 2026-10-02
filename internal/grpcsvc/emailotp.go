@@ -98,19 +98,18 @@ func (s *Server) SendEmailOtp(ctx context.Context, req *identityv1.SendEmailOtpR
 		return nil, status.Errorf(codes.Internal, "create email otp: %v", err)
 	}
 
-	lg := log.Ctx(ctx)
+	lg := s.lg(ctx)
 	if s.devEcho {
 		// Dev ergonomics; never enabled in prod (OTP_DEV_ECHO).
-		lg.Info().Str("purpose", purpose).Str("email", email).Str("otp_code", code).
-			Msg("DEV: one-time code (OTP_DEV_ECHO)")
+		lg.Info("DEV: one-time code (OTP_DEV_ECHO)", log.F("purpose", purpose), log.F("email", email), log.F("otp_code", code))
 	}
 	if s.sender != nil {
 		body := "Use this code to verify your identity on Sneakers:\n\n    " + code +
 			"\n\nThis code expires in 5 minutes and can be used once. If you did not request it, ignore this email."
 		if serr := s.sender.Send(email, "Your Sneakers verification code", body); serr != nil {
-			lg.Warn().Err(serr).Str("email", email).Msg("mfa otp email send failed")
+			lg.Warn("mfa otp email send failed", log.F("error", serr.Error()), log.F("email", email))
 			if cerr := s.cancelEmailOTP(ctx, otpID); cerr != nil {
-				lg.Warn().Err(cerr).Msg("cancel undeliverable mfa otp failed")
+				lg.Warn("cancel undeliverable mfa otp failed", log.F("error", cerr.Error()))
 			}
 			return nil, status.Error(codes.Unavailable, "could not send the verification email")
 		}

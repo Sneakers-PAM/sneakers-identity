@@ -157,7 +157,8 @@ func main() { //nolint:gocognit,gocyclo // wiring/bootstrap complexity
 		logger.Warn().Msg("webauthn: disabled (WEBAUTHN_RP_ID unset/'-')")
 	}
 
-	srv := grpcsvc.New(db).WithCipher(cipher).WithEmail(sender, devEcho).
+	svcLog := log.NewLogger(serviceName)
+	srv := grpcsvc.New(db).WithLogger(svcLog).WithCipher(cipher).WithEmail(sender, devEcho).
 		WithLldap(ldapAdmin).WithTotpIssuer(getOr("TOTP_ISSUER", "Sneakers")).WithWebauthn(wa)
 	if kratosBackend {
 		adminURL := getOr("KRATOS_ADMIN_URL", "http://sneakers-kratos:4434")
@@ -181,7 +182,7 @@ func main() { //nolint:gocognit,gocyclo // wiring/bootstrap complexity
 	}
 
 	logger.Info().Str("port", cfg.GRPCPort).Msg("starting")
-	if err := server.Run(ctx, cfg.GRPCPort, srv.RegisterOn); err != nil {
+	if err := server.RunWithLogger(ctx, cfg.GRPCPort, svcLog, srv.RegisterOn); err != nil {
 		logger.Fatal().Err(err).Msg("server exited")
 	}
 }
