@@ -19,7 +19,7 @@ func seedUser(t *testing.T, s *Server, id, name, email, username string, roles [
 	if _, err := s.db.Exec(ctx,
 		`INSERT INTO users (id, name, email, roles, is_root, subject, username, email_verified)
 		 VALUES ($1,$2,$3,$4,$5,$6,$7,true)`,
-		id, name, email, roles, isRoot, "kc-"+id, username); err != nil {
+		id, name, email, roles, isRoot, "sub-"+id, username); err != nil {
 		t.Fatalf("insert user %s: %v", id, err)
 	}
 	return id

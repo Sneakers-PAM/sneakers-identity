@@ -67,23 +67,23 @@ func TestPGProvisioning(t *testing.T) {
 	preID := pc.GetUser().GetId()
 
 	// Adopt: email matches (case-insensitive) → subject stamped onto same row.
-	ad := adopt(t, s, "kc-sub-ada", "ada.lovelace@example.org", "Ada L.")
+	ad := adopt(t, s, "sub-ada", "ada.lovelace@example.org", "Ada L.")
 	if ad != preID {
 		t.Fatalf("adopt should reuse pre-created row %s, got %s", preID, ad)
 	}
 
 	// Re-login resolves by subject (no new row).
-	if again := adopt(t, s, "kc-sub-ada", "ada.lovelace@example.org", "Ada L."); again != preID {
+	if again := adopt(t, s, "sub-ada", "ada.lovelace@example.org", "Ada L."); again != preID {
 		t.Fatalf("re-login should resolve to %s, got %s", preID, again)
 	}
 
 	// Provision: unknown subject + unmatched email → fresh user.
-	graceID := adopt(t, s, "kc-sub-grace", "grace.hopper@example.org", "Grace Hopper")
+	graceID := adopt(t, s, "sub-grace", "grace.hopper@example.org", "Grace Hopper")
 	if graceID == preID {
 		t.Fatal("provision should create a new user, not reuse the adopted row")
 	}
 
-	got, err := s.GetUserBySubject(ctx, &identityv1.GetUserBySubjectRequest{Subject: "kc-sub-grace"})
+	got, err := s.GetUserBySubject(ctx, &identityv1.GetUserBySubjectRequest{Subject: "sub-grace"})
 	if err != nil || got.GetUser().GetId() != graceID {
 		t.Fatalf("GetUserBySubject: got %v err %v", got, err)
 	}
@@ -93,7 +93,7 @@ func TestPGProvisioning(t *testing.T) {
 func TestPGMembership(t *testing.T) {
 	ctx := context.Background()
 	s := newPGServer(t)
-	id := adopt(t, s, "kc-sub-ada", "ada@example.org", "Ada")
+	id := adopt(t, s, "sub-ada", "ada@example.org", "Ada")
 
 	for i := 0; i < 2; i++ { // second call must be a no-op
 		if _, err := s.AddGroupMember(ctx, &identityv1.AddGroupMemberRequest{UserId: id, GroupId: "group-platform"}); err != nil {
@@ -118,7 +118,7 @@ func TestPGMembership(t *testing.T) {
 func TestPGResolveUserContextDirectoryOnly(t *testing.T) {
 	ctx := context.Background()
 	s := newPGServer(t)
-	id := adopt(t, s, "kc-sub-ada", "ada@example.org", "Ada")
+	id := adopt(t, s, "sub-ada", "ada@example.org", "Ada")
 	for _, g := range []string{"group-platform", "group-security"} {
 		if _, err := s.AddGroupMember(ctx, &identityv1.AddGroupMemberRequest{UserId: id, GroupId: g}); err != nil {
 			t.Fatalf("AddGroupMember(%s): %v", g, err)
@@ -129,7 +129,7 @@ func TestPGResolveUserContextDirectoryOnly(t *testing.T) {
 		t.Fatalf("SetUserAdGroups code = %v (err %v), want Unimplemented", status.Code(err), err)
 	}
 
-	rc, err := s.ResolveUserContext(ctx, &identityv1.ResolveUserContextRequest{Subject: "kc-sub-ada"})
+	rc, err := s.ResolveUserContext(ctx, &identityv1.ResolveUserContextRequest{Subject: "sub-ada"})
 	if err != nil || rc.GetUser().GetId() != id {
 		t.Fatalf("ResolveUserContext: got %v err %v", rc, err)
 	}
@@ -140,7 +140,7 @@ func TestPGResolveUserContextDirectoryOnly(t *testing.T) {
 	if _, err := s.RemoveGroupMember(ctx, &identityv1.RemoveGroupMemberRequest{UserId: id, GroupId: "group-security"}); err != nil {
 		t.Fatalf("RemoveGroupMember: %v", err)
 	}
-	rc, err = s.ResolveUserContext(ctx, &identityv1.ResolveUserContextRequest{Subject: "kc-sub-ada"})
+	rc, err = s.ResolveUserContext(ctx, &identityv1.ResolveUserContextRequest{Subject: "sub-ada"})
 	if err != nil {
 		t.Fatalf("ResolveUserContext after remove: %v", err)
 	}

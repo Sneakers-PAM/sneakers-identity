@@ -62,7 +62,7 @@ func enrollAndConfirm(t *testing.T, s *Server, id string) string {
 func TestPGTotpEnrollAndConfirm(t *testing.T) {
 	ctx := context.Background()
 	s := newMFAServer(t)
-	id := adopt(t, s, "kc-sub-ada", "ada@example.org", "Ada")
+	id := adopt(t, s, "sub-ada", "ada@example.org", "Ada")
 
 	if mfaStatus(t, s, id) {
 		t.Fatal("fresh user must not be enrolled")
@@ -99,7 +99,7 @@ func TestPGTotpEnrollAndConfirm(t *testing.T) {
 func TestPGTotpVerifyAndReEnrollGuard(t *testing.T) {
 	ctx := context.Background()
 	s := newMFAServer(t)
-	id := adopt(t, s, "kc-sub-ada", "ada@example.org", "Ada")
+	id := adopt(t, s, "sub-ada", "ada@example.org", "Ada")
 	secret := enrollAndConfirm(t, s, id)
 
 	code, _ := totp.GenerateCode(secret, time.Now())
@@ -118,7 +118,7 @@ func TestPGTotpVerifyAndReEnrollGuard(t *testing.T) {
 func TestPGTotpDisable(t *testing.T) {
 	ctx := context.Background()
 	s := newMFAServer(t)
-	id := adopt(t, s, "kc-sub-ada", "ada@example.org", "Ada")
+	id := adopt(t, s, "sub-ada", "ada@example.org", "Ada")
 	enrollAndConfirm(t, s, id)
 
 	if _, err := s.DisableTotp(ctx, &identityv1.DisableTotpRequest{UserId: id}); err != nil {
@@ -137,7 +137,7 @@ func TestPGTotpDisable(t *testing.T) {
 func TestPGTotpNoCipherUnavailable(t *testing.T) {
 	ctx := context.Background()
 	s := newPGServer(t) // no WithCipher
-	id := adopt(t, s, "kc-sub-ada", "ada@example.org", "Ada")
+	id := adopt(t, s, "sub-ada", "ada@example.org", "Ada")
 	if _, err := s.EnrollTotp(ctx, &identityv1.EnrollTotpRequest{UserId: id}); status.Code(err) != codes.Unavailable {
 		t.Fatalf("EnrollTotp without cipher: want Unavailable, got %v", err)
 	}
