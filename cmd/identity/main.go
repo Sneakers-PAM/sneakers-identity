@@ -9,7 +9,6 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
-	"time"
 
 	log "github.com/Bugs5382/go-log"
 	otel "github.com/Bugs5382/go-otel"
@@ -19,7 +18,6 @@ import (
 	"github.com/Sneakers-PAM/sneakers-identity/internal/email"
 	"github.com/Sneakers-PAM/sneakers-identity/internal/grpcsvc"
 	"github.com/Sneakers-PAM/sneakers-identity/internal/kratos"
-	"github.com/Sneakers-PAM/sneakers-identity/internal/lldap"
 	"github.com/Sneakers-PAM/sneakers-identity/internal/secrets"
 	"github.com/Sneakers-PAM/sneakers-identity/internal/server"
 	"github.com/go-webauthn/webauthn/protocol"
@@ -77,7 +75,7 @@ func main() { //nolint:gocognit,gocyclo // wiring/bootstrap complexity
 	defer db.Close()
 
 	// Demo directory seeding lives in the dev/qa-only `cmd/seed` tool (go-seed),
-	// not in the service — prod users arrive via federation.
+	// not in the service.
 
 	// MFA at-rest cipher for the TOTP shared secret. TOTP_ENC_KEY is 32 bytes as
 	// hex or std-base64; when unset the TOTP RPCs report Unavailable (feature not
@@ -105,28 +103,6 @@ func main() { //nolint:gocognit,gocyclo // wiring/bootstrap complexity
 		logger.Warn().Msg("mfa: email OTP relay not configured (SMTP_HOST unset) — codes are dev-echoed only when OTP_DEV_ECHO=1")
 	}
 	devEcho := os.Getenv("OTP_DEV_ECHO") == "1" || os.Getenv("OTP_DEV_ECHO") == "true"
-
-	// lldap directory WRITE client for the first-run /setup bootstrap
-	// (BootstrapRoot). Identity is otherwise read-mostly (it adopts lldap/Keycloak
-	// but writes no directory); the bootstrap creates the very first admin in
-	// lldap so Keycloak federation can log them in. When LLDAP_URL is unset the
-	// client is left nil and BootstrapRoot reports Unavailable (fail closed).
-	// AUTH_BACKEND matches the gateway's: switch both in the same cutover window.
-	// Under kratos, lldap is never consulted, so its group sync stays off too.
-	kratosBackend := getOr("AUTH_BACKEND", "keycloak") == "kratos"
-	var ldapAdmin lldap.Admin
-	if url := os.Getenv("LLDAP_URL"); url != "" && !kratosBackend {
-		ldapAdmin = lldap.New(lldap.Config{
-			AdminURL:  url,
-			LDAPURL:   getOr("LLDAP_LDAP_URL", "ldap://sneakers-lldap:3890"),
-			BaseDN:    getOr("LLDAP_BASE_DN", "dc=sneakers,dc=local"),
-			AdminUser: getOr("LLDAP_ADMIN_USERNAME", "admin"),
-			AdminPass: os.Getenv("LLDAP_ADMIN_PASSWORD"),
-		})
-		logger.Info().Str("lldap_url", url).Msg("lldap admin client configured (first-run /setup bootstrap enabled)")
-	} else {
-		logger.Warn().Msg("lldap admin client not configured (LLDAP_URL unset) — /setup BootstrapRoot returns Unavailable")
-	}
 
 	// Passkey/WebAuthn Relying Party. Disabled when WEBAUTHN_RP_ID is unset
 	// or "-"; then the ceremony RPCs report Unavailable but list/remove still work.
@@ -158,28 +134,13 @@ func main() { //nolint:gocognit,gocyclo // wiring/bootstrap complexity
 	}
 
 	svcLog := log.NewLogger(serviceName)
+	// Ory Kratos holds the credentials: users are provisioned as Kratos
+	// identities and their row stores the identity id as the login subject.
+	adminURL := getOr("KRATOS_ADMIN_URL", "http://sneakers-kratos:4434")
 	srv := grpcsvc.New(db).WithLogger(svcLog).WithCipher(cipher).WithEmail(sender, devEcho).
-		WithLldap(ldapAdmin).WithTotpIssuer(getOr("TOTP_ISSUER", "Sneakers")).WithWebauthn(wa)
-	if kratosBackend {
-		adminURL := getOr("KRATOS_ADMIN_URL", "http://sneakers-kratos:4434")
-		srv = srv.WithKratos(kratos.NewAdmin(adminURL))
-		logger.Info().Str("kratos_admin_url", adminURL).Msg("user directory: kratos")
-	}
-
-	// Group mirror (see internal/grpcsvc/group_sync.go): lldap owns which groups
-	// exist; identity's groups table is the copy RACI group grants and machine
-	// scopes resolve against. Reconcile once before serving, then every
-	// GROUP_SYNC_INTERVAL (default 5m; "0" = startup only). Never fatal.
-	if ldapAdmin != nil {
-		interval, perr := time.ParseDuration(getOr("GROUP_SYNC_INTERVAL", "5m"))
-		if perr != nil {
-			logger.Fatal().Err(perr).Msg("GROUP_SYNC_INTERVAL")
-		}
-		srv.SyncGroupsAndLog(ctx)
-		go srv.RunGroupSync(ctx, interval)
-	} else {
-		logger.Warn().Msg("group sync disabled (LLDAP_URL unset) — the groups table is not reconciled from lldap")
-	}
+		WithTotpIssuer(getOr("TOTP_ISSUER", "Sneakers")).WithWebauthn(wa).
+		WithKratos(kratos.NewAdmin(adminURL))
+	logger.Info().Str("kratos_admin_url", adminURL).Msg("user directory: kratos")
 
 	logger.Info().Str("port", cfg.GRPCPort).Msg("starting")
 	if err := server.RunWithLogger(ctx, cfg.GRPCPort, svcLog, srv.RegisterOn); err != nil {

@@ -19,7 +19,7 @@ import (
 // resetUserByEmail's normalization). Returns NotFound when no user matches so
 // the gateway SSO callback can enforce no-JIT (reject unknown federated
 // emails). Deliberately distinct from AdoptOrProvisionFederatedUser, which
-// creates-on-miss for the Keycloak/Kratos JIT callers.
+// creates-on-miss for the Kratos login path.
 func (s *Server) ResolveUserByEmail(ctx context.Context, req *identityv1.ResolveUserByEmailRequest) (*identityv1.ResolveUserByEmailResponse, error) {
 	email := strings.TrimSpace(req.GetEmail())
 	if email == "" {

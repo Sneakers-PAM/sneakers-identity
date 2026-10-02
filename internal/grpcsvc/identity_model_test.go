@@ -16,7 +16,7 @@ import (
 // lock-step with userCols (same columns, prefixed with the table alias).
 func TestPrefixCols(t *testing.T) {
 	got := prefixCols("u")
-	want := "u.id, u.name, u.email, u.roles, u.is_root, u.keycloak_subject, u.username, u.email_verified, u.disabled_at"
+	want := "u.id, u.name, u.email, u.roles, u.is_root, u.subject, u.username, u.email_verified, u.disabled_at"
 	if got != want {
 		t.Fatalf("prefixCols(u) = %q, want %q", got, want)
 	}

@@ -9,16 +9,16 @@ Sneakers identity service: the directory of record. A gRPC service
 (`sneakers.identity.v1.IdentityService`) over Postgres that holds users, groups, memberships,
 second factors, service accounts and tokens. Before changing it, know that every verify path
 (TOTP, email codes, API and personal tokens, OIDC links) fails closed and answers alike for every
-failure, so a caller can't tell why; keep it that way. Passwords never live here: lldap or Kratos
-holds them (`AUTH_BACKEND`).
+failure, so a caller can't tell why; keep it that way. Passwords never live here: Ory Kratos
+holds them.
 
 ## Layout
 
 - `cmd/identity/` - the service entrypoint: config, migrations, optional features, the gRPC server.
-- `cmd/cutover/` - the one-shot move of every user onto Kratos; `cmd/seed/` - dev demo data.
+- `cmd/seed/` - dev demo data.
 - `internal/grpcsvc/` - the service, its Postgres queries and the tests (`*_pg_test.go` need
   Postgres).
-- `internal/lldap/`, `internal/kratos/` - the directory clients; `internal/email/` - the SMTP
+- `internal/kratos/` - the Ory Kratos admin client; `internal/email/` - the SMTP
   sender; `internal/secrets/` - the at-rest cipher for TOTP secrets.
 - `internal/config/`, `internal/server/` - the env loader and the gRPC server bootstrap.
 - `proto/` - the API; `gen/go/` - the generated Go (committed, checked current in CI).
@@ -60,5 +60,4 @@ Follow the logging rules in `CLAUDE.md`. In short:
 - Every commit carries a DCO sign-off (`git commit -s`); the `checks / scrub` job fails without it.
 - No real identifiers anywhere: fixtures use example.org, 192.0.2.0/24, 2001:db8::/32 and invented
   names.
-- `keycloak_subject` and `GetUserByKeycloakSubject` keep their names for wire compatibility; the
-  value is the login subject of whichever directory is in use.
+- A user's `subject` is their Ory Kratos identity id; `AUTH_BACKEND` accepts only `kratos`.

@@ -25,7 +25,7 @@ import (
 // credential payloads cross the wire as opaque JSON strings. Challenge state
 // (go-webauthn SessionData) persists single-use in webauthn_sessions between a
 // begin and its finish; credentials live in user_webauthn_credentials. This is
-// identity's own login, never Keycloak: a first-class identity factor.
+// identity's own second factor, kept beside the Kratos password.
 
 const (
 	webauthnSessionTTL  = 5 * time.Minute

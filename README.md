@@ -12,7 +12,7 @@ the sign-in flow and asks identity who the user is and which factors they have.
 - 🧑‍🤝‍🧑 **Directory:** users, groups and memberships, with search and label lookups for the UI.
 - 🔐 **Second factors:** TOTP (secrets encrypted at rest), email codes and passkeys (WebAuthn).
 - 🤖 **Machine access:** service accounts with scoped, expiring API tokens and OIDC client links.
-- 🔑 **Credential directory:** lldap or Ory Kratos holds the passwords; identity provisions them.
+- 🔑 **Credential directory:** sign-in uses Ory: Ory Kratos holds the passwords and identity provisions them. Ory Polis (SAML SSO) and Ory Hydra (machine OAuth) sit at the gateway.
 
 ## 🚀 Run it
 
@@ -23,9 +23,9 @@ DATABASE_DSN='postgres://identity@localhost:5432/identity?sslmode=disable' go ru
 ```
 
 The container trusts local connections without a password, for development only. The service
-applies its migrations at start and listens for gRPC on port 9090. Without `TOTP_ENC_KEY`,
-`SMTP_HOST` or a directory (`LLDAP_URL` or `AUTH_BACKEND=kratos`) the features that need them
-answer `Unavailable`.
+applies its migrations at start and listens for gRPC on port 9090. Without `TOTP_ENC_KEY` or
+`SMTP_HOST` the features that need them answer `Unavailable`; provisioning and password changes
+need Ory Kratos at `KRATOS_ADMIN_URL`.
 
 Run the tests, including the Postgres and Kratos integration tests:
 
@@ -53,7 +53,7 @@ task license  # check the Apache-2.0 headers (golic)
 
 - [docs/configuration.md](docs/configuration.md): environment variables.
 - [docs/api.md](docs/api.md): the gRPC API, by area.
-- [docs/runbook.md](docs/runbook.md): operating the service, the Kratos cutover and the seed tool.
+- [docs/runbook.md](docs/runbook.md): operating the service and the seed tool.
 - [proto/sneakers/identity/v1/identity.proto](proto/sneakers/identity/v1/identity.proto): the API
   definition.
 

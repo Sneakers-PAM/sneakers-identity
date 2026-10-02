@@ -61,8 +61,8 @@ func TestPGProvisioning(t *testing.T) {
 	if err != nil {
 		t.Fatalf("PreCreateLocalUser: %v", err)
 	}
-	if pc.GetUser().GetKeycloakSubject() != "" {
-		t.Fatalf("pre-created user should have empty subject, got %q", pc.GetUser().GetKeycloakSubject())
+	if pc.GetUser().GetSubject() != "" {
+		t.Fatalf("pre-created user should have empty subject, got %q", pc.GetUser().GetSubject())
 	}
 	preID := pc.GetUser().GetId()
 
@@ -83,9 +83,9 @@ func TestPGProvisioning(t *testing.T) {
 		t.Fatal("provision should create a new user, not reuse the adopted row")
 	}
 
-	got, err := s.GetUserByKeycloakSubject(ctx, &identityv1.GetUserByKeycloakSubjectRequest{KeycloakSubject: "kc-sub-grace"})
+	got, err := s.GetUserBySubject(ctx, &identityv1.GetUserBySubjectRequest{Subject: "kc-sub-grace"})
 	if err != nil || got.GetUser().GetId() != graceID {
-		t.Fatalf("GetUserByKeycloakSubject: got %v err %v", got, err)
+		t.Fatalf("GetUserBySubject: got %v err %v", got, err)
 	}
 }
 
@@ -129,7 +129,7 @@ func TestPGResolveUserContextDirectoryOnly(t *testing.T) {
 		t.Fatalf("SetUserAdGroups code = %v (err %v), want Unimplemented", status.Code(err), err)
 	}
 
-	rc, err := s.ResolveUserContext(ctx, &identityv1.ResolveUserContextRequest{KeycloakSubject: "kc-sub-ada"})
+	rc, err := s.ResolveUserContext(ctx, &identityv1.ResolveUserContextRequest{Subject: "kc-sub-ada"})
 	if err != nil || rc.GetUser().GetId() != id {
 		t.Fatalf("ResolveUserContext: got %v err %v", rc, err)
 	}
@@ -140,7 +140,7 @@ func TestPGResolveUserContextDirectoryOnly(t *testing.T) {
 	if _, err := s.RemoveGroupMember(ctx, &identityv1.RemoveGroupMemberRequest{UserId: id, GroupId: "group-security"}); err != nil {
 		t.Fatalf("RemoveGroupMember: %v", err)
 	}
-	rc, err = s.ResolveUserContext(ctx, &identityv1.ResolveUserContextRequest{KeycloakSubject: "kc-sub-ada"})
+	rc, err = s.ResolveUserContext(ctx, &identityv1.ResolveUserContextRequest{Subject: "kc-sub-ada"})
 	if err != nil {
 		t.Fatalf("ResolveUserContext after remove: %v", err)
 	}
@@ -153,7 +153,7 @@ func TestPGResolveUserContextDirectoryOnly(t *testing.T) {
 func adopt(t *testing.T, s *Server, sub, email, name string) string {
 	t.Helper()
 	resp, err := s.AdoptOrProvisionFederatedUser(context.Background(), &identityv1.AdoptOrProvisionFederatedUserRequest{
-		KeycloakSubject: sub, Email: email, Name: name,
+		Subject: sub, Email: email, Name: name,
 	})
 	if err != nil {
 		t.Fatalf("AdoptOrProvisionFederatedUser(%s): %v", sub, err)

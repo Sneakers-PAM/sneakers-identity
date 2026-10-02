@@ -37,7 +37,7 @@ func TestPGEmailVerificationRoundTrip(t *testing.T) {
 
 	const id = "user-verify-1"
 	if _, err := s.db.Exec(ctx,
-		`INSERT INTO users (id, name, email, roles, keycloak_subject, username)
+		`INSERT INTO users (id, name, email, roles, subject, username)
 		 VALUES ($1,$2,$3,$4,'',$5)`,
 		id, "Petra Vance", "pvance@example.org", []string{}, "pvance"); err != nil {
 		t.Fatalf("insert user: %v", err)

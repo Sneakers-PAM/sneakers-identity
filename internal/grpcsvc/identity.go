@@ -2,17 +2,14 @@
 // SPDX-License-Identifier: Apache-2.0
 
 // Package grpcsvc implements the sneakers.identity.v1.IdentityService over
-// Postgres. It stands in for the lldap/Keycloak-backed directory (plus a future
-// orgs/RBAC service); the gRPC surface stays the same when that arrives.
-// User provisioning lives upstream; groups are created in lldap and mirrored
-// into the identity groups table (see group_sync.go). Dev/qa demo data is
-// installed out-of-band by the go-seed `cmd/seed` tool, not by the service.
+// Postgres. Ory Kratos holds the credentials (see kratos_directory.go); users,
+// groups and memberships live here. Dev/qa demo data is installed out-of-band
+// by the go-seed `cmd/seed` tool, not by the service.
 package grpcsvc
 
 import (
 	"context"
 	"errors"
-	"strconv"
 	"strings"
 	"time"
 
@@ -20,7 +17,6 @@ import (
 	postgres "github.com/Bugs5382/go-postgres"
 	identityv1 "github.com/Sneakers-PAM/sneakers-identity/gen/go/sneakers/identity/v1"
 	"github.com/Sneakers-PAM/sneakers-identity/internal/email"
-	"github.com/Sneakers-PAM/sneakers-identity/internal/lldap"
 	"github.com/Sneakers-PAM/sneakers-identity/internal/secrets"
 	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/google/uuid"
@@ -48,11 +44,9 @@ type Server struct {
 	// devEcho logs freshly-minted OTP codes for dev ergonomics. Never enable in
 	// prod (OTP_DEV_ECHO).
 	devEcho bool
-	// lldap is the directory write client used by the first-run /setup bootstrap
-	// (BootstrapRoot) to create the very first admin in lldap so Keycloak
-	// federation can log them in. nil = not configured: BootstrapRoot returns
-	// Unavailable (fail closed). Identity is otherwise read-mostly.
-	lldap  lldap.Admin
+	// kratos is the credential directory (Ory Kratos admin API). nil = not
+	// configured: the RPCs that provision or change credentials return
+	// Unavailable (fail closed).
 	kratos kratosAdmin
 	// totpIssuer is the authenticator-app issuer label baked into enrollment QRs
 	// (TOTP_ISSUER). Per-environment so entries don't collide across stacks —
@@ -102,13 +96,6 @@ func (s *Server) WithEmail(sender email.Sender, devEcho bool) *Server {
 	return s
 }
 
-// WithLldap wires the lldap directory write client for the first-run /setup
-// bootstrap. admin=nil leaves BootstrapRoot disabled (Unavailable).
-func (s *Server) WithLldap(admin lldap.Admin) *Server {
-	s.lldap = admin
-	return s
-}
-
 // WithTotpIssuer sets the authenticator-app issuer label for enrollment QRs.
 // Empty keeps the default (see effectiveTotpIssuer).
 func (s *Server) WithTotpIssuer(issuer string) *Server {
@@ -130,13 +117,13 @@ func (s *Server) RegisterOn(gs *grpc.Server) {
 
 // userCols is the canonical user projection scanned by scanUser; keep the two
 // in lock-step.
-const userCols = `id, name, email, roles, is_root, keycloak_subject, username, email_verified, disabled_at`
+const userCols = `id, name, email, roles, is_root, subject, username, email_verified, disabled_at`
 
 // scanUser hydrates a User from a row selected with userCols.
 func scanUser(row interface{ Scan(...any) error }) (*identityv1.User, error) {
 	u := &identityv1.User{}
 	var disabledAt *time.Time
-	if err := row.Scan(&u.Id, &u.Name, &u.Email, &u.Roles, &u.IsRoot, &u.KeycloakSubject, &u.Username, &u.EmailVerified, &disabledAt); err != nil {
+	if err := row.Scan(&u.Id, &u.Name, &u.Email, &u.Roles, &u.IsRoot, &u.Subject, &u.Username, &u.EmailVerified, &disabledAt); err != nil {
 		return nil, err
 	}
 	u.DisabledAtUnix = unixOrZero(disabledAt)
@@ -194,25 +181,17 @@ func (s *Server) GetGroup(ctx context.Context, req *identityv1.GetGroupRequest) 
 	return &identityv1.GetGroupResponse{Group: g}, nil
 }
 
-// CreateGroup provisions a new directory group in lldap AND in the identity
-// groups table (the mirror every reader uses; see group_sync.go for the source
-// of truth), and returns it. Authorization is enforced at the gateway (admin),
-// like the other mutating RPCs. A name that already exists (in identity,
-// case-insensitively, or in lldap) surfaces as AlreadyExists.
-//
-// Order: identity pre-check, lldap create, identity insert. If the insert
-// fails the lldap group is deleted again so the stores do not diverge; if that
-// compensation fails too, the periodic sync reconciles (and reports) it.
+// CreateGroup creates a new directory group in the identity groups table and
+// returns it. Authorization is enforced at the gateway (admin), like the other
+// mutating RPCs. A name that already exists (case-insensitively) surfaces as
+// AlreadyExists.
 func (s *Server) CreateGroup(ctx context.Context, req *identityv1.CreateGroupRequest) (*identityv1.CreateGroupResponse, error) {
 	name := strings.TrimSpace(req.GetName())
 	if name == "" {
 		return nil, status.Error(codes.InvalidArgument, "name is required")
 	}
-	if isLldapBuiltinGroup(name) {
-		return nil, status.Errorf(codes.InvalidArgument, "group names starting with %q are reserved for the directory", lldapBuiltinPrefix)
-	}
-	if s.lldap == nil && s.kratos == nil {
-		return nil, status.Error(codes.Unavailable, "lldap admin not configured")
+	if s.kratos == nil {
+		return nil, status.Error(codes.Unavailable, "no user directory configured")
 	}
 	var taken bool
 	if err := s.db.QueryRow(ctx,
@@ -222,52 +201,7 @@ func (s *Server) CreateGroup(ctx context.Context, req *identityv1.CreateGroupReq
 	if taken {
 		return nil, status.Error(codes.AlreadyExists, "a group with that name already exists")
 	}
-	if s.lldap == nil {
-		return s.createIdentityGroup(ctx, name)
-	}
-	g, err := s.lldap.CreateGroup(ctx, name)
-	if err != nil {
-		if isDuplicateErr(err) {
-			return nil, status.Error(codes.AlreadyExists, "a group with that name already exists")
-		}
-		return nil, status.Errorf(codes.Internal, "lldap create group: %v", err)
-	}
-	id := strconv.Itoa(g.ID)
-	// ON CONFLICT (id): lldap owns the ID, so a stale row under it (a group
-	// deleted in lldap whose ID was reused) takes the new name.
-	if _, err := s.db.Exec(ctx,
-		`INSERT INTO groups (id, name) VALUES ($1,$2) ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name`,
-		id, g.Name); err != nil {
-		if derr := s.lldap.DeleteGroup(ctx, g.ID); derr != nil {
-			lg := s.lg(ctx)
-			lg.Error(derr, "create group: identity insert failed and lldap rollback failed; group sync will report it", log.F("group_id", id))
-		}
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
-			return nil, status.Error(codes.AlreadyExists, "a group with that name already exists")
-		}
-		return nil, status.Errorf(codes.Internal, "store group: %v", err)
-	}
-	return &identityv1.CreateGroupResponse{
-		Group: &identityv1.Group{Id: id, Name: g.Name},
-	}, nil
-}
-
-// isDuplicateErr reports whether err is lldap's uniqueness-violation error (the
-// group/user name already exists). lldap's unique-violation phrasing varies by
-// version, so match a few case-insensitively; the lldap client's own detector is
-// unexported, so we keep this narrow copy here.
-func isDuplicateErr(err error) bool {
-	if err == nil {
-		return false
-	}
-	msg := strings.ToLower(err.Error())
-	for _, sub := range []string{"uniqueness violation", "already exists", "duplicate", "unique constraint failed"} {
-		if strings.Contains(msg, sub) {
-			return true
-		}
-	}
-	return false
+	return s.createIdentityGroup(ctx, name)
 }
 
 // SearchUsers backs the search-as-you-type user picker: substring match on
@@ -325,7 +259,7 @@ func (s *Server) ResolveUserLabels(ctx context.Context, req *identityv1.ResolveU
 	return &identityv1.ResolveUserLabelsResponse{Labels: out}, rows.Err()
 }
 
-// createIdentityGroup is CreateGroup once identity is the only directory.
+// createIdentityGroup inserts the groups row for CreateGroup.
 func (s *Server) createIdentityGroup(ctx context.Context, name string) (*identityv1.CreateGroupResponse, error) {
 	id := "group-" + uuid.NewString()
 	if _, err := s.db.Exec(ctx, `INSERT INTO groups (id, name) VALUES ($1,$2)`, id, name); err != nil {

@@ -14,10 +14,9 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// Self-service password reset. Identity's own login, never Keycloak: identity
-// mints/emails/verifies a reset code, then sets the new password in lldap (which
-// Keycloak federates, so the lldap password IS the login password). Never routes
-// through Keycloak admin. Keyed by email since the user is unauthenticated.
+// Self-service password reset: identity mints/emails/verifies a reset code, then
+// sets the new password on the user's Kratos identity. Keyed by email since the
+// user is unauthenticated.
 
 const minResetPasswordLen = 8
 
@@ -73,8 +72,8 @@ func (s *Server) RequestPasswordReset(ctx context.Context, req *identityv1.Reque
 }
 
 // ConfirmPasswordReset verifies the reset code and, on success, sets the new
-// password in lldap. ok=false covers a wrong/expired code or an unknown email
-// alike (uniform answer). Requires the lldap write client (else Unavailable).
+// password on the user's Kratos identity. ok=false covers a wrong/expired code
+// or an unknown email alike (uniform answer). Requires Kratos (else Unavailable).
 func (s *Server) ConfirmPasswordReset(ctx context.Context, req *identityv1.ConfirmPasswordResetRequest) (*identityv1.ConfirmPasswordResetResponse, error) {
 	if req.GetEmail() == "" || req.GetCode() == "" {
 		return nil, status.Error(codes.InvalidArgument, "email and code are required")
@@ -82,10 +81,10 @@ func (s *Server) ConfirmPasswordReset(ctx context.Context, req *identityv1.Confi
 	if len(req.GetNewPassword()) < minResetPasswordLen {
 		return nil, status.Errorf(codes.InvalidArgument, "password must be at least %d characters", minResetPasswordLen)
 	}
-	if s.lldap == nil && s.kratos == nil {
+	if s.kratos == nil {
 		return nil, status.Error(codes.Unavailable, "password reset not configured")
 	}
-	id, username, ok, err := s.resetUserByEmail(ctx, req.GetEmail())
+	id, _, ok, err := s.resetUserByEmail(ctx, req.GetEmail())
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "lookup: %v", err)
 	}
@@ -99,21 +98,18 @@ func (s *Server) ConfirmPasswordReset(ctx context.Context, req *identityv1.Confi
 	if !verified {
 		return &identityv1.ConfirmPasswordResetResponse{Ok: false}, nil
 	}
-	if serr := s.setDirectoryPassword(ctx, id, username, req.GetEmail(), req.GetNewPassword()); serr != nil {
+	if serr := s.setDirectoryPassword(ctx, id, req.GetEmail(), req.GetNewPassword()); serr != nil {
 		return nil, status.Errorf(codes.Internal, "set password: %v", serr)
 	}
 	return &identityv1.ConfirmPasswordResetResponse{Ok: true}, nil
 }
 
-// setDirectoryPassword writes the new password where the login backend reads
-// it: the user's Kratos identity (their stored subject, or found by email if the
-// row was never re-keyed) or, before the cutover, lldap.
-func (s *Server) setDirectoryPassword(ctx context.Context, userID, username, email, password string) error {
-	if s.kratos == nil {
-		return s.lldap.SetPassword(ctx, username, password)
-	}
+// setDirectoryPassword writes the new password on the user's Kratos identity:
+// their stored subject, or the identity found by email when the row has no
+// subject yet.
+func (s *Server) setDirectoryPassword(ctx context.Context, userID, email, password string) error {
 	var subject string
-	if err := s.db.QueryRow(ctx, `SELECT keycloak_subject FROM users WHERE id=$1`, userID).Scan(&subject); err != nil {
+	if err := s.db.QueryRow(ctx, `SELECT subject FROM users WHERE id=$1`, userID).Scan(&subject); err != nil {
 		return err
 	}
 	if subject == "" {
