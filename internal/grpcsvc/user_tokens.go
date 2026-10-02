@@ -21,7 +21,7 @@ import (
 // database probe, and lets secret scanners recognise a leaked token.
 const userTokenPrefix = "snk_u_"
 
-const userTokenCols = `id, user_id, label, client_name, created_at, last_used_at, revoked_at, expires_at`
+const userTokenCols = `id, user_id, label, client_name, created_at, last_used_at, revoked_at, expires_at` // #nosec G101 -- a column list, not a credential
 
 func scanUserToken(row interface{ Scan(...any) error }) (*identityv1.UserToken, error) {
 	var (
