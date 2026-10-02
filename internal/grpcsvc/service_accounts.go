@@ -380,7 +380,7 @@ func (s *Server) ResolveServiceAccountByOidc(ctx context.Context, req *identityv
 		}
 		return nil, status.Errorf(codes.Internal, "resolve service account by oidc: %v", err)
 	}
-	var names []string
+	var names, ids []string
 	if len(row.OidcAllowedGroups) > 0 && strings.TrimSpace(req.GetScope()) != "" {
 		ix, err := s.loadGroupIndex(ctx)
 		if err != nil {
@@ -388,7 +388,8 @@ func (s *Server) ResolveServiceAccountByOidc(ctx context.Context, req *identityv
 		}
 		gs, blocked := ix.resolveScope(req.GetScope())
 		s.logBlockedScope(ctx, row.ID, blocked)
-		names = groupNames(ix.bound(gs, row.OidcAllowedGroups))
+		granted := ix.bound(gs, row.OidcAllowedGroups)
+		names, ids = groupNames(granted), groupIDs(granted)
 	}
 	return &identityv1.ResolveServiceAccountByOidcResponse{
 		ServiceAccountId: row.ID,
@@ -398,6 +399,7 @@ func (s *Server) ResolveServiceAccountByOidc(ctx context.Context, req *identityv
 		AllowedGroups: row.OidcAllowedGroups,
 		// JWT scope groups INTERSECT allowed_groups: the ONLY grant.
 		GroupNames: names,
+		GroupIds:   ids,
 	}, nil
 }
 
@@ -418,7 +420,7 @@ func (s *Server) VerifyApiToken(ctx context.Context, req *identityv1.VerifyApiTo
 		}
 		return nil, status.Errorf(codes.Internal, "verify api token: %v", err)
 	}
-	var names []string
+	var names, ids []string
 	if strings.TrimSpace(row.Scope) != "" {
 		ix, err := s.loadGroupIndex(ctx)
 		if err != nil {
@@ -426,7 +428,7 @@ func (s *Server) VerifyApiToken(ctx context.Context, req *identityv1.VerifyApiTo
 		}
 		gs, blocked := ix.resolveScope(row.Scope)
 		s.logBlockedScope(ctx, row.ServiceAccountID, blocked)
-		names = groupNames(gs)
+		names, ids = groupNames(gs), groupIDs(gs)
 	}
 	return &identityv1.VerifyApiTokenResponse{
 		ServiceAccountId: row.ServiceAccountID,
@@ -436,6 +438,7 @@ func (s *Server) VerifyApiToken(ctx context.Context, req *identityv1.VerifyApiTo
 		// The mint-time scope (the admin's bound for this path) resolved by
 		// the scope grammar: the ONLY grant.
 		GroupNames: names,
+		GroupIds:   ids,
 	}, nil
 }
 

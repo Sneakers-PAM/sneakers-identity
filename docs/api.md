@@ -80,8 +80,8 @@ Every verify RPC answers a plain `ok=false` for any failure, without saying why.
 | RPCs | What they do |
 |---|---|
 | `CreateServiceAccount`, `ListServiceAccounts`, `DisableServiceAccount` | Non-human principals. Disabling one stops its tokens and OIDC link from resolving. |
-| `MintApiToken`, `ListApiTokens`, `RevokeApiToken`, `VerifyApiToken` | Opaque bearer tokens for a service account, with an optional expiry and a scope of groups. The token value is returned once, at mint; only its SHA-256 hash is stored. |
-| `LinkOidcClient`, `UnlinkOidcClient`, `ResolveServiceAccountByOidc` | Bind an OAuth2 client (issuer and client id) to a service account, with an allowed-groups bound. A client's groups are its token's scope intersected with that bound; an empty bound grants nothing. |
+| `MintApiToken`, `ListApiTokens`, `RevokeApiToken`, `VerifyApiToken` | Opaque bearer tokens for a service account, with an optional expiry and a scope of groups. The token value is returned once, at mint; only its SHA-256 hash is stored. `VerifyApiToken` returns the scope's groups by name and id, pair for pair (`group_names`, `group_ids`). |
+| `LinkOidcClient`, `UnlinkOidcClient`, `ResolveServiceAccountByOidc` | Bind an OAuth2 client (issuer and client id) to a service account, with an allowed-groups bound. A client's groups are its token's scope intersected with that bound; an empty bound grants nothing. `ResolveServiceAccountByOidc` returns them by name and id, pair for pair. |
 | `MintUserToken`, `ListUserTokens`, `RevokeUserToken`, `VerifyUserToken` | Personal tokens (prefix `snk_u_`). They prove which user is calling and carry no scope, so the user's current groups apply on every call; `VerifyUserToken` returns their names and ids, pair for pair. |
 
 Scopes and allowed groups name groups by id, by exact name, or by a slug (the name lowercased, with

@@ -278,6 +278,16 @@ func groupNames(gs []dirGroup) []string {
 	return out
 }
 
+// groupIDs projects groups onto their ids, in the same order as groupNames
+// (never nil).
+func groupIDs(gs []dirGroup) []string {
+	out := make([]string, 0, len(gs))
+	for _, g := range gs {
+		out = append(out, g.ID)
+	}
+	return out
+}
+
 // loadGroupIndex snapshots the groups table. The table is small (the
 // directory's groups) and this runs inside the one identity call the gateway
 // already makes per machine request, so there is no extra network hop and no
