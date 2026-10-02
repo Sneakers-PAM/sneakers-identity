@@ -6200,7 +6200,9 @@ type VerifyApiTokenResponse struct {
 	// name slug; unknown, colliding or ambiguous tokens resolve to nothing.
 	// This is the ONLY grant the gateway gives the caller; the raw scope
 	// string is informational. Empty => no groups (fail closed).
-	GroupNames    []string `protobuf:"bytes,5,rep,name=group_names,json=groupNames,proto3" json:"group_names,omitempty"`
+	GroupNames []string `protobuf:"bytes,5,rep,name=group_names,json=groupNames,proto3" json:"group_names,omitempty"`
+	// The ids of the same groups as group_names, in the same order.
+	GroupIds      []string `protobuf:"bytes,6,rep,name=group_ids,json=groupIds,proto3" json:"group_ids,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -6266,6 +6268,13 @@ func (x *VerifyApiTokenResponse) GetValid() bool {
 func (x *VerifyApiTokenResponse) GetGroupNames() []string {
 	if x != nil {
 		return x.GroupNames
+	}
+	return nil
+}
+
+func (x *VerifyApiTokenResponse) GetGroupIds() []string {
+	if x != nil {
+		return x.GroupIds
 	}
 	return nil
 }
@@ -6573,7 +6582,9 @@ type ResolveServiceAccountByOidcResponse struct {
 	// token matches a directory group by ID or by name slug), INTERSECT
 	// allowed_groups. This is the ONLY grant the gateway gives the client.
 	// Empty => no groups (fail closed).
-	GroupNames    []string `protobuf:"bytes,6,rep,name=group_names,json=groupNames,proto3" json:"group_names,omitempty"`
+	GroupNames []string `protobuf:"bytes,6,rep,name=group_names,json=groupNames,proto3" json:"group_names,omitempty"`
+	// The ids of the same groups as group_names, in the same order.
+	GroupIds      []string `protobuf:"bytes,7,rep,name=group_ids,json=groupIds,proto3" json:"group_ids,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -6646,6 +6657,13 @@ func (x *ResolveServiceAccountByOidcResponse) GetAllowedGroups() []string {
 func (x *ResolveServiceAccountByOidcResponse) GetGroupNames() []string {
 	if x != nil {
 		return x.GroupNames
+	}
+	return nil
+}
+
+func (x *ResolveServiceAccountByOidcResponse) GetGroupIds() []string {
+	if x != nil {
+		return x.GroupIds
 	}
 	return nil
 }
@@ -7011,14 +7029,15 @@ const file_sneakers_identity_v1_identity_proto_rawDesc = "" +
 	"\x17SetUserDisabledResponse\x12.\n" +
 	"\x04user\x18\x01 \x01(\v2\x1a.sneakers.identity.v1.UserR\x04user\"-\n" +
 	"\x15VerifyApiTokenRequest\x12\x14\n" +
-	"\x05token\x18\x01 \x01(\tR\x05token\"\xa7\x01\n" +
+	"\x05token\x18\x01 \x01(\tR\x05token\"\xc4\x01\n" +
 	"\x16VerifyApiTokenResponse\x12,\n" +
 	"\x12service_account_id\x18\x01 \x01(\tR\x10serviceAccountId\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x14\n" +
 	"\x05scope\x18\x03 \x01(\tR\x05scope\x12\x14\n" +
 	"\x05valid\x18\x04 \x01(\bR\x05valid\x12\x1f\n" +
 	"\vgroup_names\x18\x05 \x03(\tR\n" +
-	"groupNames\"\xd3\x01\n" +
+	"groupNames\x12\x1b\n" +
+	"\tgroup_ids\x18\x06 \x03(\tR\bgroupIds\"\xd3\x01\n" +
 	"\x15LinkOidcClientRequest\x12,\n" +
 	"\x12service_account_id\x18\x01 \x01(\tR\x10serviceAccountId\x12\x1f\n" +
 	"\voidc_issuer\x18\x02 \x01(\tR\n" +
@@ -7037,7 +7056,7 @@ const file_sneakers_identity_v1_identity_proto_rawDesc = "" +
 	"\voidc_issuer\x18\x01 \x01(\tR\n" +
 	"oidcIssuer\x12!\n" +
 	"\foidc_subject\x18\x02 \x01(\tR\voidcSubject\x12\x14\n" +
-	"\x05scope\x18\x03 \x01(\tR\x05scope\"\xdb\x01\n" +
+	"\x05scope\x18\x03 \x01(\tR\x05scope\"\xf8\x01\n" +
 	"#ResolveServiceAccountByOidcResponse\x12\x14\n" +
 	"\x05valid\x18\x01 \x01(\bR\x05valid\x12,\n" +
 	"\x12service_account_id\x18\x02 \x01(\tR\x10serviceAccountId\x12\x12\n" +
@@ -7045,7 +7064,8 @@ const file_sneakers_identity_v1_identity_proto_rawDesc = "" +
 	"\x05scope\x18\x04 \x01(\tR\x05scope\x12%\n" +
 	"\x0eallowed_groups\x18\x05 \x03(\tR\rallowedGroups\x12\x1f\n" +
 	"\vgroup_names\x18\x06 \x03(\tR\n" +
-	"groupNames2\x815\n" +
+	"groupNames\x12\x1b\n" +
+	"\tgroup_ids\x18\a \x03(\tR\bgroupIds2\x815\n" +
 	"\x0fIdentityService\x12\\\n" +
 	"\tListUsers\x12&.sneakers.identity.v1.ListUsersRequest\x1a'.sneakers.identity.v1.ListUsersResponse\x12V\n" +
 	"\aGetUser\x12$.sneakers.identity.v1.GetUserRequest\x1a%.sneakers.identity.v1.GetUserResponse\x12_\n" +

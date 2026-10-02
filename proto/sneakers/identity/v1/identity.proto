@@ -461,6 +461,8 @@ message VerifyApiTokenResponse {
   // This is the ONLY grant the gateway gives the caller; the raw scope
   // string is informational. Empty => no groups (fail closed).
   repeated string group_names = 5;
+  // The ids of the same groups as group_names, in the same order.
+  repeated string group_ids = 6;
 }
 
 // OIDC client linkage: bind/unbind an Ory Hydra OAuth2 client
@@ -507,6 +509,8 @@ message ResolveServiceAccountByOidcResponse {
   // allowed_groups. This is the ONLY grant the gateway gives the client.
   // Empty => no groups (fail closed).
   repeated string group_names = 6;
+  // The ids of the same groups as group_names, in the same order.
+  repeated string group_ids = 7;
 }
 
 service IdentityService {
