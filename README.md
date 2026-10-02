@@ -1,22 +1,62 @@
-# sneakers-identity 🐹
+# Identity Service 🪪
 
-> 🧭 Sneakers identity service: users, groups and SSO (with its gRPC API)
+> 👥 The Sneakers-PAM directory of record: users, groups, second factors and machine principals.
 
-## 📦 Install
+A gRPC service, `sneakers.identity.v1.IdentityService`, backed by Postgres. It holds the users,
+groups and memberships that access decisions resolve against, each user's second factors, and the
+service accounts and tokens machines authenticate with. It is not the login page: the gateway runs
+the sign-in flow and asks identity who the user is and which factors they have.
+
+## ✨ Highlights
+
+- 🧑‍🤝‍🧑 **Directory:** users, groups and memberships, with search and label lookups for the UI.
+- 🔐 **Second factors:** TOTP (secrets encrypted at rest), email codes and passkeys (WebAuthn).
+- 🤖 **Machine access:** service accounts with scoped, expiring API tokens and OIDC client links.
+- 🔑 **Credential directory:** lldap or Ory Kratos holds the passwords; identity provisions them.
+
+## 🚀 Run it
 
 ```bash
-go get github.com/Sneakers-PAM/sneakers-identity
+docker run -d --name identity-pg -e POSTGRES_USER=identity -e POSTGRES_DB=identity \
+  -e POSTGRES_HOST_AUTH_METHOD=trust -p 127.0.0.1:5432:5432 postgres:17-alpine
+DATABASE_DSN='postgres://identity@localhost:5432/identity?sslmode=disable' go run ./cmd/identity
 ```
+
+The container trusts local connections without a password, for development only. The service
+applies its migrations at start and listens for gRPC on port 9090. Without `TOTP_ENC_KEY`,
+`SMTP_HOST` or a directory (`LLDAP_URL` or `AUTH_BACKEND=kratos`) the features that need them
+answer `Unavailable`.
+
+Run the tests, including the Postgres and Kratos integration tests:
+
+```bash
+docker run -d --name identity-kratos -p 127.0.0.1:4433:4433 -p 127.0.0.1:4434:4434 \
+  -v "$PWD/test/kratos:/etc/config/kratos:ro" oryd/kratos:v1.3.1 \
+  serve -c /etc/config/kratos/kratos.yaml --dev --watch-courier=false
+IDENTITY_PG_DSN='postgres://identity@localhost:5432/identity?sslmode=disable' \
+  KRATOS_TEST_ADMIN_URL=http://localhost:4434 KRATOS_TEST_PUBLIC_URL=http://localhost:4433 \
+  go test ./...
+```
+
+Without those variables the integration tests are skipped.
 
 ## 🛠 Develop
 
 ```bash
 task build    # go build ./...
 task test     # go test ./...
-task lint     # gofmt check + golangci-lint + yamllint
-task license  # check Apache-2.0 headers (golic)
+task lint     # tests, gofmt check, golangci-lint and yamllint
+task license  # check the Apache-2.0 headers (golic)
 ```
+
+## 📚 Where to look
+
+- [docs/configuration.md](docs/configuration.md): environment variables.
+- [docs/api.md](docs/api.md): the gRPC API, by area.
+- [docs/runbook.md](docs/runbook.md): operating the service, the Kratos cutover and the seed tool.
+- [proto/sneakers/identity/v1/identity.proto](proto/sneakers/identity/v1/identity.proto): the API
+  definition.
 
 ## ⚖️ License
 
-Apache-2.0 (c) 2026 The Sneakers-PAM Authors
+Apache-2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE).
