@@ -23,23 +23,7 @@ func Load() (Config, error) {
 	if c.DatabaseDSN == "" {
 		return c, fmt.Errorf("DATABASE_DSN is required")
 	}
-	if err := checkAuthBackend(os.Getenv("AUTH_BACKEND")); err != nil {
-		return c, err
-	}
 	return c, nil
-}
-
-// checkAuthBackend refuses any AUTH_BACKEND other than kratos (or unset), so a
-// leftover setting fails at start instead of being ignored.
-func checkAuthBackend(v string) error {
-	switch v {
-	case "", "kratos":
-		return nil
-	case "keycloak":
-		return fmt.Errorf("AUTH_BACKEND=keycloak: Keycloak is not supported; Sneakers signs in with Ory Kratos (set AUTH_BACKEND=kratos or leave it unset)")
-	default:
-		return fmt.Errorf("AUTH_BACKEND=%q is not a known backend; the only backend is kratos", v)
-	}
 }
 
 func getOr(k, d string) string {

@@ -4,8 +4,7 @@
 
 At start the service:
 
-1. reads its configuration (it exits if `DATABASE_DSN` is missing or `AUTH_BACKEND` is set to
-   anything but `kratos`);
+1. reads its configuration (it exits if `DATABASE_DSN` is missing);
 2. starts OpenTelemetry export to `OTEL_EXPORTER_OTLP_ENDPOINT`;
 3. applies the migrations in `MIGRATIONS_DIR` using `MIGRATE_DSN` (or `DATABASE_DSN`);
 4. connects to Postgres;

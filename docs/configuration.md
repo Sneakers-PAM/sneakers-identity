@@ -23,7 +23,6 @@ identities, sets and resets their passwords, and keeps their traits in step with
 | Variable | Default | Purpose |
 |---|---|---|
 | `KRATOS_ADMIN_URL` | `http://sneakers-kratos:4434` | Ory Kratos admin API. |
-| `AUTH_BACKEND` | `kratos` | Optional. `kratos` is the only backend; any other value stops the service at start. |
 
 ## Second factors
 
@@ -60,7 +59,6 @@ the gateway sends through `SendTransactionalEmail`.
 ```bash
 DATABASE_DSN='postgres://identity@db.example.org:5432/identity?sslmode=require'
 PGPASSWORD=...          # from your secret store
-AUTH_BACKEND=kratos
 KRATOS_ADMIN_URL=http://kratos-admin.example.org:4434
 TOTP_ENC_KEY=...        # from your secret store
 TOTP_ISSUER=Sneakers

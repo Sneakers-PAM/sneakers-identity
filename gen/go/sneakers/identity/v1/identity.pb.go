@@ -6520,7 +6520,7 @@ var File_sneakers_identity_v1_identity_proto protoreflect.FileDescriptor
 
 const file_sneakers_identity_v1_identity_proto_rawDesc = "" +
 	"\n" +
-	"#sneakers/identity/v1/identity.proto\x12\x14sneakers.identity.v1\"\x8e\x02\n" +
+	"#sneakers/identity/v1/identity.proto\x12\x14sneakers.identity.v1\"\xfc\x01\n" +
 	"\x04User\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x14\n" +
@@ -6531,7 +6531,7 @@ const file_sneakers_identity_v1_identity_proto_rawDesc = "" +
 	"\x0eemail_verified\x18\b \x01(\bR\remailVerified\x12(\n" +
 	"\x10disabled_at_unix\x18\t \x01(\x03R\x0edisabledAtUnix\x12\x18\n" +
 	"\asubject\x18\n" +
-	" \x01(\tR\asubjectJ\x04\b\x06\x10\aR\x10keycloak_subject\"+\n" +
+	" \x01(\tR\asubjectJ\x04\b\x06\x10\a\"+\n" +
 	"\x05Group\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\"\x12\n" +
@@ -6589,12 +6589,12 @@ const file_sneakers_identity_v1_identity_proto_rawDesc = "" +
 	"\x05email\x18\x03 \x01(\tR\x05email\x12\x1a\n" +
 	"\busername\x18\x04 \x01(\tR\busername\"D\n" +
 	"\x12UpdateUserResponse\x12.\n" +
-	"\x04user\x18\x01 \x01(\v2\x1a.sneakers.identity.v1.UserR\x04user\"\xb7\x01\n" +
+	"\x04user\x18\x01 \x01(\v2\x1a.sneakers.identity.v1.UserR\x04user\"\x92\x01\n" +
 	"$AdoptOrProvisionFederatedUserRequest\x12\x14\n" +
 	"\x05email\x18\x02 \x01(\tR\x05email\x12\x12\n" +
 	"\x04name\x18\x03 \x01(\tR\x04name\x12\x18\n" +
 	"\asubject\x18\x05 \x01(\tR\asubject\x12\x1a\n" +
-	"\busername\x18\x06 \x01(\tR\busernameJ\x04\b\x01\x10\x02J\x04\b\x04\x10\x05R\x10keycloak_subjectR\x11keycloak_username\"W\n" +
+	"\busername\x18\x06 \x01(\tR\busernameJ\x04\b\x01\x10\x02J\x04\b\x04\x10\x05\"W\n" +
 	"%AdoptOrProvisionFederatedUserResponse\x12.\n" +
 	"\x04user\x18\x01 \x01(\v2\x1a.sneakers.identity.v1.UserR\x04user\"]\n" +
 	"\x1dSendTransactionalEmailRequest\x12\x0e\n" +
@@ -6652,9 +6652,9 @@ const file_sneakers_identity_v1_identity_proto_rawDesc = "" +
 	"\x13UserAdGroupsRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId:\x02\x18\x01\"0\n" +
 	"\x14UserAdGroupsResponse\x12\x14\n" +
-	"\x05names\x18\x01 \x03(\tR\x05names:\x02\x18\x01\"M\n" +
+	"\x05names\x18\x01 \x03(\tR\x05names:\x02\x18\x01\";\n" +
 	"\x19ResolveUserContextRequest\x12\x18\n" +
-	"\asubject\x18\x02 \x01(\tR\asubjectJ\x04\b\x01\x10\x02R\x10keycloak_subject\"\x83\x01\n" +
+	"\asubject\x18\x02 \x01(\tR\asubjectJ\x04\b\x01\x10\x02\"\x83\x01\n" +
 	"\x1aResolveUserContextResponse\x12.\n" +
 	"\x04user\x18\x01 \x01(\v2\x1a.sneakers.identity.v1.UserR\x04user\x12\x1f\n" +
 	"\vgroup_names\x18\x02 \x03(\tR\n" +

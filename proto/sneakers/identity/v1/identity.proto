@@ -18,7 +18,6 @@ message User {
   repeated string roles = 4;         // e.g. site-admin, user
   bool is_root = 5;                   // the bootstrap super-admin
   reserved 6;
-  reserved "keycloak_subject";
   string username = 7;               // stable login handle; the identity key for adoption + login display
   bool email_verified = 8;            // the account's email address has been confirmed via an emailed code; false until then
   int64 disabled_at_unix = 9;         // 0 = active; a disabled user can't log in and every personal token they own stops verifying
@@ -92,7 +91,6 @@ message UpdateUserResponse { User user = 1; }
 // provisions a fresh user.
 message AdoptOrProvisionFederatedUserRequest {
   reserved 1, 4;
-  reserved "keycloak_subject", "keycloak_username";
   string email = 2;
   string name = 3;
   string subject = 5;
@@ -190,7 +188,6 @@ message UserAdGroupsResponse {
 // included.
 message ResolveUserContextRequest {
   reserved 1;
-  reserved "keycloak_subject";
   string subject = 2;
 }
 message ResolveUserContextResponse {
