@@ -7,12 +7,10 @@ import (
 	"context"
 	"os"
 	"slices"
-	"strings"
 	"testing"
 
 	postgres "github.com/Bugs5382/go-postgres"
 	identityv1 "github.com/Sneakers-PAM/sneakers-identity/gen/go/sneakers/identity/v1"
-	"github.com/jackc/pgx/v5"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -150,77 +148,6 @@ func TestPGResolveUserContextDirectoryOnly(t *testing.T) {
 	if got, want := rc.GetGroupNames(), []string{"Platform Team"}; !slices.Equal(got, want) {
 		t.Fatalf("effective group names after remove = %v, want %v", got, want)
 	}
-}
-
-// TestPGDropUserAdGroupsMigrationGuard pins the AD-group drop migration: it drops the
-// retired user_ad_groups table only when it is empty, and aborts loudly (no
-// schema change) when any row exists.
-func TestPGDropUserAdGroupsMigrationGuard(t *testing.T) {
-	ctx := context.Background()
-	s := newPGServer(t)
-	if tableExists(t, s.db, "user_ad_groups") {
-		t.Fatal("user_ad_groups should be gone after migrate")
-	}
-	id := adopt(t, s, "kc-sub-ada", "ada@example.org", "Ada")
-
-	t.Run("empty table is dropped", func(t *testing.T) {
-		tx := recreateAdGroupsTable(t, s, "")
-		if _, err := tx.Exec(ctx, readMigration(t, "0008_drop_user_ad_groups.up.sql")); err != nil {
-			t.Fatalf("migration on empty table: %v", err)
-		}
-		if tableExists(t, tx, "user_ad_groups") {
-			t.Fatal("table still exists after migration")
-		}
-	})
-	t.Run("non-empty table aborts", func(t *testing.T) {
-		tx := recreateAdGroupsTable(t, s, id)
-		_, err := tx.Exec(ctx, readMigration(t, "0008_drop_user_ad_groups.up.sql"))
-		if err == nil || !strings.Contains(err.Error(), "user_ad_groups is not empty") {
-			t.Fatalf("migration on non-empty table: err = %v, want guard failure", err)
-		}
-	})
-}
-
-// recreateAdGroupsTable opens a transaction (rolled back at test end, so the
-// migrated schema is untouched) holding the pre-0008 user_ad_groups table, with
-// one row for rowUserID when it is non-empty.
-func recreateAdGroupsTable(t *testing.T, s *Server, rowUserID string) pgx.Tx {
-	t.Helper()
-	ctx := context.Background()
-	tx, err := s.db.Begin(ctx)
-	if err != nil {
-		t.Fatalf("begin: %v", err)
-	}
-	t.Cleanup(func() { _ = tx.Rollback(ctx) })
-	if _, err := tx.Exec(ctx, readMigration(t, "0008_drop_user_ad_groups.down.sql")); err != nil {
-		t.Fatalf("recreate table: %v", err)
-	}
-	if rowUserID != "" {
-		if _, err := tx.Exec(ctx, `INSERT INTO public.user_ad_groups (user_id, ad_group_name) VALUES ($1, 'CN=SOC')`, rowUserID); err != nil {
-			t.Fatalf("insert row: %v", err)
-		}
-	}
-	return tx
-}
-
-func readMigration(t *testing.T, name string) string {
-	t.Helper()
-	b, err := os.ReadFile("../../migrations/" + name)
-	if err != nil {
-		t.Fatalf("read migration %s: %v", name, err)
-	}
-	return string(b)
-}
-
-func tableExists(t *testing.T, q interface {
-	QueryRow(context.Context, string, ...any) pgx.Row
-}, table string) bool {
-	t.Helper()
-	var exists bool
-	if err := q.QueryRow(context.Background(), `SELECT to_regclass('public.' || $1) IS NOT NULL`, table).Scan(&exists); err != nil {
-		t.Fatalf("to_regclass(%s): %v", table, err)
-	}
-	return exists
 }
 
 // adopt runs AdoptOrProvisionFederatedUser and returns the resolved user id.

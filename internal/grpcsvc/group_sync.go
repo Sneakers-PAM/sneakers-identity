@@ -37,7 +37,7 @@ import (
 // an operator, because deleting it would cascade memberships and silently
 // narrow machine grants. It also skips (with a warning) any lldap group whose
 // name would collide case-insensitively with another group, since vault RACI
-// cannot tell such groups apart (migration 0007 enforces the same rule).
+// cannot tell such groups apart (the groups_name_lower_idx index enforces the same rule).
 
 // lldapBuiltinPrefix marks lldap's own system groups (lldap_admin,
 // lldap_password_manager, lldap_strict_readonly). They govern the directory

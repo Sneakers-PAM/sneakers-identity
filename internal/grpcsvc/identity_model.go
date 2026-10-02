@@ -358,9 +358,9 @@ func (s *Server) ListUserGroups(ctx context.Context, req *identityv1.ListUserGro
 // --- AD groups: RETIRED ---
 //
 // Group membership is managed ONLY in the Sneakers admin UI (group_membership);
-// groups are never derived from federation/SAML/OIDC claims. The AD-claim sync path was never wired to a caller and
-// its user_ad_groups table is dropped by migration 0008. The RPCs stay in the
-// contract (deprecated) until the next major.
+// groups are never derived from federation/SAML/OIDC claims. The AD-claim sync
+// path was never wired to a caller and its user_ad_groups table no longer
+// exists. The RPCs stay in the contract (deprecated) until the next major.
 
 // SetUserAdGroups is retired: there is no claim-derived group sync.
 //

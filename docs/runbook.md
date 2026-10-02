@@ -73,7 +73,7 @@ and stack go only to the log (at error level) and to the active trace span.
 
 ## Database
 
-Migrations are forward only and run at every start. Migration `0008` drops a retired table and
-refuses to run if that table still holds rows: the service then exits and the migration is marked
-dirty. Export and delete the rows, run `migrate force 7`, and restart. Back the database up like
-any other system of record.
+The schema is one baseline migration, `migrations/0001_baseline.up.sql`, applied at every start
+(it is skipped once applied). Later changes are new numbered, forward-only files starting at
+`0002`. Installs of the earlier service move over by export and import, not by migrating. Back the
+database up like any other system of record.

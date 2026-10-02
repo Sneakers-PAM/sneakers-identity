@@ -5,7 +5,6 @@ package grpcsvc
 
 import (
 	"context"
-	"os"
 	"reflect"
 	"testing"
 
@@ -108,7 +107,7 @@ func assertLegacyTokenScope(ctx context.Context, t *testing.T, s *Server, saID, 
 	}
 
 	// A collision created AFTER mint fails closed for slug-scoped legacy
-	// tokens but not for ID-canonical ones. (A trailing space: migration 0007
+	// tokens but not for ID-canonical ones. (A trailing space: the unique name index
 	// forbids a pure case-variant name, but the slug still collides.)
 	if _, err := s.db.Exec(ctx, `INSERT INTO groups (id,name) VALUES ('group-infra-2','Infrastructure ')`); err != nil {
 		t.Fatalf("insert colliding group: %v", err)
@@ -203,75 +202,4 @@ func TestPGOidcScopeGrammar(t *testing.T) {
 	if got := resolve("infrastructure help-desk group-cafe"); !reflect.DeepEqual(got, []string{"Infrastructure", "Help Desk"}) {
 		t.Fatalf("legacy bound resolve = %q", got)
 	}
-}
-
-// TestPGMigration0006AllowedGroupIDs runs the 0006 up migration's SQL over a
-// legacy row: unique names become IDs, IDs stay, unknown and ambiguous
-// entries stay verbatim, duplicates collapse, order is kept; re-running is a
-// no-op; the down migration maps IDs back to names.
-func TestPGMigration0006AllowedGroupIDs(t *testing.T) {
-	ctx := context.Background()
-	s := newScopePGServer(t)
-	saID := newScopeSA(ctx, t, s, "scope-grammar-migration")
-	// 0006 ran over a pre-0007 table that could hold duplicate names; lift the
-	// 0007 index for this test only and restore it afterwards.
-	withoutGroupNameIndex(ctx, t, s)
-	if _, err := s.db.Exec(ctx, `INSERT INTO groups (id,name) VALUES ('group-dup-1','Auditors'),('group-dup-2','Auditors')`); err != nil {
-		t.Fatalf("seed dup groups: %v", err)
-	}
-	legacy := []string{"Infrastructure", "gone", "group-helpdesk", "Help Desk", "Auditors", "Security"}
-	if _, err := s.saStore().LinkOidc(ctx, saID, "https://hydra.example.org/", "client-migration", legacy); err != nil {
-		t.Fatalf("LinkOidc: %v", err)
-	}
-	up, err := os.ReadFile("../../migrations/0006_service_account_oidc_allowed_group_ids.up.sql")
-	if err != nil {
-		t.Fatal(err)
-	}
-	down, err := os.ReadFile("../../migrations/0006_service_account_oidc_allowed_group_ids.down.sql")
-	if err != nil {
-		t.Fatal(err)
-	}
-	stored := func() []string {
-		t.Helper()
-		sa, err := s.saStore().GetSA(ctx, saID)
-		if err != nil {
-			t.Fatal(err)
-		}
-		return sa.OidcAllowedGroups
-	}
-	wantUp := []string{"group-infra", "gone", "group-helpdesk", "Auditors", "group-security"}
-	for i := 0; i < 2; i++ {
-		if _, err := s.db.Exec(ctx, string(up)); err != nil {
-			t.Fatalf("up #%d: %v", i, err)
-		}
-		if got := stored(); !reflect.DeepEqual(got, wantUp) {
-			t.Fatalf("after up #%d: %q, want %q", i, got, wantUp)
-		}
-	}
-	if _, err := s.db.Exec(ctx, string(down)); err != nil {
-		t.Fatalf("down: %v", err)
-	}
-	if got, want := stored(), []string{"Infrastructure", "gone", "Help Desk", "Auditors", "Security"}; !reflect.DeepEqual(got, want) {
-		t.Fatalf("after down: %q, want %q", got, want)
-	}
-}
-
-// withoutGroupNameIndex drops migration 0007's case-insensitive unique index
-// on groups.name for one test (to model pre-0007 data) and restores it on
-// cleanup, deleting the test's duplicate rows first.
-func withoutGroupNameIndex(ctx context.Context, t *testing.T, s *Server) {
-	t.Helper()
-	if _, err := s.db.Exec(ctx, `DROP INDEX public.groups_name_lower_idx`); err != nil {
-		t.Fatalf("drop index: %v", err)
-	}
-	t.Cleanup(func() {
-		for _, q := range []string{
-			`DELETE FROM groups`,
-			`CREATE UNIQUE INDEX groups_name_lower_idx ON public.groups (lower(name))`,
-		} {
-			if _, err := s.db.Exec(context.Background(), q); err != nil {
-				t.Errorf("restore index (%s): %v", q, err)
-			}
-		}
-	})
 }

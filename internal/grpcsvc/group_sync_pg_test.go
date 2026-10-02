@@ -51,7 +51,7 @@ func sorted(ss []string) []string {
 	return out
 }
 
-// TestPGGroupsNameUniqueCaseInsensitive: migration 0007 forbids two groups
+// TestPGGroupsNameUniqueCaseInsensitive: the schema forbids two groups
 // whose names differ only in case, because vault RACI matches names
 // case-insensitively.
 func TestPGGroupsNameUniqueCaseInsensitive(t *testing.T) {
