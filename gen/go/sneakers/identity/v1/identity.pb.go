@@ -1099,6 +1099,9 @@ func (x *CreateLocalUserResponse) GetUser() *User {
 // SetUserRoles replaces a user's role set (e.g. grant/revoke the "admin" role).
 // Admin-gated at the gateway. root's admin authority derives from is_root, so it
 // survives an empty role set. Returns the updated user.
+// Granting or revoking the "recovery" role (access to the vault's prior
+// secret versions) is refused with PermissionDenied unless acting_user_id is
+// an enabled site admin or root; PreCreateLocalUser applies the same rule.
 type SetUserRolesRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
