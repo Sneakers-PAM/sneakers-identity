@@ -204,6 +204,9 @@ message ResolveUserContextResponse {
   User user = 1;
   repeated string group_names = 2; // directory group names only
   repeated string roles = 3;
+  // The ids of the same groups as group_names, in the same order, so a rule
+  // that names a group by id matches.
+  repeated string group_ids = 4;
 }
 
 // --- MFA (TOTP 2-step) ---
@@ -436,6 +439,8 @@ message VerifyUserTokenResponse {
   string token_id = 2;
   User user = 3;
   repeated string group_names = 4;
+  // The ids of the same groups as group_names, in the same order.
+  repeated string group_ids = 5;
 }
 
 message SetUserDisabledRequest  { string user_id = 1; bool disabled = 2; string acting_user_id = 3; }
