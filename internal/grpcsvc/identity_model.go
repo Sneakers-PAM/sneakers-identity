@@ -6,7 +6,6 @@ package grpcsvc
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net/mail"
 	"strings"
 
@@ -28,7 +27,7 @@ func (s *Server) getUserByID(ctx context.Context, id string) (*identityv1.User, 
 
 func (s *Server) getUserBySubject(ctx context.Context, sub string) (*identityv1.User, error) {
 	return scanUser(s.db.QueryRow(ctx,
-		`SELECT `+userCols+` FROM users WHERE keycloak_subject=$1`, sub))
+		`SELECT `+userCols+` FROM users WHERE subject=$1`, sub))
 }
 
 // getUserByEmail resolves a user by case-insensitive exact email match. Mirrors
@@ -44,8 +43,8 @@ func (s *Server) getUserByEmail(ctx context.Context, email string) (*identityv1.
 
 // --- Provisioning for real logins ---
 
-// PreCreateLocalUser inserts a local account with keycloak_subject=” (defaulted
-// by the column) so a later federated login can adopt it by email match.
+// PreCreateLocalUser inserts a local account with subject=” (defaulted by the
+// column) so a later login can adopt it by email match.
 func (s *Server) PreCreateLocalUser(ctx context.Context, req *identityv1.PreCreateLocalUserRequest) (*identityv1.PreCreateLocalUserResponse, error) {
 	email := strings.TrimSpace(req.GetEmail())
 	if email == "" {
@@ -57,7 +56,7 @@ func (s *Server) PreCreateLocalUser(ctx context.Context, req *identityv1.PreCrea
 	}
 	id := "user-" + uuid.NewString()
 	if _, err := s.db.Exec(ctx,
-		`INSERT INTO users (id, name, email, roles, keycloak_subject) VALUES ($1,$2,$3,$4,'')`,
+		`INSERT INTO users (id, name, email, roles, subject) VALUES ($1,$2,$3,$4,'')`,
 		id, req.GetName(), email, roles); err != nil {
 		return nil, status.Errorf(codes.Internal, "pre-create local user: %v", err)
 	}
@@ -69,8 +68,8 @@ func (s *Server) PreCreateLocalUser(ctx context.Context, req *identityv1.PreCrea
 }
 
 // CreateLocalUser fully provisions a loginable local account: it creates the
-// lldap user + sets the supplied password, then persists the local identity row
-// (keycloak_subject=” so it is adopted by USERNAME on first federated login).
+// Kratos identity + sets the supplied password, then persists the local identity
+// row with the Kratos identity id as its subject.
 // Roles are left empty — a new user is an implicit reader; roles are assigned via
 // the separate role flow. Authorization is enforced at the
 // gateway (user.manage), like the other mutating RPCs.
@@ -79,11 +78,11 @@ func (s *Server) CreateLocalUser(ctx context.Context, req *identityv1.CreateLoca
 	if err != nil {
 		return nil, err
 	}
-	if s.lldap == nil && s.kratos == nil {
+	if s.kratos == nil {
 		return nil, status.Error(codes.Unavailable, "no user directory configured")
 	}
 
-	// Uniqueness pre-check against the identity DB before any lldap side-effect,
+	// Uniqueness pre-check against the identity DB before any directory side-effect,
 	// so a conflict fails cleanly without leaving an orphaned directory user.
 	var exists bool
 	if err := s.db.QueryRow(ctx,
@@ -95,14 +94,14 @@ func (s *Server) CreateLocalUser(ctx context.Context, req *identityv1.CreateLoca
 		return nil, status.Error(codes.AlreadyExists, "a user with that username or email already exists")
 	}
 
-	subject, rollback, err := s.provisionDirectoryUser(ctx, in.username, in.email, in.name, in.password)
+	subject, rollback, err := s.provisionDirectoryUser(ctx, in.email, in.name, in.password)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "%v", err)
 	}
 
 	id := "user-" + uuid.NewString()
 	if _, err := s.db.Exec(ctx,
-		`INSERT INTO users (id, name, email, roles, keycloak_subject, username) VALUES ($1,$2,$3,$4,$5,$6)`,
+		`INSERT INTO users (id, name, email, roles, subject, username) VALUES ($1,$2,$3,$4,$5,$6)`,
 		id, in.name, in.email, []string{}, subject, in.username); err != nil {
 		rollback()
 		var pgErr *pgconn.PgError
@@ -188,24 +187,24 @@ func (s *Server) SetUserRoles(ctx context.Context, req *identityv1.SetUserRolesR
 }
 
 // AdoptOrProvisionFederatedUser is the login path. In order:
-//  1. resolve an already-adopted row by keycloak_subject;
-//  2. adopt a pre-created local row (keycloak_subject=”) by USERNAME first, then
+//  1. resolve an already-adopted row by subject;
+//  2. adopt a pre-created local row (subject=”) by USERNAME first, then
 //     email, stamping the subject onto it;
 //  3. provision a fresh user (default role "user").
 //
-// Username (Keycloak preferred_username / lldap uid) is the primary adoption key:
-// it is the stable login handle, unlike email which can change or be shared. Email
-// remains a fallback so pre-created rows keyed only by email still adopt.
+// Username is the primary adoption key: it is the stable login handle, unlike
+// email which can change or be shared. Email remains a fallback so pre-created
+// rows keyed only by email still adopt.
 //
-// The provision insert uses ON CONFLICT on the partial keycloak_subject index so
+// The provision insert uses ON CONFLICT on the partial subject index so
 // a concurrent login racing the same subject converges on one row.
 func (s *Server) AdoptOrProvisionFederatedUser(ctx context.Context, req *identityv1.AdoptOrProvisionFederatedUserRequest) (*identityv1.AdoptOrProvisionFederatedUserResponse, error) {
-	sub := strings.TrimSpace(req.GetKeycloakSubject())
+	sub := strings.TrimSpace(req.GetSubject())
 	if sub == "" {
-		return nil, status.Error(codes.InvalidArgument, "keycloak_subject is required")
+		return nil, status.Error(codes.InvalidArgument, "subject is required")
 	}
 	email := strings.TrimSpace(req.GetEmail())
-	username := strings.TrimSpace(req.GetKeycloakUsername())
+	username := strings.TrimSpace(req.GetUsername())
 	name := req.GetName()
 
 	// 1. Already adopted.
@@ -216,16 +215,16 @@ func (s *Server) AdoptOrProvisionFederatedUser(ctx context.Context, req *identit
 	}
 
 	// 2. Adopt a pre-created local row (one row, deterministically) by USERNAME
-	// first, then email. Only unclaimed rows (keycloak_subject='') are adoptable.
+	// first, then email. Only unclaimed rows (subject='') are adoptable.
 	if username != "" || email != "" {
 		var id string
 		// Only stamp the subject; the pre-created row's username stays authoritative
 		// (a match by email must not overwrite the seeded username, and the token's
 		// username may legitimately differ). Username-match is preferred over email.
 		err := s.db.QueryRow(ctx,
-			`UPDATE users SET keycloak_subject=$1
+			`UPDATE users SET subject=$1
 			 WHERE id = (SELECT id FROM users
-			              WHERE keycloak_subject=''
+			              WHERE subject=''
 			                AND ( ($3 <> '' AND username=$3)
 			                   OR ($2 <> '' AND lower(email)=lower($2)) )
 			              ORDER BY (username=$3) DESC, id
@@ -249,9 +248,9 @@ func (s *Server) AdoptOrProvisionFederatedUser(ctx context.Context, req *identit
 	id := "user-" + uuid.NewString()
 	var newID string
 	err := s.db.QueryRow(ctx,
-		`INSERT INTO users (id, name, email, roles, keycloak_subject, username)
+		`INSERT INTO users (id, name, email, roles, subject, username)
 		 VALUES ($1,$2,$3,$4,$5,$6)
-		 ON CONFLICT (keycloak_subject) WHERE keycloak_subject <> ''
+		 ON CONFLICT (subject) WHERE subject <> ''
 		 DO UPDATE SET email=EXCLUDED.email, name=EXCLUDED.name, username=EXCLUDED.username
 		 RETURNING id`,
 		id, name, email, []string{"user"}, sub, username).Scan(&newID)
@@ -265,11 +264,11 @@ func (s *Server) AdoptOrProvisionFederatedUser(ctx context.Context, req *identit
 	return &identityv1.AdoptOrProvisionFederatedUserResponse{User: u}, nil
 }
 
-// GetUserByKeycloakSubject fetches a user by JWT `sub`; NotFound when unmapped.
-func (s *Server) GetUserByKeycloakSubject(ctx context.Context, req *identityv1.GetUserByKeycloakSubjectRequest) (*identityv1.GetUserByKeycloakSubjectResponse, error) {
-	sub := strings.TrimSpace(req.GetKeycloakSubject())
+// GetUserBySubject fetches a user by login subject; NotFound when unmapped.
+func (s *Server) GetUserBySubject(ctx context.Context, req *identityv1.GetUserBySubjectRequest) (*identityv1.GetUserBySubjectResponse, error) {
+	sub := strings.TrimSpace(req.GetSubject())
 	if sub == "" {
-		return nil, status.Error(codes.InvalidArgument, "keycloak_subject is required")
+		return nil, status.Error(codes.InvalidArgument, "subject is required")
 	}
 	u, err := s.getUserBySubject(ctx, sub)
 	if err != nil {
@@ -278,7 +277,7 @@ func (s *Server) GetUserByKeycloakSubject(ctx context.Context, req *identityv1.G
 		}
 		return nil, status.Errorf(codes.Internal, "get user by subject: %v", err)
 	}
-	return &identityv1.GetUserByKeycloakSubjectResponse{User: u}, nil
+	return &identityv1.GetUserBySubjectResponse{User: u}, nil
 }
 
 // --- Group membership (identity is the source of truth) ---
@@ -388,13 +387,13 @@ func (s *Server) UserAdGroups(context.Context, *identityv1.UserAdGroupsRequest) 
 
 // ResolveUserContext returns the user plus effective group names (the names of
 // the directory groups in the user's group_membership, managed in the Sneakers
-// admin UI) and roles, keyed by Keycloak subject. This is the projection the
+// admin UI) and roles, keyed by login subject. This is the projection the
 // gateway consumes to build the request ActorContext. Nothing is derived from
 // federation claims.
 func (s *Server) ResolveUserContext(ctx context.Context, req *identityv1.ResolveUserContextRequest) (*identityv1.ResolveUserContextResponse, error) {
-	sub := strings.TrimSpace(req.GetKeycloakSubject())
+	sub := strings.TrimSpace(req.GetSubject())
 	if sub == "" {
-		return nil, status.Error(codes.InvalidArgument, "keycloak_subject is required")
+		return nil, status.Error(codes.InvalidArgument, "subject is required")
 	}
 	u, err := s.getUserBySubject(ctx, sub)
 	if err != nil {
@@ -477,23 +476,12 @@ func (s *Server) requireExists(ctx context.Context, table, id, field string) err
 	return nil
 }
 
-// provisionDirectoryUser creates the credential-holding account. Under lldap the
-// subject stays empty and the row is adopted by username on first login; under
-// Kratos the identity id is the subject. rollback undoes the directory write.
-func (s *Server) provisionDirectoryUser(ctx context.Context, username, email, name, password string) (subject string, rollback func(), err error) {
-	if s.kratos != nil {
-		id, err := s.provisionKratos(ctx, email, name, password)
-		if err != nil {
-			return "", nil, err
-		}
-		return id, func() { _ = s.kratos.DeleteIdentity(ctx, id) }, nil
+// provisionDirectoryUser creates the credential-holding Kratos identity; its id
+// is the row's subject. rollback undoes the directory write.
+func (s *Server) provisionDirectoryUser(ctx context.Context, email, name, password string) (subject string, rollback func(), err error) {
+	id, err := s.provisionKratos(ctx, email, name, password)
+	if err != nil {
+		return "", nil, err
 	}
-	if err := s.lldap.CreateUser(ctx, username, email, name); err != nil {
-		return "", nil, fmt.Errorf("lldap create user: %w", err)
-	}
-	if err := s.lldap.SetPassword(ctx, username, password); err != nil {
-		_ = s.lldap.DeleteUser(ctx, username)
-		return "", nil, fmt.Errorf("lldap set password: %w", err)
-	}
-	return "", func() { _ = s.lldap.DeleteUser(ctx, username) }, nil
+	return id, func() { _ = s.kratos.DeleteIdentity(ctx, id) }, nil
 }

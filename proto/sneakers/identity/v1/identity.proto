@@ -8,9 +8,8 @@ package sneakers.identity.v1;
 option go_package = "github.com/Sneakers-PAM/sneakers-identity/gen/go/sneakers/identity/v1;identityv1";
 
 // Identity: the directory of users and groups the vault's RBAC and the UI's
-// people pickers resolve against. In dev this is an in-memory directory seeded
-// to mirror the UI; in production it is fed by lldap/Keycloak plus an
-// orgs/RBAC service. Kept read-only here — provisioning lives upstream.
+// people pickers resolve against. Ory Kratos holds the credentials; identity
+// holds the users, groups and memberships.
 
 message User {
   string id = 1;
@@ -18,10 +17,12 @@ message User {
   string email = 3;
   repeated string roles = 4;         // e.g. site-admin, user
   bool is_root = 5;                   // the bootstrap super-admin
-  string keycloak_subject = 6;       // JWT `sub` for the federated identity; empty for pre-created local rows not yet adopted
-  string username = 7;               // stable login handle (Keycloak preferred_username / lldap uid); the identity key for adoption + login display
+  reserved 6;
+  reserved "keycloak_subject";
+  string username = 7;               // stable login handle; the identity key for adoption + login display
   bool email_verified = 8;            // the account's email address has been confirmed via an emailed code; false until then
   int64 disabled_at_unix = 9;         // 0 = active; a disabled user can't log in and every personal token they own stops verifying
+  string subject = 10;                // the login subject (the Kratos identity id); empty for pre-created local rows not yet adopted
 }
 
 message Group {
@@ -38,7 +39,7 @@ message ListGroupsResponse { repeated Group groups = 1; }
 message GetGroupRequest { string id = 1; }
 message GetGroupResponse { Group group = 1; }
 
-// CreateGroup provisions a new directory group in lldap and returns it.
+// CreateGroup creates a new directory group and returns it.
 // Admin-gated at the gateway. Mirrors the CreateLocalUser provisioning path.
 message CreateGroupRequest  { string name = 1; }
 message CreateGroupResponse { Group group = 1; }
@@ -56,15 +57,14 @@ message ResolveUserLabelsResponse { repeated UserLabel labels = 1; }
 
 // --- Provisioning for real logins ---
 
-// PreCreateLocalUser inserts a local account up-front with an empty
-// keycloak_subject (and the given email/name/roles); a later federated login
-// adopts it by email match.
+// PreCreateLocalUser inserts a local account up-front with an empty subject
+// (and the given email/name/roles); a later login adopts it by email match.
 message PreCreateLocalUserRequest  { string email = 1; string name = 2; repeated string roles = 3; }
 message PreCreateLocalUserResponse { User user = 1; }
 
 // CreateLocalUser fully provisions a loginable local account: it creates the
-// lldap user + sets the supplied password, then persists the local identity row
-// (local_account=true; keycloak_subject empty until first-login adoption).
+// Kratos identity + sets the supplied password, then persists the local
+// identity row with the Kratos identity id as its subject.
 // Admin-gated.
 message CreateLocalUserRequest  { string username = 1; string email = 2; string name = 3; string password = 4; }
 message CreateLocalUserResponse { User user = 1; }
@@ -78,21 +78,26 @@ message SetUserRolesResponse { User user = 1; }
 // UpdateUser edits a user's profile: display name, email, and username. Admin-
 // gated at the gateway. A misspelled account (wrong name/email/username) can
 // otherwise only be deleted + recreated. Fields are applied as given
-// (name defaults to username when blank). Changing the username is the careful
-// path: lldap cannot rename a uid in place, so identity deletes + recreates the
-// directory user (preserving the identity row: same id, roles, keycloak_subject)
-// which drops the password, so the account is flagged unverified and a
-// password-reset email is triggered so the user can set a new one. Name/email-
-// only edits never disturb the password. Returns the updated user.
+// (name defaults to username when blank). Kratos signs users in by email, so a
+// username change only updates the identity row; the Kratos identity keeps its
+// id and the row keeps its subject. Name/email edits update the Kratos traits.
+// The password is never disturbed. Returns the updated user.
 message UpdateUserRequest  { string user_id = 1; string name = 2; string email = 3; string username = 4; }
 message UpdateUserResponse { User user = 1; }
 
-// AdoptOrProvisionFederatedUser is the login path. Given the Keycloak subject
-// (JWT `sub`) plus the token's email/name it returns the platform user:
-// resolves an already-adopted row by subject; else adopts a pre-created /
-// email-matched local row by stamping keycloak_subject; else provisions a
-// fresh user.
-message AdoptOrProvisionFederatedUserRequest  { string keycloak_subject = 1; string email = 2; string name = 3; string keycloak_username = 4; }
+// AdoptOrProvisionFederatedUser is the login path. Given the login subject
+// (the Kratos identity id) plus the session's email/name it returns the
+// platform user: resolves an already-adopted row by subject; else adopts a
+// pre-created / email-matched local row by stamping the subject; else
+// provisions a fresh user.
+message AdoptOrProvisionFederatedUserRequest {
+  reserved 1, 4;
+  reserved "keycloak_subject", "keycloak_username";
+  string email = 2;
+  string name = 3;
+  string subject = 5;
+  string username = 6;
+}
 message AdoptOrProvisionFederatedUserResponse { User user = 1; }
 
 // SendTransactionalEmail delivers an operator-supplied email via identity's
@@ -103,10 +108,10 @@ message AdoptOrProvisionFederatedUserResponse { User user = 1; }
 message SendTransactionalEmailRequest  { string to = 1; string subject = 2; string body = 3; }
 message SendTransactionalEmailResponse {}
 
-// GetUserByKeycloakSubject fetches a user by JWT `sub`. NotFound when no row is
+// GetUserBySubject fetches a user by login subject. NotFound when no row is
 // mapped to the subject yet (caller then adopts/provisions).
-message GetUserByKeycloakSubjectRequest  { string keycloak_subject = 1; }
-message GetUserByKeycloakSubjectResponse { User user = 1; }
+message GetUserBySubjectRequest  { string subject = 1; }
+message GetUserBySubjectResponse { User user = 1; }
 
 // ResolveUserByEmail resolves a single platform user by exact
 // (case-insensitive) email match. A PURE lookup — no JIT provisioning, no
@@ -130,9 +135,8 @@ message ResolveUserByEmailResponse {
 message GetSetupStateRequest  {}
 message GetSetupStateResponse { bool needs_setup = 1; }
 
-// BootstrapRoot creates the very first admin: a brand-new user in lldap (so
-// Keycloak federation can log them in) that is also marked root/site-admin in
-// identity. Self-guards on the no-root invariant (FailedPrecondition if a
+// BootstrapRoot creates the very first admin: a brand-new Kratos identity (so
+// they can sign in) that is also marked root/site-admin in identity. Self-guards on the no-root invariant (FailedPrecondition if a
 // root/site-admin already exists) and on empty username/email/password
 // (InvalidArgument).
 message BootstrapRootRequest  { string username = 1; string email = 2; string password = 3; string name = 4; }
@@ -179,81 +183,16 @@ message UserAdGroupsResponse {
   repeated string names = 1;
 }
 
-// --- Orphan groups (rows in the groups table with no lldap group) ---
-//
-// SyncGroups mirrors lldap into the identity groups table but never deletes.
-// A row whose lldap group is gone is an ORPHAN. These RPCs let a HUMAN
-// site-admin see and prune orphans. Both require acting_admin to be a human
-// user with the site-admin/admin role, or root. Service accounts are never
-// accepted (admin authority is human-only). Both return UNAVAILABLE when
-// lldap is not configured or unreachable, because orphan status can only be
-// decided against a live directory.
-//
-// Vault RACI rules name groups, and identity cannot see them. A RACI rule that
-// names a pruned group is not reported here. After the prune it simply
-// matches nothing (fail closed).
-
-// A service account whose oidc_allowed_groups names the group (by ID, exact
-// name or slug).
-message OrphanGroupServiceAccountRef {
-  string id = 1;
-  string name = 2;
-}
-
-// A non-revoked API token whose scope names the group (by ID, exact name or
-// slug).
-message OrphanGroupTokenRef {
-  string id = 1;
-  string service_account_id = 2;
-}
-
-message OrphanGroup {
-  string id = 1;
-  string name = 2;
-  repeated OrphanGroupServiceAccountRef service_accounts = 3;
-  repeated OrphanGroupTokenRef api_tokens = 4;
-  int64 membership_count = 5; // group_membership rows for this group
-}
-
-message ListOrphanGroupsRequest { string acting_admin = 1; }
-message ListOrphanGroupsResponse {
-  repeated OrphanGroup groups = 1;
-  // Always set: the caveat that vault RACI references are not visible here.
-  string warning = 2;
-}
-
-// PruneOrphanGroups deletes the named groups rows and their group_membership
-// rows in one transaction. It is all-or-nothing: if any id is unknown, is not
-// an orphan at call time (re-checked against lldap inside the call), or is
-// referenced by a service account or live token while force=false, nothing
-// changes and FAILED_PRECONDITION lists the offending ids. With force=true,
-// the matching entries are also removed from those oidc_allowed_groups and
-// token scopes, and the response reports every change.
-message PruneOrphanGroupsRequest {
-  repeated string ids = 1;
-  bool force = 2;
-  string acting_admin = 3;
-}
-message PrunedGroup {
-  string id = 1;
-  string name = 2;
-  int64 memberships_deleted = 3;
-  repeated OrphanGroupServiceAccountRef service_accounts_updated = 4;
-  repeated OrphanGroupTokenRef api_tokens_updated = 5;
-}
-message PruneOrphanGroupsResponse {
-  repeated PrunedGroup pruned = 1;
-  // Always set: the caveat that vault RACI rules naming a pruned group now
-  // match nothing.
-  string warning = 2;
-}
-
 // ResolveUserContext returns the user plus their EFFECTIVE group names (the
 // names of the directory groups they are a member of, managed in the Sneakers
-// admin UI) and roles, keyed by Keycloak subject. This is what the gateway
+// admin UI) and roles, keyed by login subject. This is what the gateway
 // uses to build the request ActorContext. AD/claim-derived groups are never
 // included.
-message ResolveUserContextRequest  { string keycloak_subject = 1; }
+message ResolveUserContextRequest {
+  reserved 1;
+  reserved "keycloak_subject";
+  string subject = 2;
+}
 message ResolveUserContextResponse {
   User user = 1;
   repeated string group_names = 2; // directory group names only
@@ -318,8 +257,8 @@ message VerifyEmailOtpResponse { bool ok = 1; }
 
 // Self-service password reset, keyed by EMAIL (the user is unauthenticated).
 // Request always returns empty — never leak whether an account exists. Confirm
-// verifies the reset code and sets the new password in lldap (Keycloak federates
-// lldap, so that IS the login password); ok=false = bad/expired code.
+// verifies the reset code and sets the new password on the user's Kratos
+// identity; ok=false = bad/expired code.
 message RequestPasswordResetRequest  { string email = 1; }
 message RequestPasswordResetResponse {}
 message ConfirmPasswordResetRequest  { string email = 1; string code = 2; string new_password = 3; }
@@ -563,26 +502,25 @@ service IdentityService {
   rpc GetUser(GetUserRequest) returns (GetUserResponse);
   rpc ListGroups(ListGroupsRequest) returns (ListGroupsResponse);
   rpc GetGroup(GetGroupRequest) returns (GetGroupResponse);
-  // Admin-gated: provision a new directory group in lldap.
+  // Admin-gated: create a new directory group.
   rpc CreateGroup(CreateGroupRequest) returns (CreateGroupResponse);
   rpc SearchUsers(SearchUsersRequest) returns (SearchUsersResponse);
   rpc ResolveUserLabels(ResolveUserLabelsRequest) returns (ResolveUserLabelsResponse);
 
   // Provisioning for real logins.
   rpc PreCreateLocalUser(PreCreateLocalUserRequest) returns (PreCreateLocalUserResponse);
-  // Admin-gated full provisioning: lldap user + password + local identity row.
+  // Admin-gated full provisioning: Kratos identity + password + local identity row.
   rpc CreateLocalUser(CreateLocalUserRequest) returns (CreateLocalUserResponse);
   // Admin-gated: replace a user's role set (grant/revoke e.g. the "admin" role).
   rpc SetUserRoles(SetUserRolesRequest) returns (SetUserRolesResponse);
-  // Admin-gated: edit a user's name / email / username. A username change
-  // recreates the lldap user and triggers a password reset (see UpdateUserRequest).
+  // Admin-gated: edit a user's name / email / username (see UpdateUserRequest).
   rpc UpdateUser(UpdateUserRequest) returns (UpdateUserResponse);
   rpc AdoptOrProvisionFederatedUser(AdoptOrProvisionFederatedUserRequest) returns (AdoptOrProvisionFederatedUserResponse);
   // SendTransactionalEmail delivers an operator-supplied email via identity's
   // existing SMTP sender (no template rendering); the gateway uses it to
   // deliver Kratos recovery codes.
   rpc SendTransactionalEmail(SendTransactionalEmailRequest) returns (SendTransactionalEmailResponse);
-  rpc GetUserByKeycloakSubject(GetUserByKeycloakSubjectRequest) returns (GetUserByKeycloakSubjectResponse);
+  rpc GetUserBySubject(GetUserBySubjectRequest) returns (GetUserBySubjectResponse);
   // ResolveUserByEmail resolves a single platform user by exact
   // (case-insensitive) email match. A PURE lookup — no JIT provisioning, no
   // side effects. Returns NotFound when no user matches. Used by the gateway
@@ -591,7 +529,7 @@ service IdentityService {
 
   // First-run admin bootstrap (/setup). GetSetupState is unauthenticated (self-
   // guards via the no-root invariant); BootstrapRoot creates the first admin in
-  // lldap + identity and self-guards on the no-root invariant.
+  // Kratos + identity and self-guards on the no-root invariant.
   rpc GetSetupState(GetSetupStateRequest) returns (GetSetupStateResponse);
   rpc BootstrapRoot(BootstrapRootRequest) returns (BootstrapRootResponse);
 
@@ -614,10 +552,6 @@ service IdentityService {
   rpc UserAdGroups(UserAdGroupsRequest) returns (UserAdGroupsResponse) {
     option deprecated = true;
   }
-
-  // Orphan groups: human site-admin only (see the messages above).
-  rpc ListOrphanGroups(ListOrphanGroupsRequest) returns (ListOrphanGroupsResponse);
-  rpc PruneOrphanGroups(PruneOrphanGroupsRequest) returns (PruneOrphanGroupsResponse);
 
   // Effective context for the gateway ActorContext.
   rpc ResolveUserContext(ResolveUserContextRequest) returns (ResolveUserContextResponse);

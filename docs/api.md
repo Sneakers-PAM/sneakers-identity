@@ -17,33 +17,29 @@ trusted services) can reach it.
 | RPCs | What they do |
 |---|---|
 | `ListUsers`, `GetUser`, `SearchUsers`, `ResolveUserLabels` | Read users: all, one, a case-insensitive name/email search, and id-to-label lookups for rendering. |
-| `ListGroups`, `GetGroup`, `CreateGroup` | Read groups, and create one (in the directory first, then in identity's `groups` table). |
-| `AddGroupMember`, `RemoveGroupMember`, `ListGroupMembers`, `ListUserGroups` | Memberships. They live only in identity, never in the directory. |
+| `ListGroups`, `GetGroup`, `CreateGroup` | Read groups, and create one in identity's `groups` table. |
+| `AddGroupMember`, `RemoveGroupMember`, `ListGroupMembers`, `ListUserGroups` | Memberships. They live only in identity. |
 | `SetUserRoles`, `UpdateUser`, `SetUserDisabled` | Change a user's roles, profile (name, email, username) or disabled state. A disabled user can't sign in, and their personal tokens stop verifying. |
 | `ResolveUserContext` | The user, their group names and roles, keyed by login subject. The gateway builds each request's actor from it. |
 | `SetUserAdGroups`, `ListUsersByAdGroups`, `UserAdGroups` | Retired. Kept for wire compatibility: the first returns `Unimplemented`, the others return empty results. |
-| `ListOrphanGroups`, `PruneOrphanGroups` | Defined in the API but not implemented yet; they return `Unimplemented`. |
 
-The directory (lldap) decides which groups exist and what they are called; identity's `groups`
-table mirrors it, reconciled at start and every `GROUP_SYNC_INTERVAL`. The sync adds and renames,
-never deletes: a group gone from the directory is logged as an orphan. Group names are unique
-case-insensitively. Under `AUTH_BACKEND=kratos` groups live only in identity.
+Groups live only in identity, managed in the Sneakers admin console. Group names are unique
+case-insensitively.
 
 ## Sign-in and provisioning
 
 | RPCs | What they do |
 |---|---|
 | `AdoptOrProvisionFederatedUser` | The login path. Resolves the user by login subject; else adopts a pre-created row by username, then by email; else creates a user with the `user` role. |
-| `GetUserByKeycloakSubject`, `ResolveUserByEmail` | Pure lookups, with no side effects. `ResolveUserByEmail` lets the gateway refuse sign-in for unknown emails. |
-| `PreCreateLocalUser`, `CreateLocalUser` | Create a user ahead of their first login; `CreateLocalUser` also creates the directory account. |
+| `GetUserBySubject`, `ResolveUserByEmail` | Pure lookups, with no side effects. `ResolveUserByEmail` lets the gateway refuse sign-in for unknown emails. |
+| `PreCreateLocalUser`, `CreateLocalUser` | Create a user ahead of their first login; `CreateLocalUser` also creates the Ory Kratos identity. |
 | `GetSetupState`, `BootstrapRoot` | First-run setup: whether no administrator exists yet, and creating the first one. `BootstrapRoot` refuses once an administrator exists. |
 | `RequestPasswordReset`, `ConfirmPasswordReset` | Self-service password reset by emailed code. The request always answers the same way, so it never reveals whether an account exists. |
 | `RequestEmailVerification`, `ConfirmEmailVerification` | Confirm a user's email address and username spelling with an emailed code. |
 | `SendTransactionalEmail` | Send a message the caller wrote through identity's SMTP relay (the gateway uses it for Kratos recovery codes). |
 
-The `keycloak_subject` field and RPC names keep their original names for wire compatibility; the
-value is the login subject from whichever directory is in use (a Kratos identity id under
-`AUTH_BACKEND=kratos`).
+Sign-in uses Ory: Ory Kratos for accounts and MFA, Ory Polis for SAML SSO and Ory Hydra for
+machine OAuth. A user's `subject` is their Ory Kratos identity id.
 
 ## Second factors
 

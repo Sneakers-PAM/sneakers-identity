@@ -13,7 +13,9 @@ issues from a template, a branch per issue, Conventional Commits, squash-merged 
 - Changing the API: edit `proto/sneakers/identity/v1/identity.proto`, then run `buf generate` (with the
   `protoc-gen-go` and `protoc-gen-go-grpc` versions pinned in
   `.github/workflows/job-go-lang-ci.yaml`) and commit the result under `gen/go`. CI fails if the
-  generated code is stale or the change breaks the API.
+  generated code is stale or the change breaks the API. An intentional break (allowed before 1.0)
+  goes in a PR labelled `breaking`, which skips the `buf breaking` comparison; reserve every removed
+  field number and name.
 - Every `.go`, `.proto` and `.sql` file starts with the Apache-2.0 header:
 
   ```

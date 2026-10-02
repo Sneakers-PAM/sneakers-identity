@@ -73,8 +73,14 @@ jobs:
       - name: buf lint
         run: buf lint
       - name: buf breaking
+        env:
+          BREAKING_LABEL: ${{ contains(github.event.pull_request.labels.*.name, 'breaking') }}
         run: |
-          if git cat-file -e origin/main:proto 2>/dev/null; then
+          # A PR labelled `breaking` is an intentional, reviewed contract break
+          # (allowed before 1.0), so the comparison with main is skipped.
+          if [ "$BREAKING_LABEL" = "true" ]; then
+            echo "::notice::buf breaking skipped: the PR is labelled 'breaking' (an intentional contract change)"
+          elif git cat-file -e origin/main:proto 2>/dev/null; then
             git worktree add -q --detach "$RUNNER_TEMP/base" origin/main
             buf breaking --against "$RUNNER_TEMP/base"
           else

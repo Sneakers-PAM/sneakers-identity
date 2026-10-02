@@ -16,7 +16,7 @@ import (
 	"github.com/Sneakers-PAM/sneakers-identity/internal/kratos"
 )
 
-func resetCodeFrom(t *testing.T, mail *cutoverMailbox, to string) string {
+func resetCodeFrom(t *testing.T, mail *fakeMailbox, to string) string {
 	t.Helper()
 	for i := len(mail.sent) - 1; i >= 0; i-- {
 		if mail.sent[i].to == to {
@@ -31,7 +31,7 @@ func resetCodeFrom(t *testing.T, mail *cutoverMailbox, to string) string {
 
 func seedKratosUser(ctx context.Context, t *testing.T, s *Server, id, email, subject string) {
 	t.Helper()
-	if _, err := s.db.Exec(ctx, `INSERT INTO users (id,name,email,roles,keycloak_subject,username) VALUES ($1,'Ada',$2,'{user}',$3,'ada')`, id, email, subject); err != nil {
+	if _, err := s.db.Exec(ctx, `INSERT INTO users (id,name,email,roles,subject,username) VALUES ($1,'Ada',$2,'{user}',$3,'ada')`, id, email, subject); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -40,7 +40,7 @@ func seedKratosUser(ctx context.Context, t *testing.T, s *Server, id, email, sub
 // verified reset sets the password on the user's Kratos identity.
 func TestPGKratosPasswordResetSetsTheKratosPassword(t *testing.T) {
 	ctx := context.Background()
-	dir, mail := newFakeKratosDir(), &cutoverMailbox{}
+	dir, mail := newFakeKratosDir(), &fakeMailbox{}
 	s := newPGServer(t).WithKratos(dir).WithEmail(mail, false)
 	seedKratosUser(ctx, t, s, "u-ada", "ada@example.org", "kid-ada")
 
@@ -62,7 +62,7 @@ func TestPGKratosPasswordResetSetsTheKratosPassword(t *testing.T) {
 	}
 }
 
-// The cutover reset flow end to end against a real Kratos: request a reset,
+// The reset flow end to end against a real Kratos: request a reset,
 // redeem the emailed code, then sign in through Kratos with the new password.
 func TestPGRealKratosPasswordResetThenLogin(t *testing.T) {
 	adminURL, publicURL := os.Getenv("KRATOS_TEST_ADMIN_URL"), os.Getenv("KRATOS_TEST_PUBLIC_URL")
@@ -70,7 +70,7 @@ func TestPGRealKratosPasswordResetThenLogin(t *testing.T) {
 		t.Skip("set KRATOS_TEST_ADMIN_URL and KRATOS_TEST_PUBLIC_URL to run against a real Kratos")
 	}
 	ctx := context.Background()
-	admin, mail := kratos.NewAdmin(adminURL), &cutoverMailbox{}
+	admin, mail := kratos.NewAdmin(adminURL), &fakeMailbox{}
 	s := newPGServer(t).WithKratos(admin).WithEmail(mail, false)
 	email := "reset-e2e@example.org"
 	if old, err := admin.FindIdentityByEmail(ctx, email); err == nil {

@@ -107,7 +107,7 @@ CREATE TABLE public.users (
     email text NOT NULL,
     roles text[] DEFAULT '{}'::text[] NOT NULL,
     is_root boolean DEFAULT false NOT NULL,
-    keycloak_subject text DEFAULT ''::text NOT NULL,
+    subject text DEFAULT ''::text NOT NULL,
     username text DEFAULT ''::text NOT NULL,
     email_verified boolean DEFAULT false NOT NULL,
     disabled_at timestamp with time zone
@@ -178,7 +178,7 @@ CREATE INDEX user_webauthn_credentials_user_idx ON public.user_webauthn_credenti
 
 CREATE INDEX users_email_idx ON public.users USING btree (lower(email));
 
-CREATE UNIQUE INDEX users_keycloak_subject_key ON public.users USING btree (keycloak_subject) WHERE (keycloak_subject <> ''::text);
+CREATE UNIQUE INDEX users_subject_key ON public.users USING btree (subject) WHERE (subject <> ''::text);
 
 CREATE UNIQUE INDEX users_single_root_idx ON public.users USING btree (is_root) WHERE is_root;
 

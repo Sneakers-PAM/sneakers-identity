@@ -18,21 +18,7 @@ import (
 	log "github.com/Bugs5382/go-log"
 	postgres "github.com/Bugs5382/go-postgres"
 	seed "github.com/Bugs5382/go-seed"
-	"github.com/Sneakers-PAM/sneakers-identity/internal/lldap"
 )
-
-// devPassword is the shared login password the seed sets for every demo user in
-// lldap. Kept in step with the web UI's dev login hint. DEV/QA only — never
-// used in prod (federation).
-const devPassword = "dev123"
-
-// getOr returns the env var value or a default when unset/empty.
-func getOr(key, def string) string {
-	if v := os.Getenv(key); v != "" {
-		return v
-	}
-	return def
-}
 
 // rowStep is a Postgres-backed analogue of go-seed's SQL RowSpec (whose Executor is
 // database/sql only): an idempotent Apply plus an Assert that the expected rows
@@ -76,8 +62,7 @@ func main() {
 
 	// Root = Alan Turing (site-admin); the rest are computing/crypto pioneers.
 	// Kept in step with the web UI's mock seed.
-	// username = the stable login handle (matches the lldap uid / Keycloak
-	// preferred_username); it is the primary key a federated login adopts on.
+	// username = the stable login handle; it is the primary key a login adopts on.
 	users := []struct {
 		id, name, email, username string
 		roles                     []string
@@ -137,33 +122,4 @@ func main() {
 		logger.Fatal().Err(err).Msg("seed")
 	}
 	logger.Info().Int("users", len(users)).Int("groups", len(groups)).Int("memberships", len(memberships)).Msg("identity seed complete")
-
-	// The rows above are the identity directory (roles/groups). Authentication,
-	// though, validates the password against lldap (the credential store Keycloak
-	// federates to READ_ONLY). /setup provisions lldap in qa/prod, but dev
-	// auto-seeds and never runs /setup, so the demo users would exist in the DB
-	// yet be unable to log in. Mirror /setup's lldap.CreateUser + SetPassword
-	// here so every demo user can authenticate with devPassword. Idempotent:
-	// CreateUser is create-or-exists and SetPassword (re)sets. DEV/QA only.
-	url := os.Getenv("LLDAP_URL")
-	if url == "" {
-		logger.Warn().Msg("LLDAP_URL unset — skipping lldap demo-user provisioning; logins will fail until users exist in lldap")
-		return
-	}
-	ldapClient := lldap.New(lldap.Config{
-		AdminURL:  url,
-		LDAPURL:   getOr("LLDAP_LDAP_URL", "ldap://sneakers-lldap:3890"),
-		BaseDN:    getOr("LLDAP_BASE_DN", "dc=sneakers,dc=local"),
-		AdminUser: getOr("LLDAP_ADMIN_USERNAME", "admin"),
-		AdminPass: os.Getenv("LLDAP_ADMIN_PASSWORD"),
-	})
-	for _, u := range users {
-		if err := ldapClient.CreateUser(ctx, u.username, u.email, u.name); err != nil {
-			logger.Fatal().Err(err).Str("user", u.username).Msg("lldap create user")
-		}
-		if err := ldapClient.SetPassword(ctx, u.username, devPassword); err != nil {
-			logger.Fatal().Err(err).Str("user", u.username).Msg("lldap set password")
-		}
-	}
-	logger.Info().Int("lldap_users", len(users)).Msg("lldap demo users provisioned")
 }

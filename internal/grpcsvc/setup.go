@@ -37,9 +37,9 @@ func (s *Server) GetSetupState(ctx context.Context, _ *identityv1.GetSetupStateR
 	return &identityv1.GetSetupStateResponse{NeedsSetup: !has}, nil
 }
 
-// BootstrapRoot creates the very first admin: a brand-new user in lldap (uid=
-// username, email, displayName=name, password set) so Keycloak federation can
-// log them in, plus the identity row marked is_root=true and granted the
+// BootstrapRoot creates the very first admin: a brand-new Kratos identity
+// (email, name, password set) so they can sign in, plus the identity row
+// marked is_root=true and granted the
 // site-admin role. Self-guards on the no-root invariant (FailedPrecondition if a
 // root/site-admin already exists) and on empty username/email/password
 // (InvalidArgument).
@@ -58,7 +58,7 @@ func (s *Server) BootstrapRoot(ctx context.Context, req *identityv1.BootstrapRoo
 	if has {
 		return nil, status.Error(codes.FailedPrecondition, "a root user already exists")
 	}
-	if s.lldap == nil && s.kratos == nil {
+	if s.kratos == nil {
 		return nil, status.Error(codes.Unavailable, "no user directory configured")
 	}
 
@@ -67,7 +67,7 @@ func (s *Server) BootstrapRoot(ctx context.Context, req *identityv1.BootstrapRoo
 		name = username
 	}
 
-	subject, rollback, err := s.provisionDirectoryUser(ctx, username, email, name, password)
+	subject, rollback, err := s.provisionDirectoryUser(ctx, email, name, password)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "%v", err)
 	}
@@ -75,14 +75,14 @@ func (s *Server) BootstrapRoot(ctx context.Context, req *identityv1.BootstrapRoo
 	// Create the identity row: is_root=true and the site-admin role (is_root on
 	// its own confers no permissions — they derive from roles — so grant
 	// site-admin too or the first /setup user is locked out of the admin console).
-	// keycloak_subject='' so the row is adopted by USERNAME on first federated
-	// login. The users_single_root_idx partial unique index is the atomic
+	// The subject is the new Kratos identity id, so the first login resolves
+	// this row directly. The users_single_root_idx partial unique index is the atomic
 	// backstop: a concurrent bootstrap racing this INSERT conflicts and is
 	// reported as FailedPrecondition rather than a generic Internal error.
 	id := "user-" + uuid.NewString()
 	var newID string
 	err = s.db.QueryRow(ctx,
-		`INSERT INTO users (id, name, email, roles, is_root, keycloak_subject, username)
+		`INSERT INTO users (id, name, email, roles, is_root, subject, username)
 		 VALUES ($1,$2,$3,$4,true,$5,$6)
 		 RETURNING id`,
 		id, name, email, []string{"site-admin"}, subject, username).Scan(&newID)

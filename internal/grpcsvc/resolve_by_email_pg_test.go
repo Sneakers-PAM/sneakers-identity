@@ -22,7 +22,7 @@ func TestPGResolveUserByEmail(t *testing.T) {
 
 	const id = "usr-sso-1"
 	if _, err := s.db.Exec(ctx,
-		`INSERT INTO users (id, name, email, roles, is_root, keycloak_subject, username)
+		`INSERT INTO users (id, name, email, roles, is_root, subject, username)
 		 VALUES ($1,$2,$3,$4,false,'',$5)`,
 		id, "Ada Lovelace", "ada@example.org", []string{"user"}, "ada"); err != nil {
 		t.Fatalf("seed: %v", err)

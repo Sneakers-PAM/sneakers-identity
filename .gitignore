@@ -1,6 +1,5 @@
 /bin/
 /identity
-/cutover
 /seed
 *.test
 *.out

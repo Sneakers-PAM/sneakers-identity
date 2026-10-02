@@ -6,10 +6,63 @@ package grpcsvc
 import (
 	"context"
 	"errors"
+	"strings"
+	"sync"
 	"testing"
 
 	identityv1 "github.com/Sneakers-PAM/sneakers-identity/gen/go/sneakers/identity/v1"
+	"github.com/Sneakers-PAM/sneakers-identity/internal/kratos"
 )
+
+type fakeKratosDir struct {
+	mu           sync.Mutex
+	byEmail      map[string]string
+	creates      int
+	failFor      map[string]bool
+	failPassword bool
+	passwords    map[string]string
+	traits       map[string][2]string
+	deleted      []string
+}
+
+func newFakeKratosDir() *fakeKratosDir {
+	return &fakeKratosDir{byEmail: map[string]string{}, failFor: map[string]bool{}}
+}
+
+func (f *fakeKratosDir) CreateIdentity(_ context.Context, email, _ string) (string, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if f.failFor[email] {
+		return "", errors.New("kratos down")
+	}
+	f.creates++
+	id := "kid-" + email
+	f.byEmail[strings.ToLower(email)] = id
+	return id, nil
+}
+
+func (f *fakeKratosDir) FindIdentityByEmail(_ context.Context, email string) (string, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if id, ok := f.byEmail[strings.ToLower(email)]; ok {
+		return id, nil
+	}
+	return "", kratos.ErrNotFound
+}
+
+type sentMail struct{ to, subject, body string }
+
+type fakeMailbox struct {
+	mu   sync.Mutex
+	sent []sentMail
+}
+
+func (f *fakeMailbox) Send(to, subject, body string) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.sent = append(f.sent, sentMail{to, subject, body})
+	return nil
+}
 
 func (f *fakeKratosDir) SetPassword(_ context.Context, id, password string) error {
 	f.mu.Lock()
@@ -58,11 +111,11 @@ func TestPGKratosCreateLocalUserStoresTheIdentityAsSubject(t *testing.T) {
 		t.Fatalf("CreateLocalUser: %v", err)
 	}
 	u := resp.GetUser()
-	if u.GetKeycloakSubject() != "kid-ada@example.org" || dir.passwords["kid-ada@example.org"] != "correct horse battery" {
+	if u.GetSubject() != "kid-ada@example.org" || dir.passwords["kid-ada@example.org"] != "correct horse battery" {
 		t.Fatalf("user = %+v, kratos passwords = %v", u, dir.passwords)
 	}
 	adopted, err := s.AdoptOrProvisionFederatedUser(ctx, &identityv1.AdoptOrProvisionFederatedUserRequest{
-		KeycloakSubject: "kid-ada@example.org", Email: "ada@example.org",
+		Subject: "kid-ada@example.org", Email: "ada@example.org",
 	})
 	if err != nil || adopted.GetUser().GetId() != u.GetId() {
 		t.Fatalf("first Kratos login adopted %v (err %v), want %s", adopted.GetUser(), err, u.GetId())
@@ -100,7 +153,7 @@ func TestPGKratosBootstrapRoot(t *testing.T) {
 	if err != nil {
 		t.Fatalf("BootstrapRoot: %v", err)
 	}
-	if u := resp.GetUser(); !u.GetIsRoot() || u.GetKeycloakSubject() != "kid-root@example.org" || dir.passwords["kid-root@example.org"] == "" {
+	if u := resp.GetUser(); !u.GetIsRoot() || u.GetSubject() != "kid-root@example.org" || dir.passwords["kid-root@example.org"] == "" {
 		t.Fatalf("root = %+v", u)
 	}
 }
@@ -125,7 +178,7 @@ func TestPGKratosUpdateUserUpdatesTraits(t *testing.T) {
 		t.Fatalf("rename under Kratos: %v", err)
 	}
 	u, _ := s.getUserByID(ctx, id)
-	if u.GetUsername() != "aking" || u.GetKeycloakSubject() != "kid-ada@example.org" {
+	if u.GetUsername() != "aking" || u.GetSubject() != "kid-ada@example.org" {
 		t.Fatalf("after rename user = %+v, want username aking and the same subject", u)
 	}
 }

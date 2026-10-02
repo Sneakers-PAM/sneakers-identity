@@ -8,6 +8,11 @@ import (
 	"fmt"
 )
 
+type kratosDirectory interface {
+	CreateIdentity(ctx context.Context, email, name string) (string, error)
+	FindIdentityByEmail(ctx context.Context, email string) (string, error)
+}
+
 type kratosAdmin interface {
 	kratosDirectory
 	SetPassword(ctx context.Context, id, password string) error

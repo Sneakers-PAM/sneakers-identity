@@ -17,19 +17,13 @@ off and their RPCs answer `Unavailable`; the service still starts.
 
 ## Credential directory
 
-Passwords live in a directory, never in identity. `AUTH_BACKEND` picks it and must match the
-gateway's setting.
+Sign-in uses Ory: Ory Kratos holds the passwords, never identity. Identity provisions Kratos
+identities, sets and resets their passwords, and keeps their traits in step with the user row.
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `AUTH_BACKEND` | `keycloak` | `keycloak`: lldap holds the credentials (and a federating login provider reads them). `kratos`: Ory Kratos holds them, and lldap is not used at all. |
-| `LLDAP_URL` | (unset) | lldap's admin HTTP URL, for example `http://lldap:17170`. Enables first-run setup, local-user provisioning, password reset and the group sync. Ignored under `kratos`. |
-| `LLDAP_LDAP_URL` | `ldap://sneakers-lldap:3890` | lldap's LDAP URL, used to set passwords. |
-| `LLDAP_BASE_DN` | `dc=sneakers,dc=local` | lldap's base DN, for example `dc=example,dc=org`. |
-| `LLDAP_ADMIN_USERNAME` | `admin` | lldap admin user. |
-| `LLDAP_ADMIN_PASSWORD` | (unset) | lldap admin password, from your secret store. |
-| `GROUP_SYNC_INTERVAL` | `5m` | How often groups are reconciled from lldap (a Go duration; `0` syncs once at start only). |
-| `KRATOS_ADMIN_URL` | `http://sneakers-kratos:4434` | Kratos admin API, used when `AUTH_BACKEND=kratos`. |
+| `KRATOS_ADMIN_URL` | `http://sneakers-kratos:4434` | Ory Kratos admin API. |
+| `AUTH_BACKEND` | `kratos` | Optional. `kratos` is the only backend; any other value stops the service at start. |
 
 ## Second factors
 
@@ -59,9 +53,7 @@ the gateway sends through `SendTransactionalEmail`.
 
 ## Tools
 
-`cmd/cutover` reads `DATABASE_DSN`, `KRATOS_ADMIN_URL`, `CUTOVER_RESET_URL` (the sign-in page
-linked from the notice email) and the `SMTP_*` settings. `cmd/seed` reads `DATABASE_DSN` and, to
-create the demo users in lldap, the `LLDAP_*` settings. See [runbook.md](runbook.md).
+`cmd/seed` reads `DATABASE_DSN`. See [runbook.md](runbook.md).
 
 ## Example
 

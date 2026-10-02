@@ -35,7 +35,7 @@ const (
 	IdentityService_UpdateUser_FullMethodName                    = "/sneakers.identity.v1.IdentityService/UpdateUser"
 	IdentityService_AdoptOrProvisionFederatedUser_FullMethodName = "/sneakers.identity.v1.IdentityService/AdoptOrProvisionFederatedUser"
 	IdentityService_SendTransactionalEmail_FullMethodName        = "/sneakers.identity.v1.IdentityService/SendTransactionalEmail"
-	IdentityService_GetUserByKeycloakSubject_FullMethodName      = "/sneakers.identity.v1.IdentityService/GetUserByKeycloakSubject"
+	IdentityService_GetUserBySubject_FullMethodName              = "/sneakers.identity.v1.IdentityService/GetUserBySubject"
 	IdentityService_ResolveUserByEmail_FullMethodName            = "/sneakers.identity.v1.IdentityService/ResolveUserByEmail"
 	IdentityService_GetSetupState_FullMethodName                 = "/sneakers.identity.v1.IdentityService/GetSetupState"
 	IdentityService_BootstrapRoot_FullMethodName                 = "/sneakers.identity.v1.IdentityService/BootstrapRoot"
@@ -46,8 +46,6 @@ const (
 	IdentityService_SetUserAdGroups_FullMethodName               = "/sneakers.identity.v1.IdentityService/SetUserAdGroups"
 	IdentityService_ListUsersByAdGroups_FullMethodName           = "/sneakers.identity.v1.IdentityService/ListUsersByAdGroups"
 	IdentityService_UserAdGroups_FullMethodName                  = "/sneakers.identity.v1.IdentityService/UserAdGroups"
-	IdentityService_ListOrphanGroups_FullMethodName              = "/sneakers.identity.v1.IdentityService/ListOrphanGroups"
-	IdentityService_PruneOrphanGroups_FullMethodName             = "/sneakers.identity.v1.IdentityService/PruneOrphanGroups"
 	IdentityService_ResolveUserContext_FullMethodName            = "/sneakers.identity.v1.IdentityService/ResolveUserContext"
 	IdentityService_EnrollTotp_FullMethodName                    = "/sneakers.identity.v1.IdentityService/EnrollTotp"
 	IdentityService_ConfirmTotp_FullMethodName                   = "/sneakers.identity.v1.IdentityService/ConfirmTotp"
@@ -93,25 +91,24 @@ type IdentityServiceClient interface {
 	GetUser(ctx context.Context, in *GetUserRequest, opts ...grpc.CallOption) (*GetUserResponse, error)
 	ListGroups(ctx context.Context, in *ListGroupsRequest, opts ...grpc.CallOption) (*ListGroupsResponse, error)
 	GetGroup(ctx context.Context, in *GetGroupRequest, opts ...grpc.CallOption) (*GetGroupResponse, error)
-	// Admin-gated: provision a new directory group in lldap.
+	// Admin-gated: create a new directory group.
 	CreateGroup(ctx context.Context, in *CreateGroupRequest, opts ...grpc.CallOption) (*CreateGroupResponse, error)
 	SearchUsers(ctx context.Context, in *SearchUsersRequest, opts ...grpc.CallOption) (*SearchUsersResponse, error)
 	ResolveUserLabels(ctx context.Context, in *ResolveUserLabelsRequest, opts ...grpc.CallOption) (*ResolveUserLabelsResponse, error)
 	// Provisioning for real logins.
 	PreCreateLocalUser(ctx context.Context, in *PreCreateLocalUserRequest, opts ...grpc.CallOption) (*PreCreateLocalUserResponse, error)
-	// Admin-gated full provisioning: lldap user + password + local identity row.
+	// Admin-gated full provisioning: Kratos identity + password + local identity row.
 	CreateLocalUser(ctx context.Context, in *CreateLocalUserRequest, opts ...grpc.CallOption) (*CreateLocalUserResponse, error)
 	// Admin-gated: replace a user's role set (grant/revoke e.g. the "admin" role).
 	SetUserRoles(ctx context.Context, in *SetUserRolesRequest, opts ...grpc.CallOption) (*SetUserRolesResponse, error)
-	// Admin-gated: edit a user's name / email / username. A username change
-	// recreates the lldap user and triggers a password reset (see UpdateUserRequest).
+	// Admin-gated: edit a user's name / email / username (see UpdateUserRequest).
 	UpdateUser(ctx context.Context, in *UpdateUserRequest, opts ...grpc.CallOption) (*UpdateUserResponse, error)
 	AdoptOrProvisionFederatedUser(ctx context.Context, in *AdoptOrProvisionFederatedUserRequest, opts ...grpc.CallOption) (*AdoptOrProvisionFederatedUserResponse, error)
 	// SendTransactionalEmail delivers an operator-supplied email via identity's
 	// existing SMTP sender (no template rendering); the gateway uses it to
 	// deliver Kratos recovery codes.
 	SendTransactionalEmail(ctx context.Context, in *SendTransactionalEmailRequest, opts ...grpc.CallOption) (*SendTransactionalEmailResponse, error)
-	GetUserByKeycloakSubject(ctx context.Context, in *GetUserByKeycloakSubjectRequest, opts ...grpc.CallOption) (*GetUserByKeycloakSubjectResponse, error)
+	GetUserBySubject(ctx context.Context, in *GetUserBySubjectRequest, opts ...grpc.CallOption) (*GetUserBySubjectResponse, error)
 	// ResolveUserByEmail resolves a single platform user by exact
 	// (case-insensitive) email match. A PURE lookup — no JIT provisioning, no
 	// side effects. Returns NotFound when no user matches. Used by the gateway
@@ -119,7 +116,7 @@ type IdentityServiceClient interface {
 	ResolveUserByEmail(ctx context.Context, in *ResolveUserByEmailRequest, opts ...grpc.CallOption) (*ResolveUserByEmailResponse, error)
 	// First-run admin bootstrap (/setup). GetSetupState is unauthenticated (self-
 	// guards via the no-root invariant); BootstrapRoot creates the first admin in
-	// lldap + identity and self-guards on the no-root invariant.
+	// Kratos + identity and self-guards on the no-root invariant.
 	GetSetupState(ctx context.Context, in *GetSetupStateRequest, opts ...grpc.CallOption) (*GetSetupStateResponse, error)
 	BootstrapRoot(ctx context.Context, in *BootstrapRootRequest, opts ...grpc.CallOption) (*BootstrapRootResponse, error)
 	// Group membership (identity is SoT).
@@ -137,9 +134,6 @@ type IdentityServiceClient interface {
 	ListUsersByAdGroups(ctx context.Context, in *ListUsersByAdGroupsRequest, opts ...grpc.CallOption) (*ListUsersByAdGroupsResponse, error)
 	// Deprecated: Do not use.
 	UserAdGroups(ctx context.Context, in *UserAdGroupsRequest, opts ...grpc.CallOption) (*UserAdGroupsResponse, error)
-	// Orphan groups: human site-admin only (see the messages above).
-	ListOrphanGroups(ctx context.Context, in *ListOrphanGroupsRequest, opts ...grpc.CallOption) (*ListOrphanGroupsResponse, error)
-	PruneOrphanGroups(ctx context.Context, in *PruneOrphanGroupsRequest, opts ...grpc.CallOption) (*PruneOrphanGroupsResponse, error)
 	// Effective context for the gateway ActorContext.
 	ResolveUserContext(ctx context.Context, in *ResolveUserContextRequest, opts ...grpc.CallOption) (*ResolveUserContextResponse, error)
 	// MFA (TOTP 2-step): enroll/confirm for the authed user, status + verify for
@@ -330,10 +324,10 @@ func (c *identityServiceClient) SendTransactionalEmail(ctx context.Context, in *
 	return out, nil
 }
 
-func (c *identityServiceClient) GetUserByKeycloakSubject(ctx context.Context, in *GetUserByKeycloakSubjectRequest, opts ...grpc.CallOption) (*GetUserByKeycloakSubjectResponse, error) {
+func (c *identityServiceClient) GetUserBySubject(ctx context.Context, in *GetUserBySubjectRequest, opts ...grpc.CallOption) (*GetUserBySubjectResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetUserByKeycloakSubjectResponse)
-	err := c.cc.Invoke(ctx, IdentityService_GetUserByKeycloakSubject_FullMethodName, in, out, cOpts...)
+	out := new(GetUserBySubjectResponse)
+	err := c.cc.Invoke(ctx, IdentityService_GetUserBySubject_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -437,26 +431,6 @@ func (c *identityServiceClient) UserAdGroups(ctx context.Context, in *UserAdGrou
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(UserAdGroupsResponse)
 	err := c.cc.Invoke(ctx, IdentityService_UserAdGroups_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *identityServiceClient) ListOrphanGroups(ctx context.Context, in *ListOrphanGroupsRequest, opts ...grpc.CallOption) (*ListOrphanGroupsResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ListOrphanGroupsResponse)
-	err := c.cc.Invoke(ctx, IdentityService_ListOrphanGroups_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *identityServiceClient) PruneOrphanGroups(ctx context.Context, in *PruneOrphanGroupsRequest, opts ...grpc.CallOption) (*PruneOrphanGroupsResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(PruneOrphanGroupsResponse)
-	err := c.cc.Invoke(ctx, IdentityService_PruneOrphanGroups_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -821,25 +795,24 @@ type IdentityServiceServer interface {
 	GetUser(context.Context, *GetUserRequest) (*GetUserResponse, error)
 	ListGroups(context.Context, *ListGroupsRequest) (*ListGroupsResponse, error)
 	GetGroup(context.Context, *GetGroupRequest) (*GetGroupResponse, error)
-	// Admin-gated: provision a new directory group in lldap.
+	// Admin-gated: create a new directory group.
 	CreateGroup(context.Context, *CreateGroupRequest) (*CreateGroupResponse, error)
 	SearchUsers(context.Context, *SearchUsersRequest) (*SearchUsersResponse, error)
 	ResolveUserLabels(context.Context, *ResolveUserLabelsRequest) (*ResolveUserLabelsResponse, error)
 	// Provisioning for real logins.
 	PreCreateLocalUser(context.Context, *PreCreateLocalUserRequest) (*PreCreateLocalUserResponse, error)
-	// Admin-gated full provisioning: lldap user + password + local identity row.
+	// Admin-gated full provisioning: Kratos identity + password + local identity row.
 	CreateLocalUser(context.Context, *CreateLocalUserRequest) (*CreateLocalUserResponse, error)
 	// Admin-gated: replace a user's role set (grant/revoke e.g. the "admin" role).
 	SetUserRoles(context.Context, *SetUserRolesRequest) (*SetUserRolesResponse, error)
-	// Admin-gated: edit a user's name / email / username. A username change
-	// recreates the lldap user and triggers a password reset (see UpdateUserRequest).
+	// Admin-gated: edit a user's name / email / username (see UpdateUserRequest).
 	UpdateUser(context.Context, *UpdateUserRequest) (*UpdateUserResponse, error)
 	AdoptOrProvisionFederatedUser(context.Context, *AdoptOrProvisionFederatedUserRequest) (*AdoptOrProvisionFederatedUserResponse, error)
 	// SendTransactionalEmail delivers an operator-supplied email via identity's
 	// existing SMTP sender (no template rendering); the gateway uses it to
 	// deliver Kratos recovery codes.
 	SendTransactionalEmail(context.Context, *SendTransactionalEmailRequest) (*SendTransactionalEmailResponse, error)
-	GetUserByKeycloakSubject(context.Context, *GetUserByKeycloakSubjectRequest) (*GetUserByKeycloakSubjectResponse, error)
+	GetUserBySubject(context.Context, *GetUserBySubjectRequest) (*GetUserBySubjectResponse, error)
 	// ResolveUserByEmail resolves a single platform user by exact
 	// (case-insensitive) email match. A PURE lookup — no JIT provisioning, no
 	// side effects. Returns NotFound when no user matches. Used by the gateway
@@ -847,7 +820,7 @@ type IdentityServiceServer interface {
 	ResolveUserByEmail(context.Context, *ResolveUserByEmailRequest) (*ResolveUserByEmailResponse, error)
 	// First-run admin bootstrap (/setup). GetSetupState is unauthenticated (self-
 	// guards via the no-root invariant); BootstrapRoot creates the first admin in
-	// lldap + identity and self-guards on the no-root invariant.
+	// Kratos + identity and self-guards on the no-root invariant.
 	GetSetupState(context.Context, *GetSetupStateRequest) (*GetSetupStateResponse, error)
 	BootstrapRoot(context.Context, *BootstrapRootRequest) (*BootstrapRootResponse, error)
 	// Group membership (identity is SoT).
@@ -865,9 +838,6 @@ type IdentityServiceServer interface {
 	ListUsersByAdGroups(context.Context, *ListUsersByAdGroupsRequest) (*ListUsersByAdGroupsResponse, error)
 	// Deprecated: Do not use.
 	UserAdGroups(context.Context, *UserAdGroupsRequest) (*UserAdGroupsResponse, error)
-	// Orphan groups: human site-admin only (see the messages above).
-	ListOrphanGroups(context.Context, *ListOrphanGroupsRequest) (*ListOrphanGroupsResponse, error)
-	PruneOrphanGroups(context.Context, *PruneOrphanGroupsRequest) (*PruneOrphanGroupsResponse, error)
 	// Effective context for the gateway ActorContext.
 	ResolveUserContext(context.Context, *ResolveUserContextRequest) (*ResolveUserContextResponse, error)
 	// MFA (TOTP 2-step): enroll/confirm for the authed user, status + verify for
@@ -967,8 +937,8 @@ func (UnimplementedIdentityServiceServer) AdoptOrProvisionFederatedUser(context.
 func (UnimplementedIdentityServiceServer) SendTransactionalEmail(context.Context, *SendTransactionalEmailRequest) (*SendTransactionalEmailResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method SendTransactionalEmail not implemented")
 }
-func (UnimplementedIdentityServiceServer) GetUserByKeycloakSubject(context.Context, *GetUserByKeycloakSubjectRequest) (*GetUserByKeycloakSubjectResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method GetUserByKeycloakSubject not implemented")
+func (UnimplementedIdentityServiceServer) GetUserBySubject(context.Context, *GetUserBySubjectRequest) (*GetUserBySubjectResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetUserBySubject not implemented")
 }
 func (UnimplementedIdentityServiceServer) ResolveUserByEmail(context.Context, *ResolveUserByEmailRequest) (*ResolveUserByEmailResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ResolveUserByEmail not implemented")
@@ -999,12 +969,6 @@ func (UnimplementedIdentityServiceServer) ListUsersByAdGroups(context.Context, *
 }
 func (UnimplementedIdentityServiceServer) UserAdGroups(context.Context, *UserAdGroupsRequest) (*UserAdGroupsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method UserAdGroups not implemented")
-}
-func (UnimplementedIdentityServiceServer) ListOrphanGroups(context.Context, *ListOrphanGroupsRequest) (*ListOrphanGroupsResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method ListOrphanGroups not implemented")
-}
-func (UnimplementedIdentityServiceServer) PruneOrphanGroups(context.Context, *PruneOrphanGroupsRequest) (*PruneOrphanGroupsResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method PruneOrphanGroups not implemented")
 }
 func (UnimplementedIdentityServiceServer) ResolveUserContext(context.Context, *ResolveUserContextRequest) (*ResolveUserContextResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ResolveUserContext not implemented")
@@ -1366,20 +1330,20 @@ func _IdentityService_SendTransactionalEmail_Handler(srv interface{}, ctx contex
 	return interceptor(ctx, in, info, handler)
 }
 
-func _IdentityService_GetUserByKeycloakSubject_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetUserByKeycloakSubjectRequest)
+func _IdentityService_GetUserBySubject_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetUserBySubjectRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(IdentityServiceServer).GetUserByKeycloakSubject(ctx, in)
+		return srv.(IdentityServiceServer).GetUserBySubject(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: IdentityService_GetUserByKeycloakSubject_FullMethodName,
+		FullMethod: IdentityService_GetUserBySubject_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(IdentityServiceServer).GetUserByKeycloakSubject(ctx, req.(*GetUserByKeycloakSubjectRequest))
+		return srv.(IdentityServiceServer).GetUserBySubject(ctx, req.(*GetUserBySubjectRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1560,42 +1524,6 @@ func _IdentityService_UserAdGroups_Handler(srv interface{}, ctx context.Context,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(IdentityServiceServer).UserAdGroups(ctx, req.(*UserAdGroupsRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _IdentityService_ListOrphanGroups_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListOrphanGroupsRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(IdentityServiceServer).ListOrphanGroups(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: IdentityService_ListOrphanGroups_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(IdentityServiceServer).ListOrphanGroups(ctx, req.(*ListOrphanGroupsRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _IdentityService_PruneOrphanGroups_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(PruneOrphanGroupsRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(IdentityServiceServer).PruneOrphanGroups(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: IdentityService_PruneOrphanGroups_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(IdentityServiceServer).PruneOrphanGroups(ctx, req.(*PruneOrphanGroupsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -2290,8 +2218,8 @@ var IdentityService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _IdentityService_SendTransactionalEmail_Handler,
 		},
 		{
-			MethodName: "GetUserByKeycloakSubject",
-			Handler:    _IdentityService_GetUserByKeycloakSubject_Handler,
+			MethodName: "GetUserBySubject",
+			Handler:    _IdentityService_GetUserBySubject_Handler,
 		},
 		{
 			MethodName: "ResolveUserByEmail",
@@ -2332,14 +2260,6 @@ var IdentityService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "UserAdGroups",
 			Handler:    _IdentityService_UserAdGroups_Handler,
-		},
-		{
-			MethodName: "ListOrphanGroups",
-			Handler:    _IdentityService_ListOrphanGroups_Handler,
-		},
-		{
-			MethodName: "PruneOrphanGroups",
-			Handler:    _IdentityService_PruneOrphanGroups_Handler,
 		},
 		{
 			MethodName: "ResolveUserContext",
