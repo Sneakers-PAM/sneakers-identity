@@ -8,9 +8,19 @@ documents every RPC and field. Go clients import the generated code from
 The server also registers the standard gRPC health service (`grpc.health.v1.Health`) and server
 reflection.
 
-Identity enforces no caller authorization itself: the gateway authenticates every request and
-gates the admin RPCs before calling identity. Run identity where only the gateway (and other
-trusted services) can reach it.
+Every call must carry the caller's workload identity: its projected Kubernetes ServiceAccount
+token as `authorization: Bearer <token>` (see [configuration.md](configuration.md#service-to-service-authentication)).
+Identity verifies it and checks the caller against a per-method allow-list (`grpcsvc.CallerPolicy`):
+
+| Caller | Methods | Access |
+|---|---|---|
+| `gateway` | every method | on behalf of the signed-in user (`acting_user_id`) |
+| `notify` | `ListGroups`, `ListGroupMembers`, `ListUsersByAdGroups`, `ResolveUserLabels` | as itself |
+
+Any other caller, or a listed caller on a method it isn't listed for, gets `PermissionDenied`; no
+or a bad token gets `Unauthenticated`. The health service is exempt. Each refusal is recorded as a
+`workload.call_refused` audit event. The gateway still authenticates the end user and gates the
+admin RPCs before calling identity; the recovery role is the one rule identity also checks itself.
 
 ## Users and groups
 
@@ -101,6 +111,7 @@ event holds ids, kinds and outcomes only: never a password, code, TOTP secret or
 | `service_account.create`, `service_account.disable` | `CreateServiceAccount`, `DisableServiceAccount` | service account | `name` |
 | `service_account.oidc.link`, `service_account.oidc.unlink` | `LinkOidcClient`, `UnlinkOidcClient` | service account | `oidc_issuer`, `oidc_subject`, `allowed_groups` |
 | `api_token.mint`, `api_token.revoke` | `MintApiToken`, `RevokeApiToken` | token id | `service_account_id`, `scope`, `expires_at_unix` |
+| `workload.call_refused` | the workload-auth interceptors, for a refused call | the gRPC method | `caller`, `service_account`, `code`, `reason` |
 | `user_token.mint`, `user_token.revoke` | `MintUserToken`, `RevokeUserToken` | token id | `user_id`, `label`, `client_name`, `expires_at_unix` |
 
 The actor is the request's `acting_user_id` (or `created_by` and `acting_admin` where the request
