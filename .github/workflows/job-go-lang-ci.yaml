@@ -9,12 +9,39 @@ on:
     types: [opened, synchronize, reopened, ready_for_review]
 permissions:
   contents: read
+env:
+  BUF_VERSION: v1.70.0
+  PROTOC_GEN_GO_VERSION: v1.36.11
+  PROTOC_GEN_GO_GRPC_VERSION: v1.6.2
+  KRATOS_IMAGE: oryd/kratos:v1.3.1@sha256:fe2428f103a6240c064b6ea77d3088610865c55fcebccb30355857eccdc25b4b
 jobs:
   build-test:
     name: 🧪 Build & Test
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    # The Postgres and Kratos integration tests run only when IDENTITY_PG_DSN
+    # and KRATOS_TEST_* are set. The Postgres container trusts connections
+    # without a password, and Kratos runs in dev mode on in-memory storage
+    # (test/kratos), for CI only.
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: identity
+          POSTGRES_DB: identity
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U identity"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      IDENTITY_PG_DSN: postgres://identity@localhost:5432/identity?sslmode=disable
+      KRATOS_TEST_ADMIN_URL: http://localhost:4434
+      KRATOS_TEST_PUBLIC_URL: http://localhost:4433
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -24,16 +51,56 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
+      # A service container can't mount the checked-out config, so Kratos
+      # starts here instead.
+      - name: Start Kratos
+        run: |
+          docker run -d --name kratos -p 4433:4433 -p 4434:4434 \
+            -v "$PWD/test/kratos:/etc/config/kratos:ro" \
+            "$KRATOS_IMAGE" serve -c /etc/config/kratos/kratos.yaml --dev --watch-courier=false
+          for _ in $(seq 1 60); do
+            curl -fsS "$KRATOS_TEST_ADMIN_URL/admin/health/ready" && exit 0
+            sleep 1
+          done
+          docker logs kratos
+          exit 1
+      # go install checks each module against the Go checksum database.
+      - name: Install buf and the protoc plugins
+        run: |
+          go install "github.com/bufbuild/buf/cmd/buf@${BUF_VERSION}"
+          go install "google.golang.org/protobuf/cmd/protoc-gen-go@${PROTOC_GEN_GO_VERSION}"
+          go install "google.golang.org/grpc/cmd/protoc-gen-go-grpc@${PROTOC_GEN_GO_GRPC_VERSION}"
+      - name: buf lint
+        run: buf lint
+      - name: buf breaking
+        run: |
+          if git cat-file -e origin/main:proto 2>/dev/null; then
+            git worktree add -q --detach "$RUNNER_TEMP/base" origin/main
+            buf breaking --against "$RUNNER_TEMP/base"
+          else
+            echo "main has no proto yet; nothing to compare against"
+          fi
+      - name: Generated code is current
+        run: |
+          buf generate
+          git diff --exit-code -- gen
+          test -z "$(git status --porcelain -- gen)"
       - name: gofmt
         run: |
           unformatted="$(gofmt -l .)"
           if [ -n "$unformatted" ]; then
             echo "gofmt needed on:"; echo "$unformatted"; exit 1
           fi
+      - name: go mod tidy
+        run: |
+          go mod tidy
+          git diff --exit-code -- go.mod go.sum
       - name: Build
         run: go build ./...
+      - name: Vet
+        run: go vet ./...
       - name: Test
-        run: go test ./... -cover
+        run: go test -count=1 ./... -cover
   lint:
     name: 🧹 GolangCI
     if: github.event.pull_request.draft == false

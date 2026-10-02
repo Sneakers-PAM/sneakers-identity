@@ -17,3 +17,11 @@ jobs:
   checks:
     if: github.event.pull_request.draft != true
     uses: Sneakers-PAM/.github/.github/workflows/scrub.yml@main
+    with:
+      # gonum.org: a public Go module host that appears in go.sum.
+      # The long name is not a host: it is how the host-name pattern reads the
+      # end of the generated descriptor in gen/go (a message name, three
+      # protobuf length bytes that happen to be letters, then github.com).
+      allowed-domains: >-
+        gonum.org
+        x1a9.sneakers.identity.v1.resolveserviceaccountbyoidcresponsebrzpgithub.com

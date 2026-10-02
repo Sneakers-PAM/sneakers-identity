@@ -1,0 +1,675 @@
+// Copyright 2026 The Sneakers-PAM Authors
+// SPDX-License-Identifier: Apache-2.0
+
+syntax = "proto3";
+
+package sneakers.identity.v1;
+
+option go_package = "github.com/Sneakers-PAM/sneakers-identity/gen/go/sneakers/identity/v1;identityv1";
+
+// Identity: the directory of users and groups the vault's RBAC and the UI's
+// people pickers resolve against. In dev this is an in-memory directory seeded
+// to mirror the UI; in production it is fed by lldap/Keycloak plus an
+// orgs/RBAC service. Kept read-only here — provisioning lives upstream.
+
+message User {
+  string id = 1;
+  string name = 2;
+  string email = 3;
+  repeated string roles = 4;         // e.g. site-admin, user
+  bool is_root = 5;                   // the bootstrap super-admin
+  string keycloak_subject = 6;       // JWT `sub` for the federated identity; empty for pre-created local rows not yet adopted
+  string username = 7;               // stable login handle (Keycloak preferred_username / lldap uid); the identity key for adoption + login display
+  bool email_verified = 8;            // the account's email address has been confirmed via an emailed code; false until then
+  int64 disabled_at_unix = 9;         // 0 = active; a disabled user can't log in and every personal token they own stops verifying
+}
+
+message Group {
+  string id = 1;
+  string name = 2;
+}
+
+message ListUsersRequest {}
+message ListUsersResponse { repeated User users = 1; }
+message GetUserRequest { string id = 1; }
+message GetUserResponse { User user = 1; }
+message ListGroupsRequest {}
+message ListGroupsResponse { repeated Group groups = 1; }
+message GetGroupRequest { string id = 1; }
+message GetGroupResponse { Group group = 1; }
+
+// CreateGroup provisions a new directory group in lldap and returns it.
+// Admin-gated at the gateway. Mirrors the CreateLocalUser provisioning path.
+message CreateGroupRequest  { string name = 1; }
+message CreateGroupResponse { Group group = 1; }
+
+// Typeahead search over users (name/email substring, case-insensitive);
+// limit <= 0 means server-default page size.
+message SearchUsersRequest { string query = 1; int32 limit = 2; }
+message SearchUsersResponse { repeated User users = 1; }
+
+// Batch-resolve user ids to display labels, for rendering RACI rule
+// subjects without a round trip per row.
+message ResolveUserLabelsRequest { repeated string ids = 1; }
+message UserLabel { string id = 1; string name = 2; }
+message ResolveUserLabelsResponse { repeated UserLabel labels = 1; }
+
+// --- Provisioning for real logins ---
+
+// PreCreateLocalUser inserts a local account up-front with an empty
+// keycloak_subject (and the given email/name/roles); a later federated login
+// adopts it by email match.
+message PreCreateLocalUserRequest  { string email = 1; string name = 2; repeated string roles = 3; }
+message PreCreateLocalUserResponse { User user = 1; }
+
+// CreateLocalUser fully provisions a loginable local account: it creates the
+// lldap user + sets the supplied password, then persists the local identity row
+// (local_account=true; keycloak_subject empty until first-login adoption).
+// Admin-gated.
+message CreateLocalUserRequest  { string username = 1; string email = 2; string name = 3; string password = 4; }
+message CreateLocalUserResponse { User user = 1; }
+
+// SetUserRoles replaces a user's role set (e.g. grant/revoke the "admin" role).
+// Admin-gated at the gateway. root's admin authority derives from is_root, so it
+// survives an empty role set. Returns the updated user.
+message SetUserRolesRequest  { string user_id = 1; repeated string roles = 2; }
+message SetUserRolesResponse { User user = 1; }
+
+// UpdateUser edits a user's profile: display name, email, and username. Admin-
+// gated at the gateway. A misspelled account (wrong name/email/username) can
+// otherwise only be deleted + recreated. Fields are applied as given
+// (name defaults to username when blank). Changing the username is the careful
+// path: lldap cannot rename a uid in place, so identity deletes + recreates the
+// directory user (preserving the identity row: same id, roles, keycloak_subject)
+// which drops the password, so the account is flagged unverified and a
+// password-reset email is triggered so the user can set a new one. Name/email-
+// only edits never disturb the password. Returns the updated user.
+message UpdateUserRequest  { string user_id = 1; string name = 2; string email = 3; string username = 4; }
+message UpdateUserResponse { User user = 1; }
+
+// AdoptOrProvisionFederatedUser is the login path. Given the Keycloak subject
+// (JWT `sub`) plus the token's email/name it returns the platform user:
+// resolves an already-adopted row by subject; else adopts a pre-created /
+// email-matched local row by stamping keycloak_subject; else provisions a
+// fresh user.
+message AdoptOrProvisionFederatedUserRequest  { string keycloak_subject = 1; string email = 2; string name = 3; string keycloak_username = 4; }
+message AdoptOrProvisionFederatedUserResponse { User user = 1; }
+
+// SendTransactionalEmail delivers an operator-supplied email via identity's
+// already-configured SMTP sender (email.Sender — SMTP_HOST/PORT/FROM). The
+// gateway mints a Kratos recovery code (KratosClient.CreateRecoveryCode) and calls this RPC to
+// deliver it, since Sneakers has no separate notification/jobs-exchange
+// service. No template rendering — the caller supplies the final subject/body.
+message SendTransactionalEmailRequest  { string to = 1; string subject = 2; string body = 3; }
+message SendTransactionalEmailResponse {}
+
+// GetUserByKeycloakSubject fetches a user by JWT `sub`. NotFound when no row is
+// mapped to the subject yet (caller then adopts/provisions).
+message GetUserByKeycloakSubjectRequest  { string keycloak_subject = 1; }
+message GetUserByKeycloakSubjectResponse { User user = 1; }
+
+// ResolveUserByEmail resolves a single platform user by exact
+// (case-insensitive) email match. A PURE lookup — no JIT provisioning, no
+// side effects. Returns NotFound when no user matches. Used by the gateway
+// SSO callback to enforce no-JIT: a SAML login for an unknown email is
+// rejected, never auto-created.
+message ResolveUserByEmailRequest {
+  string email = 1;
+}
+
+message ResolveUserByEmailResponse {
+  User user = 1;
+}
+
+// --- First-run admin bootstrap (/setup) ---
+
+// GetSetupState reports whether the system still needs first-run setup: true
+// when NO user is a root/site-admin yet (the no-root invariant). The gateway's
+// unauthenticated GET /setup/state exposes this so the UI knows to show the
+// bootstrap page.
+message GetSetupStateRequest  {}
+message GetSetupStateResponse { bool needs_setup = 1; }
+
+// BootstrapRoot creates the very first admin: a brand-new user in lldap (so
+// Keycloak federation can log them in) that is also marked root/site-admin in
+// identity. Self-guards on the no-root invariant (FailedPrecondition if a
+// root/site-admin already exists) and on empty username/email/password
+// (InvalidArgument).
+message BootstrapRootRequest  { string username = 1; string email = 2; string password = 3; string name = 4; }
+message BootstrapRootResponse { User user = 1; }
+
+// --- Group membership (identity is the source of truth) ---
+
+message AddGroupMemberRequest  { string user_id = 1; string group_id = 2; }
+message AddGroupMemberResponse { string user_id = 1; string group_id = 2; }
+message RemoveGroupMemberRequest  { string user_id = 1; string group_id = 2; }
+message RemoveGroupMemberResponse { string user_id = 1; string group_id = 2; }
+message ListGroupMembersRequest  { string group_id = 1; }
+message ListGroupMembersResponse { repeated User users = 1; }
+message ListUserGroupsRequest  { string user_id = 1; }
+message ListUserGroupsResponse { repeated Group groups = 1; }
+
+// --- AD groups: RETIRED ---
+//
+// Group membership is managed ONLY in the Sneakers admin UI (identity's
+// group_membership); groups are never derived from federation/SAML/OIDC claims.
+// The AD-claim sync path was never
+// wired up and is retired. These messages and their RPCs are kept only so the
+// contract stays wire-compatible; they will be removed in the next major.
+message SetUserAdGroupsRequest {
+  option deprecated = true;
+  string user_id = 1;
+  repeated string names = 2;
+}
+message SetUserAdGroupsResponse { option deprecated = true; }
+message ListUsersByAdGroupsRequest {
+  option deprecated = true;
+  repeated string names = 1;
+}
+message ListUsersByAdGroupsResponse {
+  option deprecated = true;
+  repeated User users = 1;
+}
+message UserAdGroupsRequest {
+  option deprecated = true;
+  string user_id = 1;
+}
+message UserAdGroupsResponse {
+  option deprecated = true;
+  repeated string names = 1;
+}
+
+// --- Orphan groups (rows in the groups table with no lldap group) ---
+//
+// SyncGroups mirrors lldap into the identity groups table but never deletes.
+// A row whose lldap group is gone is an ORPHAN. These RPCs let a HUMAN
+// site-admin see and prune orphans. Both require acting_admin to be a human
+// user with the site-admin/admin role, or root. Service accounts are never
+// accepted (admin authority is human-only). Both return UNAVAILABLE when
+// lldap is not configured or unreachable, because orphan status can only be
+// decided against a live directory.
+//
+// Vault RACI rules name groups, and identity cannot see them. A RACI rule that
+// names a pruned group is not reported here. After the prune it simply
+// matches nothing (fail closed).
+
+// A service account whose oidc_allowed_groups names the group (by ID, exact
+// name or slug).
+message OrphanGroupServiceAccountRef {
+  string id = 1;
+  string name = 2;
+}
+
+// A non-revoked API token whose scope names the group (by ID, exact name or
+// slug).
+message OrphanGroupTokenRef {
+  string id = 1;
+  string service_account_id = 2;
+}
+
+message OrphanGroup {
+  string id = 1;
+  string name = 2;
+  repeated OrphanGroupServiceAccountRef service_accounts = 3;
+  repeated OrphanGroupTokenRef api_tokens = 4;
+  int64 membership_count = 5; // group_membership rows for this group
+}
+
+message ListOrphanGroupsRequest { string acting_admin = 1; }
+message ListOrphanGroupsResponse {
+  repeated OrphanGroup groups = 1;
+  // Always set: the caveat that vault RACI references are not visible here.
+  string warning = 2;
+}
+
+// PruneOrphanGroups deletes the named groups rows and their group_membership
+// rows in one transaction. It is all-or-nothing: if any id is unknown, is not
+// an orphan at call time (re-checked against lldap inside the call), or is
+// referenced by a service account or live token while force=false, nothing
+// changes and FAILED_PRECONDITION lists the offending ids. With force=true,
+// the matching entries are also removed from those oidc_allowed_groups and
+// token scopes, and the response reports every change.
+message PruneOrphanGroupsRequest {
+  repeated string ids = 1;
+  bool force = 2;
+  string acting_admin = 3;
+}
+message PrunedGroup {
+  string id = 1;
+  string name = 2;
+  int64 memberships_deleted = 3;
+  repeated OrphanGroupServiceAccountRef service_accounts_updated = 4;
+  repeated OrphanGroupTokenRef api_tokens_updated = 5;
+}
+message PruneOrphanGroupsResponse {
+  repeated PrunedGroup pruned = 1;
+  // Always set: the caveat that vault RACI rules naming a pruned group now
+  // match nothing.
+  string warning = 2;
+}
+
+// ResolveUserContext returns the user plus their EFFECTIVE group names (the
+// names of the directory groups they are a member of, managed in the Sneakers
+// admin UI) and roles, keyed by Keycloak subject. This is what the gateway
+// uses to build the request ActorContext. AD/claim-derived groups are never
+// included.
+message ResolveUserContextRequest  { string keycloak_subject = 1; }
+message ResolveUserContextResponse {
+  User user = 1;
+  repeated string group_names = 2; // directory group names only
+  repeated string roles = 3;
+}
+
+// --- MFA (TOTP 2-step) ---
+//
+// TOTP second factor (email OTP and passkeys are defined below). Identity is the
+// factor authority: it owns the encrypted secret and all code verification. The
+// gateway BFF drives EnrollTotp/ConfirmTotp for the authed user and, at login,
+// GetMfaStatus + VerifyTotp for the 2-step challenge.
+
+// EnrollTotp mints a fresh TOTP secret, stores it encrypted + unconfirmed, and
+// returns the base32 secret and otpauth:// provisioning URI (authenticator QR).
+// A CONFIRMED enrollment is never replaced (DisableTotp first); a pending one is
+// restarted.
+message EnrollTotpRequest  { string user_id = 1; }
+message EnrollTotpResponse { string secret = 1; string otpauth_uri = 2; }
+
+// ConfirmTotp proves possession of the pending secret with a current code and
+// activates the enrollment.
+message ConfirmTotpRequest  { string user_id = 1; string code = 2; }
+message ConfirmTotpResponse {}
+
+// VerifyTotp checks a code against the user's CONFIRMED secret (the login step).
+// ok=false covers wrong code, pending-only enrollment, and no enrollment alike.
+message VerifyTotpRequest  { string user_id = 1; string code = 2; }
+message VerifyTotpResponse { bool ok = 1; }
+
+// GetMfaStatus reports whether the user has a confirmed TOTP factor (drives the
+// BFF's decision to require a second factor at login).
+message GetMfaStatusRequest  { string user_id = 1; }
+message GetMfaStatusResponse { bool enrolled = 1; }
+
+// DisableTotp removes the user's TOTP factor (pending or confirmed).
+message DisableTotpRequest  { string user_id = 1; }
+message DisableTotpResponse {}
+
+// --- MFA email OTP + generalized factor model ---
+//
+// Email OTP is a second factor delivered by email: a single-use, short-lived
+// (5 min) numeric code, stored only as a hash. purpose scopes a code to a flow
+// ("login" | "enroll") so a code minted for one can never satisfy the other.
+// The generalized factor model (ListUserFactors / RemoveFactor) lets the BFF
+// drive a kind-dispatched 2-step login and factor management across TOTP,
+// email and passkey.
+
+// SendEmailOtp mints + emails a single-use MFA code. purpose scopes the
+// challenge ("login" | "enroll"); verify must present the same purpose. A
+// re-issue inside the cooldown window is ResourceExhausted; a user with no
+// email address is FailedPrecondition.
+message SendEmailOtpRequest  { string user_id = 1; string purpose = 2; }
+message SendEmailOtpResponse {}
+
+// VerifyEmailOtp verifies an emailed MFA code for (user, purpose). ok is true
+// iff the code matched and was unexpired, unconsumed and within the attempt
+// limit; the code is consumed on success (single-use). ok=false covers every
+// failure mode indistinguishably.
+message VerifyEmailOtpRequest  { string user_id = 1; string code = 2; string purpose = 3; }
+message VerifyEmailOtpResponse { bool ok = 1; }
+
+// Self-service password reset, keyed by EMAIL (the user is unauthenticated).
+// Request always returns empty — never leak whether an account exists. Confirm
+// verifies the reset code and sets the new password in lldap (Keycloak federates
+// lldap, so that IS the login password); ok=false = bad/expired code.
+message RequestPasswordResetRequest  { string email = 1; }
+message RequestPasswordResetResponse {}
+message ConfirmPasswordResetRequest  { string email = 1; string code = 2; string new_password = 3; }
+message ConfirmPasswordResetResponse { bool ok = 1; }
+
+// Email verification confirms the email/username spelling, so a misspelled
+// account is caught early. RequestEmailVerification mints + emails a single-use code whose body
+// prominently shows the username AND email so the operator/user can catch a
+// typo. ConfirmEmailVerification verifies the code (keyed by user_id or email)
+// and, on success, marks the user email_verified; ok=false for a wrong/expired
+// code (never leaks whether the account exists). Reuses the email-OTP store.
+message RequestEmailVerificationRequest  { string user_id = 1; }
+message RequestEmailVerificationResponse {}
+message ConfirmEmailVerificationRequest  { string user_id = 1; string email = 2; string code = 3; }
+message ConfirmEmailVerificationResponse { bool ok = 1; }
+
+// Passkey / WebAuthn. Identity is the Relying Party (go-webauthn); the
+// gateway is a pass-through. WebAuthn options + credential payloads cross as
+// opaque JSON strings (never modelled in proto). A begin returns options + a
+// server-side session_id that the matching finish must present.
+message WebauthnRegisterBeginRequest  { string user_id = 1; }
+message WebauthnRegisterBeginResponse { string options_json = 1; string session_id = 2; }
+message WebauthnRegisterFinishRequest { string user_id = 1; string session_id = 2; string credential_json = 3; string label = 4; }
+message WebauthnRegisterFinishResponse {}
+message WebauthnAssertBeginRequest    { string user_id = 1; }
+message WebauthnAssertBeginResponse   { string options_json = 1; string session_id = 2; }
+message WebauthnAssertFinishRequest   { string user_id = 1; string session_id = 2; string credential_json = 3; }
+message WebauthnAssertFinishResponse  { bool ok = 1; }
+message WebauthnCredential { string id = 1; string label = 2; string created_at = 3; string last_used_at = 4; repeated string transports = 5; }
+message ListWebauthnCredentialsRequest  { string user_id = 1; }
+message ListWebauthnCredentialsResponse { repeated WebauthnCredential credentials = 1; }
+message RemoveWebauthnCredentialRequest  { string user_id = 1; string credential_id = 2; }
+message RemoveWebauthnCredentialResponse {}
+
+// UserFactor describes one second factor the user can satisfy.
+// kind: "totp" | "email" | "passkey" (passkey deferred).
+// enrolled_at: RFC3339 activation time; empty for implicit factors (email).
+message UserFactor {
+  string kind = 1;
+  string enrolled_at = 2;
+}
+
+// ListUserFactors reports the factor kinds the user can currently satisfy:
+// "totp" when a confirmed enrollment exists, "email" whenever the user has an
+// email address (implicit fallback factor). Drives the BFF's kind-dispatched
+// login challenge and the factor-management UI.
+message ListUserFactorsRequest  { string user_id = 1; }
+message ListUserFactorsResponse { repeated UserFactor factors = 1; }
+
+// RemoveFactor deletes the user's credential for the given kind. "totp" removes
+// the TOTP enrollment; "email" is implicit (derived from the address) and
+// cannot be removed.
+message RemoveFactorRequest  { string user_id = 1; string kind = 2; }
+message RemoveFactorResponse {}
+
+// --- Governed machine access: service accounts + API tokens ---
+//
+// A ServiceAccount is a non-human principal (external caller, agent, or
+// automation) that authenticates to the gateway with an opaque Bearer API
+// token instead of a cookie. Tokens are scoped, expiring, and revocable, and
+// are RACI subjects at the vault layer (see the vault API's ActorContext
+// PrincipalKind). Token secrecy: identity mints a high-entropy opaque token,
+// returns it in PLAINTEXT exactly once (MintApiTokenResponse), and stores only
+// its hash — mirroring the emailotp hash-at-rest pattern. ApiToken carries
+// metadata only and never the token value.
+message ServiceAccount {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  bool disabled = 4;
+  string created_by = 5;
+  int64 created_at_unix = 6;
+  // OIDC client linkage: when set, an OIDC/OAuth2 client
+  // (issuer, subject=client_id) issued by Ory Hydra resolves to this SA via
+  // ResolveServiceAccountByOidc, alongside the existing opaque-token path.
+  string oidc_issuer = 7;
+  string oidc_subject = 8;
+  // Admin-controlled bound on the OIDC linkage: the RACI groups
+  // this linked client may ever hold, stored as canonical group IDs. The
+  // client holds JWT scope groups INTERSECT this list; empty means NO groups
+  // (fail closed), never "all".
+  repeated string oidc_allowed_groups = 9;
+}
+
+// ApiToken is metadata about a minted token — NEVER the token value itself.
+// revoked_at_unix/last_used_at_unix are 0 when unset.
+message ApiToken {
+  string id = 1;
+  string service_account_id = 2;
+  string scope = 3;
+  int64 expires_at_unix = 4;
+  int64 revoked_at_unix = 5;
+  int64 last_used_at_unix = 6;
+  string created_by = 7;
+}
+
+// CreateServiceAccount provisions a new machine principal. Admin-gated at the
+// gateway; created_by is the acting admin's user id, like other admin RPCs.
+message CreateServiceAccountRequest  { string name = 1; string description = 2; string created_by = 3; }
+message CreateServiceAccountResponse { ServiceAccount service_account = 1; }
+
+message ListServiceAccountsRequest  {}
+message ListServiceAccountsResponse { repeated ServiceAccount service_accounts = 1; }
+
+// DisableServiceAccount is a soft-disable (no delete): tokens already minted
+// keep their own expiry/revocation state independently.
+message DisableServiceAccountRequest  { string id = 1; }
+message DisableServiceAccountResponse { ServiceAccount service_account = 1; }
+
+// MintApiToken is the ONLY place a token value ever appears. expires_at_unix=0
+// means no expiry. created_by is the acting admin's user id. scope is a
+// whitespace-separated list of group references (ID, slug, or exact name);
+// every entry must resolve to exactly one directory group or the mint is
+// rejected (InvalidArgument). The stored scope is canonicalized to group IDs.
+message MintApiTokenRequest {
+  string service_account_id = 1;
+  string scope = 2;
+  int64 expires_at_unix = 3;
+  string created_by = 4;
+}
+message MintApiTokenResponse {
+  string token = 1; // plaintext — returned exactly once, never logged, never re-fetchable
+  ApiToken meta = 2;
+}
+
+message ListApiTokensRequest  { string service_account_id = 1; }
+message ListApiTokensResponse { repeated ApiToken tokens = 1; }
+
+message RevokeApiTokenRequest  { string id = 1; }
+message RevokeApiTokenResponse { ApiToken meta = 1; }
+
+// A personal token proves which user is calling and nothing more: it carries
+// no scope or group snapshot, so permission changes apply to the very next
+// request made with it. The plaintext is returned once by MintUserToken.
+message UserToken {
+  string id = 1;
+  string user_id = 2;
+  string label = 3;
+  string client_name = 4;
+  int64 created_at_unix = 5;
+  int64 last_used_at_unix = 6;
+  int64 revoked_at_unix = 7;
+  int64 expires_at_unix = 8;          // 0 = never
+}
+message MintUserTokenRequest {
+  string user_id = 1;
+  string label = 2;
+  string client_name = 3;
+  int64 expires_at_unix = 4;          // 0 = never
+}
+message MintUserTokenResponse {
+  string token = 1;                   // plaintext, returned exactly once
+  UserToken meta = 2;
+}
+message ListUserTokensRequest  { string user_id = 1; }
+message ListUserTokensResponse { repeated UserToken tokens = 1; }
+
+// user_id must own the token, so a caller can only ever revoke tokens it has
+// already resolved to their owner.
+message RevokeUserTokenRequest  { string id = 1; string user_id = 2; }
+message RevokeUserTokenResponse { UserToken meta = 1; }
+
+// valid=false does not say why (unknown, revoked, expired or disabled user).
+// group_names are the owner's CURRENT directory groups, resolved on this call.
+message VerifyUserTokenRequest  { string token = 1; }
+message VerifyUserTokenResponse {
+  bool valid = 1;
+  string token_id = 2;
+  User user = 3;
+  repeated string group_names = 4;
+}
+
+message SetUserDisabledRequest  { string user_id = 1; bool disabled = 2; }
+message SetUserDisabledResponse { User user = 1; }
+
+// VerifyApiToken is the gateway's machine-auth check: present the opaque
+// bearer token, get back the resolved principal or valid=false. Does not
+// distinguish unknown/expired/revoked to the caller (fail-closed, no leak).
+message VerifyApiTokenRequest  { string token = 1; }
+message VerifyApiTokenResponse {
+  string service_account_id = 1;
+  string name = 2;
+  string scope = 3;
+  bool valid = 4;
+  // RACI group names the token's scope resolves to (the scope grammar): each
+  // whitespace-separated scope token matches a directory group by ID or by
+  // name slug; unknown, colliding or ambiguous tokens resolve to nothing.
+  // This is the ONLY grant the gateway gives the caller; the raw scope
+  // string is informational. Empty => no groups (fail closed).
+  repeated string group_names = 5;
+}
+
+// OIDC client linkage: bind/unbind an Ory Hydra OAuth2 client
+// (issuer, subject=client_id) to a service account, and resolve it back on
+// the gateway's machine-auth path.
+// allowed_groups is the site-admin-set bound on which RACI groups the linked
+// client may hold (see ServiceAccount.oidc_allowed_groups). Replaced wholesale
+// on every link call; empty grants no groups. Each entry may be a group ID,
+// slug, or exact name; every entry must resolve to exactly one directory
+// group or the link is rejected (InvalidArgument). Stored as group IDs.
+message LinkOidcClientRequest {
+  string service_account_id = 1;
+  string oidc_issuer = 2;
+  string oidc_subject = 3;
+  string acting_admin = 4;
+  repeated string allowed_groups = 5;
+}
+message LinkOidcClientResponse { ServiceAccount service_account = 1; }
+
+message UnlinkOidcClientRequest { string service_account_id = 1; string acting_admin = 2; }
+message UnlinkOidcClientResponse { ServiceAccount service_account = 1; }
+
+// ResolveServiceAccountByOidc is the gateway's OIDC machine-auth check:
+// present the JWT's (issuer, subject=client_id), get back the resolved
+// principal or valid=false. Fail-closed like VerifyApiToken: does not
+// distinguish unknown/disabled to the caller.
+message ResolveServiceAccountByOidcRequest {
+  string oidc_issuer = 1;
+  string oidc_subject = 2;
+  // The verified JWT's scope claim (space-delimited). identity resolves it to
+  // group_names in the response, bounded by the linkage's allowed_groups.
+  string scope = 3;
+}
+message ResolveServiceAccountByOidcResponse {
+  bool valid = 1;
+  string service_account_id = 2;
+  string name = 3;
+  string scope = 4;
+  // The linkage's admin-set allowed groups. The gateway MUST intersect the
+  // JWT's scope groups with this list; empty => no groups (fail closed).
+  repeated string allowed_groups = 5;
+  // RACI group names the request's scope resolves to (the scope grammar: a
+  // token matches a directory group by ID or by name slug), INTERSECT
+  // allowed_groups. This is the ONLY grant the gateway gives the client.
+  // Empty => no groups (fail closed).
+  repeated string group_names = 6;
+}
+
+service IdentityService {
+  rpc ListUsers(ListUsersRequest) returns (ListUsersResponse);
+  rpc GetUser(GetUserRequest) returns (GetUserResponse);
+  rpc ListGroups(ListGroupsRequest) returns (ListGroupsResponse);
+  rpc GetGroup(GetGroupRequest) returns (GetGroupResponse);
+  // Admin-gated: provision a new directory group in lldap.
+  rpc CreateGroup(CreateGroupRequest) returns (CreateGroupResponse);
+  rpc SearchUsers(SearchUsersRequest) returns (SearchUsersResponse);
+  rpc ResolveUserLabels(ResolveUserLabelsRequest) returns (ResolveUserLabelsResponse);
+
+  // Provisioning for real logins.
+  rpc PreCreateLocalUser(PreCreateLocalUserRequest) returns (PreCreateLocalUserResponse);
+  // Admin-gated full provisioning: lldap user + password + local identity row.
+  rpc CreateLocalUser(CreateLocalUserRequest) returns (CreateLocalUserResponse);
+  // Admin-gated: replace a user's role set (grant/revoke e.g. the "admin" role).
+  rpc SetUserRoles(SetUserRolesRequest) returns (SetUserRolesResponse);
+  // Admin-gated: edit a user's name / email / username. A username change
+  // recreates the lldap user and triggers a password reset (see UpdateUserRequest).
+  rpc UpdateUser(UpdateUserRequest) returns (UpdateUserResponse);
+  rpc AdoptOrProvisionFederatedUser(AdoptOrProvisionFederatedUserRequest) returns (AdoptOrProvisionFederatedUserResponse);
+  // SendTransactionalEmail delivers an operator-supplied email via identity's
+  // existing SMTP sender (no template rendering); the gateway uses it to
+  // deliver Kratos recovery codes.
+  rpc SendTransactionalEmail(SendTransactionalEmailRequest) returns (SendTransactionalEmailResponse);
+  rpc GetUserByKeycloakSubject(GetUserByKeycloakSubjectRequest) returns (GetUserByKeycloakSubjectResponse);
+  // ResolveUserByEmail resolves a single platform user by exact
+  // (case-insensitive) email match. A PURE lookup — no JIT provisioning, no
+  // side effects. Returns NotFound when no user matches. Used by the gateway
+  // SSO callback to enforce no-JIT.
+  rpc ResolveUserByEmail(ResolveUserByEmailRequest) returns (ResolveUserByEmailResponse);
+
+  // First-run admin bootstrap (/setup). GetSetupState is unauthenticated (self-
+  // guards via the no-root invariant); BootstrapRoot creates the first admin in
+  // lldap + identity and self-guards on the no-root invariant.
+  rpc GetSetupState(GetSetupStateRequest) returns (GetSetupStateResponse);
+  rpc BootstrapRoot(BootstrapRootRequest) returns (BootstrapRootResponse);
+
+  // Group membership (identity is SoT).
+  rpc AddGroupMember(AddGroupMemberRequest) returns (AddGroupMemberResponse);
+  rpc RemoveGroupMember(RemoveGroupMemberRequest) returns (RemoveGroupMemberResponse);
+  rpc ListGroupMembers(ListGroupMembersRequest) returns (ListGroupMembersResponse);
+  rpc ListUserGroups(ListUserGroupsRequest) returns (ListUserGroupsResponse);
+
+  // RETIRED: AD groups are never synced from federation claims; group
+  // membership is managed only in the Sneakers admin UI. SetUserAdGroups
+  // returns UNIMPLEMENTED. ListUsersByAdGroups / UserAdGroups always return an
+  // empty result. All three will be removed in the next major.
+  rpc SetUserAdGroups(SetUserAdGroupsRequest) returns (SetUserAdGroupsResponse) {
+    option deprecated = true;
+  }
+  rpc ListUsersByAdGroups(ListUsersByAdGroupsRequest) returns (ListUsersByAdGroupsResponse) {
+    option deprecated = true;
+  }
+  rpc UserAdGroups(UserAdGroupsRequest) returns (UserAdGroupsResponse) {
+    option deprecated = true;
+  }
+
+  // Orphan groups: human site-admin only (see the messages above).
+  rpc ListOrphanGroups(ListOrphanGroupsRequest) returns (ListOrphanGroupsResponse);
+  rpc PruneOrphanGroups(PruneOrphanGroupsRequest) returns (PruneOrphanGroupsResponse);
+
+  // Effective context for the gateway ActorContext.
+  rpc ResolveUserContext(ResolveUserContextRequest) returns (ResolveUserContextResponse);
+
+  // MFA (TOTP 2-step): enroll/confirm for the authed user, status + verify for
+  // the BFF's 2-step login.
+  rpc EnrollTotp(EnrollTotpRequest) returns (EnrollTotpResponse);
+  rpc ConfirmTotp(ConfirmTotpRequest) returns (ConfirmTotpResponse);
+  rpc VerifyTotp(VerifyTotpRequest) returns (VerifyTotpResponse);
+  rpc GetMfaStatus(GetMfaStatusRequest) returns (GetMfaStatusResponse);
+  rpc DisableTotp(DisableTotpRequest) returns (DisableTotpResponse);
+  rpc RequestPasswordReset(RequestPasswordResetRequest) returns (RequestPasswordResetResponse);
+  rpc ConfirmPasswordReset(ConfirmPasswordResetRequest) returns (ConfirmPasswordResetResponse);
+  // Email verification: confirm the account's email/username spelling.
+  rpc RequestEmailVerification(RequestEmailVerificationRequest) returns (RequestEmailVerificationResponse);
+  rpc ConfirmEmailVerification(ConfirmEmailVerificationRequest) returns (ConfirmEmailVerificationResponse);
+  rpc WebauthnRegisterBegin(WebauthnRegisterBeginRequest) returns (WebauthnRegisterBeginResponse);
+  rpc WebauthnRegisterFinish(WebauthnRegisterFinishRequest) returns (WebauthnRegisterFinishResponse);
+  rpc WebauthnAssertBegin(WebauthnAssertBeginRequest) returns (WebauthnAssertBeginResponse);
+  rpc WebauthnAssertFinish(WebauthnAssertFinishRequest) returns (WebauthnAssertFinishResponse);
+  rpc ListWebauthnCredentials(ListWebauthnCredentialsRequest) returns (ListWebauthnCredentialsResponse);
+  rpc RemoveWebauthnCredential(RemoveWebauthnCredentialRequest) returns (RemoveWebauthnCredentialResponse);
+
+  // MFA email OTP + generalized factor model. SendEmailOtp /
+  // VerifyEmailOtp back the BFF's email second factor (login + enroll);
+  // ListUserFactors / RemoveFactor drive the kind-dispatched login challenge and
+  // factor management.
+  rpc SendEmailOtp(SendEmailOtpRequest) returns (SendEmailOtpResponse);
+  rpc VerifyEmailOtp(VerifyEmailOtpRequest) returns (VerifyEmailOtpResponse);
+  rpc ListUserFactors(ListUserFactorsRequest) returns (ListUserFactorsResponse);
+  rpc RemoveFactor(RemoveFactorRequest) returns (RemoveFactorResponse);
+
+  // Governed machine access: service-account principals with
+  // scoped/expiring/revocable API tokens. Admin-gated at the gateway except
+  // VerifyApiToken, which the gateway's machine bearer-auth path calls on
+  // every request.
+  rpc CreateServiceAccount(CreateServiceAccountRequest) returns (CreateServiceAccountResponse);
+  rpc ListServiceAccounts(ListServiceAccountsRequest) returns (ListServiceAccountsResponse);
+  rpc DisableServiceAccount(DisableServiceAccountRequest) returns (DisableServiceAccountResponse);
+  rpc MintApiToken(MintApiTokenRequest) returns (MintApiTokenResponse);
+  rpc ListApiTokens(ListApiTokensRequest) returns (ListApiTokensResponse);
+  rpc RevokeApiToken(RevokeApiTokenRequest) returns (RevokeApiTokenResponse);
+  rpc VerifyApiToken(VerifyApiTokenRequest) returns (VerifyApiTokenResponse);
+  rpc MintUserToken(MintUserTokenRequest) returns (MintUserTokenResponse);
+  rpc ListUserTokens(ListUserTokensRequest) returns (ListUserTokensResponse);
+  rpc RevokeUserToken(RevokeUserTokenRequest) returns (RevokeUserTokenResponse);
+  rpc VerifyUserToken(VerifyUserTokenRequest) returns (VerifyUserTokenResponse);
+  rpc SetUserDisabled(SetUserDisabledRequest) returns (SetUserDisabledResponse);
+  // OIDC client linkage: admin-gated bind/unbind of an Ory Hydra
+  // OAuth2 client to a service account, and the gateway's OIDC machine-auth
+  // resolve call (mirrors VerifyApiToken's fail-closed contract).
+  rpc LinkOidcClient(LinkOidcClientRequest) returns (LinkOidcClientResponse);
+  rpc UnlinkOidcClient(UnlinkOidcClientRequest) returns (UnlinkOidcClientResponse);
+  rpc ResolveServiceAccountByOidc(ResolveServiceAccountByOidcRequest) returns (ResolveServiceAccountByOidcResponse);
+}
