@@ -60,4 +60,4 @@ Follow the logging rules in `CLAUDE.md`. In short:
 - Every commit carries a DCO sign-off (`git commit -s`); the `checks / scrub` job fails without it.
 - No real identifiers anywhere: fixtures use example.org, 192.0.2.0/24, 2001:db8::/32 and invented
   names.
-- A user's `subject` is their Ory Kratos identity id; `AUTH_BACKEND` accepts only `kratos`.
+- A user's `subject` is their Ory Kratos identity id.

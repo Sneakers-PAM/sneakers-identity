@@ -13,7 +13,7 @@ import (
 
 // SendTransactionalEmail delivers an operator-supplied email through the
 // already-configured SMTP sender (see WithEmail). It performs NO templating —
-// the caller (the gateway, under AUTH_BACKEND=kratos) supplies the final
+// the caller (the gateway) supplies the final
 // subject/body — added so the gateway's Kratos-admin recovery flow can
 // deliver a mint-out-of-band recovery code without Sneakers needing a
 // separate notification/jobs-exchange service. Unavailable when no sender is
