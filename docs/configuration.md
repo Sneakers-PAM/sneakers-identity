@@ -21,6 +21,34 @@ off and their RPCs answer `Unavailable`; the service still starts.
 |---|---|---|
 | `AUDIT_ADDR` | (unset) | The audit service's gRPC address, for example `sneakers-audit:9194`. Identity records sign-ins, second-factor checks and every user, group, role, service-account and token change there (see [api.md](api.md#audit-events)). When unset no events are recorded, and the service logs a warning at start. |
 
+## Service-to-service authentication
+
+Identity checks every caller's workload identity and presents its own when it calls the audit
+service. The shared code is `internal/workloadauth`, a byte-for-byte copy of the package in
+sneakers-vault at `SNEAKERS_VAULT_REF` (`proto-refs.env`); CI checks the copy with
+`scripts/workloadauth-check.sh`.
+
+As a callee:
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `WORKLOAD_OIDC_ISSUER` | (required) | The cluster's ServiceAccount token issuer (`https://`). The token's `iss` must equal it. |
+| `WORKLOAD_OIDC_JWKS_URL` | discovered | JWKS URL (`https://`); when unset it's read from the issuer's OpenID configuration. |
+| `WORKLOAD_OIDC_CA_FILE` | system roots | Extra PEM CA bundle for discovery and the JWKS fetch. |
+| `WORKLOAD_OIDC_BEARER_FILE` | (unset) | Bearer token sent on discovery and the JWKS fetch. |
+| `WORKLOAD_AUDIENCE` | `sneakers` | The token's `aud` must contain it. |
+| `WORKLOAD_ALLOWED_SERVICEACCOUNTS` | (required) | Comma list of `<namespace>/<serviceaccount>`: for identity, `<ns>/sneakers-gateway,<ns>/sneakers-notify`. |
+| `WORKLOAD_AUTH` | (unset) | `disabled` turns the check off, for local development only: every caller that reaches the port is trusted, and a warning is logged at start and every 5 minutes. No other value is accepted. |
+
+Without `WORKLOAD_OIDC_ISSUER` the service refuses to start, unless `WORKLOAD_AUTH=disabled`;
+setting both is refused too.
+
+As a caller (to the audit service):
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `WORKLOAD_TOKEN_FILE` | (unset) | Path of the projected ServiceAccount token (audience `sneakers`), normally `/var/run/secrets/sneakers/token`. Sent on every audit call and re-read each time, so a rotated token is picked up. A set path that can't be read stops the start. Unset sends no token, which only a callee with authentication off accepts. |
+
 ## Credential directory
 
 Sign-in uses Ory: Ory Kratos holds the passwords, never identity. Identity provisions Kratos
@@ -75,6 +103,12 @@ SMTP_PORT=587
 SMTP_TLS=true
 SMTP_FROM=no-reply@example.org
 AUDIT_ADDR=sneakers-audit:9194
+WORKLOAD_TOKEN_FILE=/var/run/secrets/sneakers/token
+WORKLOAD_OIDC_ISSUER=https://kubernetes.default.svc.cluster.local
+WORKLOAD_OIDC_CA_FILE=/var/run/secrets/tokens/ca.crt
+WORKLOAD_OIDC_BEARER_FILE=/var/run/secrets/tokens/token
+WORKLOAD_AUDIENCE=sneakers
+WORKLOAD_ALLOWED_SERVICEACCOUNTS=sneakers/sneakers-gateway,sneakers/sneakers-notify
 OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector.example.org:4317
 LOG_LEVEL=info
 ```

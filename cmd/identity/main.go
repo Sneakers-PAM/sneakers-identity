@@ -22,6 +22,7 @@ import (
 	"github.com/Sneakers-PAM/sneakers-identity/internal/kratos"
 	"github.com/Sneakers-PAM/sneakers-identity/internal/secrets"
 	"github.com/Sneakers-PAM/sneakers-identity/internal/server"
+	"github.com/Sneakers-PAM/sneakers-identity/internal/workloadauth"
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
@@ -149,9 +150,23 @@ func main() { //nolint:gocognit,gocyclo // wiring/bootstrap complexity
 	// Audit: sign-ins, second factors and every user, group, role, service
 	// account and token change are recorded in the audit service.
 	if cfg.AuditAddr != "" {
-		auditConn, err := grpc.NewClient(cfg.AuditAddr,
+		dialOpts := []grpc.DialOption{
 			grpc.WithTransportCredentials(insecure.NewCredentials()),
-			grpc.WithStatsHandler(otelgrpc.NewClientHandler()))
+			grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
+		}
+		// The audit service authenticates identity by its projected
+		// ServiceAccount token, re-read from WORKLOAD_TOKEN_FILE on every call.
+		tokenOpt, ok, err := workloadauth.DialOptionFromEnv(os.Getenv)
+		if err != nil {
+			logger.Fatal().Err(err).Msg("workload token")
+		}
+		if ok {
+			dialOpts = append(dialOpts, tokenOpt)
+			logger.Info().Str("env", workloadauth.EnvTokenFile).Msg("audit: calls carry the workload token")
+		} else {
+			logger.Warn().Msg("audit: " + workloadauth.EnvTokenFile + " unset; calls carry no workload token (local development only)")
+		}
+		auditConn, err := grpc.NewClient(cfg.AuditAddr, dialOpts...)
 		if err != nil {
 			logger.Fatal().Err(err).Str("audit_addr", cfg.AuditAddr).Msg("dial audit")
 		}
@@ -164,7 +179,29 @@ func main() { //nolint:gocognit,gocyclo // wiring/bootstrap complexity
 	logger.Info().Str("kratos_admin_url", adminURL).Msg("user directory: kratos")
 
 	logger.Info().Str("port", cfg.GRPCPort).Msg("starting")
-	if err := server.RunWithLogger(ctx, cfg.GRPCPort, svcLog, srv.RegisterOn); err != nil {
+	// Callers are authenticated by their workload identity and checked against
+	// grpcsvc.CallerPolicy: the gateway on every method, notify on its reads.
+	var serverOpts []grpc.ServerOption
+	waCfg, waOn, err := workloadauth.ServerConfigFromEnv(os.Getenv)
+	if err != nil {
+		logger.Fatal().Err(err).Msg("workload auth")
+	}
+	if waOn {
+		verifier, err := workloadauth.NewVerifier(waCfg, svcLog)
+		if err != nil {
+			logger.Fatal().Err(err).Msg("workload auth verifier")
+		}
+		go verifier.Run(ctx)
+		policy := grpcsvc.CallerPolicy()
+		serverOpts = append(serverOpts,
+			grpc.ChainUnaryInterceptor(workloadauth.UnaryServerInterceptor(verifier, policy, svcLog, workloadauth.WithDenyHook(srv.AuditDenial))),
+			grpc.ChainStreamInterceptor(workloadauth.StreamServerInterceptor(verifier, policy, svcLog, workloadauth.WithDenyHook(srv.AuditDenial))))
+		logger.Info().Str("issuer", waCfg.Issuer).Strs("allowed_service_accounts", waCfg.AllowedServiceAccounts).Msg("workload auth: on")
+	} else {
+		go workloadauth.WarnDisabled(ctx, svcLog, workloadauth.DisabledWarnInterval)
+	}
+
+	if err := server.RunWithLogger(ctx, cfg.GRPCPort, svcLog, srv.RegisterOn, serverOpts...); err != nil {
 		logger.Fatal().Err(err).Msg("server exited")
 	}
 }

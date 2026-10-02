@@ -9,10 +9,17 @@ At start the service:
 3. applies the migrations in `MIGRATIONS_DIR` using `MIGRATE_DSN` (or `DATABASE_DSN`);
 4. connects to Postgres;
 5. sets up each optional feature and logs whether it is on: the TOTP cipher, the SMTP relay, the
-   Ory Kratos admin client, and the passkey relying party;
-6. serves gRPC on `GRPC_PORT`.
+   Ory Kratos admin client, the passkey relying party, and the audit client (with or without the
+   workload token);
+6. sets up service-to-service authentication: it exits when `WORKLOAD_OIDC_ISSUER` is unset,
+   unless `WORKLOAD_AUTH=disabled`, which it then warns about every 5 minutes;
+7. serves gRPC on `GRPC_PORT`.
 
-A failure in steps 1 to 4, a malformed `TOTP_ENC_KEY`, or a server error is logged at fatal level
+A refused caller is logged at warn (`call refused`, with the method, caller and reason) and
+recorded as `workload.call_refused`. `Unavailable` with `workload verifier unavailable` means no
+JWKS key set has loaded yet: check that the issuer or `WORKLOAD_OIDC_JWKS_URL` is reachable.
+
+A failure in steps 1 to 4, a bad workload-auth setting, a malformed `TOTP_ENC_KEY`, or a server error is logged at fatal level
 and the process exits non-zero.
 
 ## Health

@@ -20,10 +20,13 @@ the sign-in flow and asks identity who the user is and which factors they have.
 ```bash
 docker run -d --name identity-pg -e POSTGRES_USER=identity -e POSTGRES_DB=identity \
   -e POSTGRES_HOST_AUTH_METHOD=trust -p 127.0.0.1:5432:5432 postgres:17-alpine
-DATABASE_DSN='postgres://identity@localhost:5432/identity?sslmode=disable' go run ./cmd/identity
+WORKLOAD_AUTH=disabled DATABASE_DSN='postgres://identity@localhost:5432/identity?sslmode=disable' \
+  go run ./cmd/identity
 ```
 
-The container trusts local connections without a password, for development only. The service
+The container trusts local connections without a password, and `WORKLOAD_AUTH=disabled` lets
+any local caller in without a workload token, both for development only. In a cluster identity
+accepts only the gateway and notify, by their ServiceAccount tokens. The service
 applies its migrations at start and listens for gRPC on port 9090. Without `TOTP_ENC_KEY` or
 `SMTP_HOST` the features that need them answer `Unavailable`; provisioning and password changes
 need Ory Kratos at `KRATOS_ADMIN_URL`.
@@ -49,6 +52,7 @@ task test     # go test ./...
 task lint     # tests, gofmt check, golangci-lint and yamllint
 task license  # check the Apache-2.0 headers (golic)
 scripts/proto-generate.sh  # regenerate gen/, with the audit client pinned in proto-refs.env
+scripts/workloadauth-check.sh  # internal/workloadauth must match the vault's copy
 ```
 
 ## 📚 Where to look
