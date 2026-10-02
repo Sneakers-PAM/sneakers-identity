@@ -26,6 +26,19 @@ trusted services) can reach it.
 Groups live only in identity, managed in the Sneakers admin console. Group names are unique
 case-insensitively.
 
+### Roles
+
+Roles are strings in `User.roles`, set with `SetUserRoles` (or at `PreCreateLocalUser`) and read
+back through `GetUser`, `ListUsers` and `ResolveUserContext`. `site-admin` and `admin` make a user a
+site admin; root is a site admin whatever its roles.
+
+`recovery` grants access to the vault's recovery view of a secret's prior versions, where a fresh
+second factor is still required. An old password may still work on a target that wasn't rotated,
+so identity itself refuses to grant or revoke `recovery` (`PermissionDenied`, nothing changed)
+unless `acting_user_id` names an enabled site admin or root. The gateway reads the role from the
+user's roles and tells the vault. Each grant and revoke is recorded as `role.recovery.grant` or
+`role.recovery.revoke` at high severity, next to the usual `user.roles.set`.
+
 ## Sign-in and provisioning
 
 | RPCs | What they do |
@@ -81,6 +94,7 @@ event holds ids, kinds and outcomes only: never a password, code, TOTP secret or
 | `user.create` | `CreateLocalUser`, `PreCreateLocalUser`, `BootstrapRoot`, and a first sign-in that provisions a user | user | `source` (`local`, `precreate`, `bootstrap` or `signin`), `username`, `roles`, `root` |
 | `user.update` | `UpdateUser`, when a field changed | user | `changed` (`email`, `name`, `username`) |
 | `user.roles.set` | `SetUserRoles` | user | `roles`, `added`, `removed` |
+| `role.recovery.grant`, `role.recovery.revoke` | `SetUserRoles`, `PreCreateLocalUser`, when the recovery role is added or removed | user | `role`, `severity` (`high`) |
 | `user.disable`, `user.enable` | `SetUserDisabled` | user | |
 | `group.create` | `CreateGroup` | group | `name` |
 | `group.member.add`, `group.member.remove` | `AddGroupMember`, `RemoveGroupMember`, when membership changed | user (the group is the event's group) | `user_id`, `group_id` |

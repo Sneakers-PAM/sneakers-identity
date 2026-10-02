@@ -65,6 +65,8 @@ Follow the logging rules in `CLAUDE.md`. In short:
 - No real identifiers anywhere: fixtures use example.org, 192.0.2.0/24, 2001:db8::/32 and invented
   names.
 - A user's `subject` is their Ory Kratos identity id.
+- The `recovery` role (`grpcsvc.RoleRecovery`) is the one role identity gates itself: only an
+  enabled site admin or root, named by `acting_user_id`, may grant or revoke it.
 - Every change to a user, group, role, factor, service account or token records an audit event
   (`internal/grpcsvc/audit.go`, listed in `docs/api.md`). An event never carries a password,
   code, secret or token value; a new mutating RPC records one too.

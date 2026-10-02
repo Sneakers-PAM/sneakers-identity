@@ -78,6 +78,9 @@ message CreateLocalUserResponse { User user = 1; }
 // SetUserRoles replaces a user's role set (e.g. grant/revoke the "admin" role).
 // Admin-gated at the gateway. root's admin authority derives from is_root, so it
 // survives an empty role set. Returns the updated user.
+// Granting or revoking the "recovery" role (access to the vault's prior
+// secret versions) is refused with PermissionDenied unless acting_user_id is
+// an enabled site admin or root; PreCreateLocalUser applies the same rule.
 message SetUserRolesRequest  { string user_id = 1; repeated string roles = 2; string acting_user_id = 3; }
 message SetUserRolesResponse { User user = 1; }
 

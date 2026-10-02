@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"net/mail"
+	"slices"
 	"strings"
 
 	log "github.com/Bugs5382/go-log"
@@ -55,6 +56,12 @@ func (s *Server) PreCreateLocalUser(ctx context.Context, req *identityv1.PreCrea
 	if roles == nil {
 		roles = []string{}
 	}
+	actor := actorOr(req.GetActingUserId(), "")
+	if slices.Contains(roles, RoleRecovery) {
+		if err := requireSiteAdmin(ctx, s.db, actor); err != nil {
+			return nil, err
+		}
+	}
 	id := "user-" + uuid.NewString()
 	if _, err := s.db.Exec(ctx,
 		`INSERT INTO users (id, name, email, roles, subject) VALUES ($1,$2,$3,$4,'')`,
@@ -66,9 +73,12 @@ func (s *Server) PreCreateLocalUser(ctx context.Context, req *identityv1.PreCrea
 		return nil, status.Errorf(codes.Internal, "load created user: %v", err)
 	}
 	s.record(ctx, audit.Event{
-		Action: audit.ActionUserCreate, ActorUserID: actorOr(req.GetActingUserId(), ""), Subject: id,
+		Action: audit.ActionUserCreate, ActorUserID: actor, Subject: id,
 		Attributes: map[string]string{"source": "precreate", "roles": joinSorted(roles)},
 	})
+	if slices.Contains(roles, RoleRecovery) {
+		s.recordRecoveryRoleChange(ctx, actor, id, true)
+	}
 	return &identityv1.PreCreateLocalUserResponse{User: u}, nil
 }
 
@@ -181,17 +191,33 @@ func (s *Server) SetUserRoles(ctx context.Context, req *identityv1.SetUserRolesR
 	if roles == nil {
 		roles = []string{}
 	}
-	// The old set comes back from the same statement, so the recorded change
-	// is exactly the one this call made.
+	actor := actorOr(req.GetActingUserId(), "")
+	// The old set is read under a row lock in the same transaction as the
+	// update, so the recovery check and the recorded change match exactly what
+	// this call did.
 	var before []string
-	err := s.db.QueryRow(ctx,
-		`UPDATE users u SET roles=$2
-		   FROM (SELECT id, roles FROM users WHERE id=$1 FOR UPDATE) old
-		  WHERE u.id = old.id
-		 RETURNING old.roles`, id, roles).Scan(&before)
+	err := s.pg.RunInTxQuerier(ctx, func(tx postgres.Querier) error {
+		if err := tx.QueryRow(ctx, `SELECT roles FROM users WHERE id=$1 FOR UPDATE`, id).Scan(&before); err != nil {
+			if errors.Is(err, postgres.ErrNoRows) {
+				return status.Error(codes.NotFound, "user not found")
+			}
+			return status.Errorf(codes.Internal, "load user roles: %v", err)
+		}
+		if slices.Contains(before, RoleRecovery) != slices.Contains(roles, RoleRecovery) {
+			if err := requireSiteAdmin(ctx, tx, actor); err != nil {
+				lg := s.lg(ctx)
+				lg.Warn("recovery role change refused", log.F("user_id", id), log.F("acting_user_id", actor))
+				return err
+			}
+		}
+		if _, err := tx.Exec(ctx, `UPDATE users SET roles=$2 WHERE id=$1`, id, roles); err != nil {
+			return status.Errorf(codes.Internal, "set user roles: %v", err)
+		}
+		return nil
+	})
 	if err != nil {
-		if errors.Is(err, postgres.ErrNoRows) {
-			return nil, status.Error(codes.NotFound, "user not found")
+		if _, ok := status.FromError(err); ok {
+			return nil, err
 		}
 		return nil, status.Errorf(codes.Internal, "set user roles: %v", err)
 	}
@@ -201,9 +227,12 @@ func (s *Server) SetUserRoles(ctx context.Context, req *identityv1.SetUserRolesR
 	}
 	added, removed := roleDiff(before, roles)
 	s.record(ctx, audit.Event{
-		Action: audit.ActionUserRolesSet, ActorUserID: actorOr(req.GetActingUserId(), ""), Subject: id,
+		Action: audit.ActionUserRolesSet, ActorUserID: actor, Subject: id,
 		Attributes: map[string]string{"roles": joinSorted(roles), "added": joinSorted(added), "removed": joinSorted(removed)},
 	})
+	if slices.Contains(added, RoleRecovery) || slices.Contains(removed, RoleRecovery) {
+		s.recordRecoveryRoleChange(ctx, actor, id, slices.Contains(added, RoleRecovery))
+	}
 	return &identityv1.SetUserRolesResponse{User: u}, nil
 }
 

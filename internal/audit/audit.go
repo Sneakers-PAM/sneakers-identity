@@ -23,6 +23,8 @@ const (
 	ActionUserCreate            = "user.create"
 	ActionUserUpdate            = "user.update"
 	ActionUserRolesSet          = "user.roles.set"
+	ActionRecoveryRoleGrant     = "role.recovery.grant"
+	ActionRecoveryRoleRevoke    = "role.recovery.revoke"
 	ActionUserDisable           = "user.disable"
 	ActionUserEnable            = "user.enable"
 	ActionGroupCreate           = "group.create"
