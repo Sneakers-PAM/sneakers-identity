@@ -35,7 +35,6 @@ func newPGServer(t *testing.T) *Server {
 		t.Fatalf("connect: %v", err)
 	}
 	t.Cleanup(db.Close)
-	pool := db.Pool()
 	for _, q := range []string{
 		`TRUNCATE group_membership RESTART IDENTITY CASCADE`,
 		`TRUNCATE api_tokens, service_accounts CASCADE`,
@@ -43,11 +42,11 @@ func newPGServer(t *testing.T) *Server {
 		`DELETE FROM groups`,
 		`INSERT INTO groups (id,name) VALUES ('group-platform','Platform Team'),('group-security','Security')`,
 	} {
-		if _, err := pool.Exec(ctx, q); err != nil {
+		if _, err := db.Querier().Exec(ctx, q); err != nil {
 			t.Fatalf("reset (%s): %v", q, err)
 		}
 	}
-	return New(pool)
+	return New(db)
 }
 
 // TestPGProvisioning covers pre-create → adopt-on-login → provision and the

@@ -13,7 +13,7 @@ import (
 	"time"
 
 	log "github.com/Bugs5382/go-log"
-	"github.com/jackc/pgx/v5"
+	postgres "github.com/Bugs5382/go-postgres"
 )
 
 // Group source of truth
@@ -94,22 +94,38 @@ func (s *Server) SyncGroups(ctx context.Context) (GroupSyncReport, error) {
 		desired[strconv.Itoa(g.ID)] = g.Name
 	}
 
-	tx, err := s.db.Begin(ctx)
-	if err != nil {
-		return rep, fmt.Errorf("group sync: begin: %w", err)
+	// The transaction may be retried, so each attempt starts from the
+	// pre-transaction report.
+	base := rep
+	var fnErr error
+	err = s.pg.RunInTxQuerier(ctx, func(tx postgres.Querier) error {
+		rep = base
+		fnErr = syncGroupsTx(ctx, tx, desired, &rep)
+		return fnErr
+	})
+	switch err { //nolint:errorlint // identity check: fn errors already carry their context
+	case nil:
+		return rep, nil
+	case fnErr:
+		return rep, err
+	default:
+		return rep, fmt.Errorf("group sync: transaction: %w", err)
 	}
-	defer func() { _ = tx.Rollback(ctx) }()
+}
+
+// syncGroupsTx is one attempt of the SyncGroups transaction.
+func syncGroupsTx(ctx context.Context, tx postgres.Querier, desired map[string]string, rep *GroupSyncReport) error {
 	if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtext($1))`, groupSyncLockKey); err != nil {
-		return rep, fmt.Errorf("group sync: lock: %w", err)
+		return fmt.Errorf("group sync: lock: %w", err)
 	}
 	current, err := readGroups(ctx, tx)
 	if err != nil {
-		return rep, fmt.Errorf("group sync: read groups: %w", err)
+		return fmt.Errorf("group sync: read groups: %w", err)
 	}
 
-	accepted := planGroupSync(current, desired, &rep)
-	if err := applyGroupSync(ctx, tx, current, desired, accepted, &rep); err != nil {
-		return rep, err
+	accepted := planGroupSync(current, desired, rep)
+	if err := applyGroupSync(ctx, tx, current, desired, accepted, rep); err != nil {
+		return err
 	}
 
 	for id := range current {
@@ -120,19 +136,16 @@ func (s *Server) SyncGroups(ctx context.Context) (GroupSyncReport, error) {
 	sort.Strings(rep.Orphans)
 	if len(rep.Orphans) > 0 {
 		if rep.ReferencedOrphans, err = referencedGroups(ctx, tx, rep.Orphans); err != nil {
-			return rep, fmt.Errorf("group sync: orphan references: %w", err)
+			return fmt.Errorf("group sync: orphan references: %w", err)
 		}
 	}
-	if err := tx.Commit(ctx); err != nil {
-		return rep, fmt.Errorf("group sync: commit: %w", err)
-	}
-	return rep, nil
+	return nil
 }
 
 // applyGroupSync writes the accepted plan inside tx. Renames go through a
 // placeholder first so a swap ("A"<->"B") never trips the case-insensitive
 // unique index mid-transaction.
-func applyGroupSync(ctx context.Context, tx pgx.Tx, current, desired map[string]string, accepted map[string]struct{}, rep *GroupSyncReport) error {
+func applyGroupSync(ctx context.Context, tx postgres.Querier, current, desired map[string]string, accepted map[string]struct{}, rep *GroupSyncReport) error {
 	var renames, inserts []string
 	for id := range accepted {
 		cur, exists := current[id]
@@ -208,7 +221,7 @@ func planGroupSync(current, desired map[string]string, rep *GroupSyncReport) map
 	return accepted
 }
 
-func readGroups(ctx context.Context, q pgx.Tx) (map[string]string, error) {
+func readGroups(ctx context.Context, q postgres.Querier) (map[string]string, error) {
 	rows, err := q.Query(ctx, `SELECT id, name FROM groups`)
 	if err != nil {
 		return nil, err
@@ -228,7 +241,7 @@ func readGroups(ctx context.Context, q pgx.Tx) (map[string]string, error) {
 // referencedGroups returns which of ids a service account still points at: by
 // ID or (legacy) exact name in oidc_allowed_groups, or by ID in the scope of
 // a non-revoked API token.
-func referencedGroups(ctx context.Context, q pgx.Tx, ids []string) ([]string, error) {
+func referencedGroups(ctx context.Context, q postgres.Querier, ids []string) ([]string, error) {
 	rows, err := q.Query(ctx, `
 		SELECT g.id FROM groups g
 		 WHERE g.id = ANY($1)

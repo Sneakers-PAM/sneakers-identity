@@ -8,8 +8,8 @@ import (
 	"errors"
 	"time"
 
+	postgres "github.com/Bugs5382/go-postgres"
 	identityv1 "github.com/Sneakers-PAM/sneakers-identity/gen/go/sneakers/identity/v1"
-	"github.com/jackc/pgx/v5"
 	"github.com/pquerna/otp/totp"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -51,7 +51,7 @@ func (s *Server) totpAccount(ctx context.Context, userID string) (string, error)
 	var email, name string
 	err := s.db.QueryRow(ctx, `SELECT email, name FROM users WHERE id=$1`, userID).Scan(&email, &name)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
+		if errors.Is(err, postgres.ErrNoRows) {
 			return "", status.Error(codes.NotFound, "user not found")
 		}
 		return "", status.Errorf(codes.Internal, "load user: %v", err)
@@ -136,7 +136,7 @@ func (s *Server) ConfirmTotp(ctx context.Context, req *identityv1.ConfirmTotpReq
 		`SELECT encrypted_secret, confirmed_at FROM user_totp WHERE user_id=$1`, userID).
 		Scan(&sealed, &confirmedAt)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
+		if errors.Is(err, postgres.ErrNoRows) {
 			return nil, status.Error(codes.FailedPrecondition, "no totp enrollment in progress")
 		}
 		return nil, status.Errorf(codes.Internal, "load totp: %v", err)
@@ -179,7 +179,7 @@ func (s *Server) VerifyTotp(ctx context.Context, req *identityv1.VerifyTotpReque
 		`SELECT encrypted_secret, confirmed_at FROM user_totp WHERE user_id=$1`, req.GetUserId()).
 		Scan(&sealed, &confirmedAt)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
+		if errors.Is(err, postgres.ErrNoRows) {
 			return &identityv1.VerifyTotpResponse{Ok: false}, nil
 		}
 		return nil, status.Errorf(codes.Internal, "load totp: %v", err)

@@ -14,8 +14,8 @@ import (
 	"time"
 
 	log "github.com/Bugs5382/go-log"
+	postgres "github.com/Bugs5382/go-postgres"
 	identityv1 "github.com/Sneakers-PAM/sneakers-identity/gen/go/sneakers/identity/v1"
-	"github.com/jackc/pgx/v5"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -81,7 +81,7 @@ func (s *Server) SendEmailOtp(ctx context.Context, req *identityv1.SendEmailOtpR
 	}
 	var email string
 	if err := s.db.QueryRow(ctx, `SELECT email FROM users WHERE id=$1`, userID).Scan(&email); err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
+		if errors.Is(err, postgres.ErrNoRows) {
 			return nil, status.Error(codes.NotFound, "user not found")
 		}
 		return nil, status.Errorf(codes.Internal, "load user: %v", err)
@@ -149,7 +149,7 @@ func (s *Server) ListUserFactors(ctx context.Context, req *identityv1.ListUserFa
 	}
 	var email string
 	if err := s.db.QueryRow(ctx, `SELECT email FROM users WHERE id=$1`, userID).Scan(&email); err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
+		if errors.Is(err, postgres.ErrNoRows) {
 			return nil, status.Error(codes.NotFound, "user not found")
 		}
 		return nil, status.Errorf(codes.Internal, "load user: %v", err)
@@ -166,7 +166,7 @@ func (s *Server) ListUserFactors(ctx context.Context, req *identityv1.ListUserFa
 			Kind:       factorKindTotp,
 			EnrolledAt: confirmedAt.UTC().Format(time.RFC3339),
 		})
-	case errors.Is(err, pgx.ErrNoRows):
+	case errors.Is(err, postgres.ErrNoRows):
 		// no confirmed TOTP enrollment — fine
 	default:
 		return nil, status.Errorf(codes.Internal, "load totp: %v", err)
@@ -209,7 +209,7 @@ func (s *Server) RemoveFactor(ctx context.Context, req *identityv1.RemoveFactorR
 	}
 }
 
-// --- email OTP store helpers (inline SQL over the pgx pool) ---
+// --- email OTP store helpers (inline SQL over the pool) ---
 
 // errOTPRateLimited is returned by createEmailOTP when a live code younger than
 // the cooldown already exists for (user, purpose).
@@ -220,48 +220,43 @@ var errOTPRateLimited = errors.New("email otp rate limited")
 // row id (so a failed send can be cancelled). A live, unconsumed code younger
 // than the cooldown blocks re-issue with errOTPRateLimited.
 func (s *Server) createEmailOTP(ctx context.Context, userID, purpose string) (string, string, error) {
-	tx, err := s.db.Begin(ctx)
+	var code, id string
+	err := s.pg.RunInTxQuerier(ctx, func(tx postgres.Querier) error {
+		// Prune dead rows so the table stays small and the cooldown query only ever
+		// sees genuinely-live codes.
+		if _, err := tx.Exec(ctx,
+			`DELETE FROM user_email_otp
+			  WHERE user_id=$1 AND purpose=$2
+			    AND (consumed_at IS NOT NULL OR expires_at <= now())`,
+			userID, purpose); err != nil {
+			return err
+		}
+
+		// Cooldown: reject when the newest live code is younger than the window.
+		var recent int
+		if err := tx.QueryRow(ctx,
+			`SELECT count(*) FROM user_email_otp
+			  WHERE user_id=$1 AND purpose=$2
+			    AND created_at > now() - make_interval(secs => $3)`,
+			userID, purpose, int(emailOTPCooldown.Seconds())).Scan(&recent); err != nil {
+			return err
+		}
+		if recent > 0 {
+			return errOTPRateLimited
+		}
+
+		var err error
+		code, err = randomNumericCode(emailOTPDigits)
+		if err != nil {
+			return err
+		}
+		return tx.QueryRow(ctx,
+			`INSERT INTO user_email_otp (user_id, purpose, code_hash, expires_at)
+			 VALUES ($1, $2, $3, now() + make_interval(secs => $4))
+			 RETURNING id`,
+			userID, purpose, hashOTPCode(code), int(emailOTPTTL.Seconds())).Scan(&id)
+	})
 	if err != nil {
-		return "", "", err
-	}
-	defer func() { _ = tx.Rollback(ctx) }()
-
-	// Prune dead rows so the table stays small and the cooldown query only ever
-	// sees genuinely-live codes.
-	if _, err := tx.Exec(ctx,
-		`DELETE FROM user_email_otp
-		  WHERE user_id=$1 AND purpose=$2
-		    AND (consumed_at IS NOT NULL OR expires_at <= now())`,
-		userID, purpose); err != nil {
-		return "", "", err
-	}
-
-	// Cooldown: reject when the newest live code is younger than the window.
-	var recent int
-	if err := tx.QueryRow(ctx,
-		`SELECT count(*) FROM user_email_otp
-		  WHERE user_id=$1 AND purpose=$2
-		    AND created_at > now() - make_interval(secs => $3)`,
-		userID, purpose, int(emailOTPCooldown.Seconds())).Scan(&recent); err != nil {
-		return "", "", err
-	}
-	if recent > 0 {
-		return "", "", errOTPRateLimited
-	}
-
-	code, err := randomNumericCode(emailOTPDigits)
-	if err != nil {
-		return "", "", err
-	}
-	var id string
-	if err := tx.QueryRow(ctx,
-		`INSERT INTO user_email_otp (user_id, purpose, code_hash, expires_at)
-		 VALUES ($1, $2, $3, now() + make_interval(secs => $4))
-		 RETURNING id`,
-		userID, purpose, hashOTPCode(code), int(emailOTPTTL.Seconds())).Scan(&id); err != nil {
-		return "", "", err
-	}
-	if err := tx.Commit(ctx); err != nil {
 		return "", "", err
 	}
 	return code, id, nil
@@ -281,60 +276,58 @@ func (s *Server) cancelEmailOTP(ctx context.Context, id string) error {
 // bump attempts; hitting the limit consumes the code. The compare is
 // constant-time.
 func (s *Server) verifyEmailOTP(ctx context.Context, userID, purpose, code string) (bool, error) {
-	tx, err := s.db.Begin(ctx)
+	var ok bool
+	err := s.pg.RunInTxQuerier(ctx, func(tx postgres.Querier) error {
+		ok = false
+		// Lock the newest candidate so concurrent verifies serialise on the attempts
+		// counter and the single-use guarantee.
+		var (
+			id       string
+			stored   string
+			attempts int
+		)
+		err := tx.QueryRow(ctx,
+			`SELECT id, code_hash, attempts FROM user_email_otp
+			  WHERE user_id=$1 AND purpose=$2 AND consumed_at IS NULL AND expires_at > now()
+			  ORDER BY created_at DESC
+			  LIMIT 1
+			  FOR UPDATE`,
+			userID, purpose).Scan(&id, &stored, &attempts)
+		if err != nil {
+			if errors.Is(err, postgres.ErrNoRows) {
+				return nil
+			}
+			return err
+		}
+
+		if attempts >= emailOTPMaxAttempts {
+			// Already locked out; consume defensively and fail.
+			_, err := tx.Exec(ctx, `UPDATE user_email_otp SET consumed_at=now() WHERE id=$1`, id)
+			return err
+		}
+
+		if subtle.ConstantTimeCompare([]byte(hashOTPCode(code)), []byte(stored)) == 1 {
+			if _, err := tx.Exec(ctx, `UPDATE user_email_otp SET consumed_at=now() WHERE id=$1`, id); err != nil {
+				return err
+			}
+			ok = true
+			return nil
+		}
+
+		// Wrong code: bump attempts; consume the row when this hits the limit so a
+		// burned code cannot be retried further.
+		newAttempts := attempts + 1
+		if newAttempts >= emailOTPMaxAttempts {
+			_, err = tx.Exec(ctx, `UPDATE user_email_otp SET attempts=$2, consumed_at=now() WHERE id=$1`, id, newAttempts)
+		} else {
+			_, err = tx.Exec(ctx, `UPDATE user_email_otp SET attempts=$2 WHERE id=$1`, id, newAttempts)
+		}
+		return err
+	})
 	if err != nil {
 		return false, err
 	}
-	defer func() { _ = tx.Rollback(ctx) }()
-
-	// Lock the newest candidate so concurrent verifies serialise on the attempts
-	// counter and the single-use guarantee.
-	var (
-		id       string
-		stored   string
-		attempts int
-	)
-	err = tx.QueryRow(ctx,
-		`SELECT id, code_hash, attempts FROM user_email_otp
-		  WHERE user_id=$1 AND purpose=$2 AND consumed_at IS NULL AND expires_at > now()
-		  ORDER BY created_at DESC
-		  LIMIT 1
-		  FOR UPDATE`,
-		userID, purpose).Scan(&id, &stored, &attempts)
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return false, tx.Commit(ctx)
-		}
-		return false, err
-	}
-
-	if attempts >= emailOTPMaxAttempts {
-		// Already locked out; consume defensively and fail.
-		if _, err := tx.Exec(ctx, `UPDATE user_email_otp SET consumed_at=now() WHERE id=$1`, id); err != nil {
-			return false, err
-		}
-		return false, tx.Commit(ctx)
-	}
-
-	if subtle.ConstantTimeCompare([]byte(hashOTPCode(code)), []byte(stored)) == 1 {
-		if _, err := tx.Exec(ctx, `UPDATE user_email_otp SET consumed_at=now() WHERE id=$1`, id); err != nil {
-			return false, err
-		}
-		return true, tx.Commit(ctx)
-	}
-
-	// Wrong code: bump attempts; consume the row when this hits the limit so a
-	// burned code cannot be retried further.
-	newAttempts := attempts + 1
-	if newAttempts >= emailOTPMaxAttempts {
-		_, err = tx.Exec(ctx, `UPDATE user_email_otp SET attempts=$2, consumed_at=now() WHERE id=$1`, id, newAttempts)
-	} else {
-		_, err = tx.Exec(ctx, `UPDATE user_email_otp SET attempts=$2 WHERE id=$1`, id, newAttempts)
-	}
-	if err != nil {
-		return false, err
-	}
-	return false, tx.Commit(ctx)
+	return ok, nil
 }
 
 // hashOTPCode returns the hex sha256 of a plaintext code (what we store at rest).

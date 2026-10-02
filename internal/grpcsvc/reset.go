@@ -8,8 +8,8 @@ import (
 	"errors"
 
 	log "github.com/Bugs5382/go-log"
+	postgres "github.com/Bugs5382/go-postgres"
 	identityv1 "github.com/Sneakers-PAM/sneakers-identity/gen/go/sneakers/identity/v1"
-	"github.com/jackc/pgx/v5"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -25,7 +25,7 @@ const minResetPasswordLen = 8
 // user. Callers must NOT leak that distinction to the client.
 func (s *Server) resetUserByEmail(ctx context.Context, email string) (id, username string, ok bool, err error) {
 	err = s.db.QueryRow(ctx, `SELECT id, username FROM users WHERE lower(email)=lower($1) ORDER BY id LIMIT 1`, email).Scan(&id, &username)
-	if errors.Is(err, pgx.ErrNoRows) {
+	if errors.Is(err, postgres.ErrNoRows) {
 		return "", "", false, nil
 	}
 	if err != nil {

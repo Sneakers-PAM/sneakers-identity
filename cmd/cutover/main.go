@@ -47,7 +47,7 @@ func main() {
 	}
 	defer db.Close()
 
-	srv := grpcsvc.New(db.Pool())
+	srv := grpcsvc.New(db)
 	if *dryRun {
 		plan, err := srv.PlanCutover(ctx, kratos.NewAdmin(adminURL))
 		for _, o := range plan.Outcomes {

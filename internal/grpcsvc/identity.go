@@ -17,6 +17,7 @@ import (
 	"time"
 
 	log "github.com/Bugs5382/go-log"
+	postgres "github.com/Bugs5382/go-postgres"
 	identityv1 "github.com/Sneakers-PAM/sneakers-identity/gen/go/sneakers/identity/v1"
 	"github.com/Sneakers-PAM/sneakers-identity/internal/email"
 	"github.com/Sneakers-PAM/sneakers-identity/internal/lldap"
@@ -24,7 +25,6 @@ import (
 	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -32,7 +32,10 @@ import (
 
 type Server struct {
 	identityv1.UnimplementedIdentityServiceServer
-	db *pgxpool.Pool
+	// db runs single statements on the pool; pg owns the pool and runs the
+	// multi-statement transactions.
+	db postgres.Querier
+	pg *postgres.DB
 	// cipher seals/opens the TOTP shared secret at rest. nil = TOTP not
 	// configured (no TOTP_ENC_KEY): the TOTP RPCs then return Unavailable.
 	cipher *secrets.Cipher
@@ -59,7 +62,13 @@ type Server struct {
 	webauthn *webauthn.WebAuthn
 }
 
-func New(db *pgxpool.Pool) *Server { return &Server{db: db} }
+func New(db *postgres.DB) *Server {
+	s := &Server{pg: db}
+	if db != nil {
+		s.db = db.Querier()
+	}
+	return s
+}
 
 // WithCipher wires the at-rest cipher for the TOTP secret. Returns the receiver
 // for chaining; cipher=nil leaves the TOTP RPCs disabled (Unavailable).

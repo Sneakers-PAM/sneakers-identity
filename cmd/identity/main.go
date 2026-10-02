@@ -14,6 +14,7 @@ import (
 	log "github.com/Bugs5382/go-log"
 	otel "github.com/Bugs5382/go-otel"
 	postgres "github.com/Bugs5382/go-postgres"
+	otelpg "github.com/Bugs5382/go-postgres/otel"
 	"github.com/Sneakers-PAM/sneakers-identity/internal/config"
 	"github.com/Sneakers-PAM/sneakers-identity/internal/email"
 	"github.com/Sneakers-PAM/sneakers-identity/internal/grpcsvc"
@@ -69,12 +70,11 @@ func main() { //nolint:gocognit,gocyclo // wiring/bootstrap complexity
 	if err := postgres.Migrate(migrateDSN, migrationsDir); err != nil {
 		logger.Fatal().Err(err).Msg("migrate")
 	}
-	db, err := postgres.New(ctx, cfg.DatabaseDSN)
+	db, err := postgres.New(ctx, cfg.DatabaseDSN, otelpg.WithTracing())
 	if err != nil {
 		logger.Fatal().Err(err).Msg("db connect")
 	}
 	defer db.Close()
-	pool := db.Pool()
 
 	// Demo directory seeding lives in the dev/qa-only `cmd/seed` tool (go-seed),
 	// not in the service — prod users arrive via federation.
@@ -157,7 +157,7 @@ func main() { //nolint:gocognit,gocyclo // wiring/bootstrap complexity
 		logger.Warn().Msg("webauthn: disabled (WEBAUTHN_RP_ID unset/'-')")
 	}
 
-	srv := grpcsvc.New(pool).WithCipher(cipher).WithEmail(sender, devEcho).
+	srv := grpcsvc.New(db).WithCipher(cipher).WithEmail(sender, devEcho).
 		WithLldap(ldapAdmin).WithTotpIssuer(getOr("TOTP_ISSUER", "Sneakers")).WithWebauthn(wa)
 	if kratosBackend {
 		adminURL := getOr("KRATOS_ADMIN_URL", "http://sneakers-kratos:4434")

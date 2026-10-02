@@ -14,8 +14,8 @@ import (
 	"time"
 
 	log "github.com/Bugs5382/go-log"
+	postgres "github.com/Bugs5382/go-postgres"
 	identityv1 "github.com/Sneakers-PAM/sneakers-identity/gen/go/sneakers/identity/v1"
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -162,7 +162,7 @@ func (s *Server) DisableServiceAccount(ctx context.Context, req *identityv1.Disa
 	}
 	row, err := s.saStore().DisableSA(ctx, id)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
+		if errors.Is(err, postgres.ErrNoRows) {
 			return nil, status.Error(codes.NotFound, "service account not found")
 		}
 		return nil, status.Errorf(codes.Internal, "disable service account: %v", err)
@@ -186,7 +186,7 @@ func (s *Server) MintApiToken(ctx context.Context, req *identityv1.MintApiTokenR
 	}
 	sa, err := s.saStore().GetSA(ctx, saID)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
+		if errors.Is(err, postgres.ErrNoRows) {
 			return nil, status.Error(codes.NotFound, "service account not found")
 		}
 		return nil, status.Errorf(codes.Internal, "mint api token: %v", err)
@@ -246,7 +246,7 @@ func (s *Server) RevokeApiToken(ctx context.Context, req *identityv1.RevokeApiTo
 	}
 	row, err := s.saStore().RevokeToken(ctx, id)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
+		if errors.Is(err, postgres.ErrNoRows) {
 			return nil, status.Error(codes.NotFound, "token not found")
 		}
 		return nil, status.Errorf(codes.Internal, "revoke api token: %v", err)
@@ -287,7 +287,7 @@ func (s *Server) LinkOidcClient(ctx context.Context, req *identityv1.LinkOidcCli
 	}
 	row, err := s.saStore().LinkOidc(ctx, saID, issuer, subject, allowed)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
+		if errors.Is(err, postgres.ErrNoRows) {
 			return nil, status.Error(codes.NotFound, "service account not found")
 		}
 		var pgErr *pgconn.PgError
@@ -311,7 +311,7 @@ func (s *Server) UnlinkOidcClient(ctx context.Context, req *identityv1.UnlinkOid
 	}
 	row, err := s.saStore().UnlinkOidc(ctx, saID)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
+		if errors.Is(err, postgres.ErrNoRows) {
 			return nil, status.Error(codes.NotFound, "service account not found")
 		}
 		return nil, status.Errorf(codes.Internal, "unlink oidc client: %v", err)
@@ -349,7 +349,7 @@ func (s *Server) ResolveServiceAccountByOidc(ctx context.Context, req *identityv
 	}
 	row, err := s.saStore().ResolveByOidc(ctx, issuer, subject)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
+		if errors.Is(err, postgres.ErrNoRows) {
 			return &identityv1.ResolveServiceAccountByOidcResponse{Valid: false}, nil
 		}
 		return nil, status.Errorf(codes.Internal, "resolve service account by oidc: %v", err)
@@ -387,7 +387,7 @@ func (s *Server) VerifyApiToken(ctx context.Context, req *identityv1.VerifyApiTo
 	}
 	row, err := s.saStore().TokenByHash(ctx, hashToken(token))
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
+		if errors.Is(err, postgres.ErrNoRows) {
 			return &identityv1.VerifyApiTokenResponse{Valid: false}, nil
 		}
 		return nil, status.Errorf(codes.Internal, "verify api token: %v", err)

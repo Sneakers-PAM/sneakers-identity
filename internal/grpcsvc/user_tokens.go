@@ -10,9 +10,9 @@ import (
 	"time"
 
 	log "github.com/Bugs5382/go-log"
+	postgres "github.com/Bugs5382/go-postgres"
 	identityv1 "github.com/Sneakers-PAM/sneakers-identity/gen/go/sneakers/identity/v1"
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -46,7 +46,7 @@ func (s *Server) MintUserToken(ctx context.Context, req *identityv1.MintUserToke
 	}
 	u, err := s.getUserByID(ctx, userID)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
+		if errors.Is(err, postgres.ErrNoRows) {
 			return nil, status.Error(codes.NotFound, "user not found")
 		}
 		return nil, status.Errorf(codes.Internal, "mint user token: %v", err)
@@ -103,7 +103,7 @@ func (s *Server) RevokeUserToken(ctx context.Context, req *identityv1.RevokeUser
 		  WHERE id=$1 AND user_id=$2
 		 RETURNING `+userTokenCols, req.GetId(), req.GetUserId()))
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
+		if errors.Is(err, postgres.ErrNoRows) {
 			return nil, status.Error(codes.NotFound, "token not found")
 		}
 		return nil, status.Errorf(codes.Internal, "revoke user token: %v", err)
@@ -128,7 +128,7 @@ func (s *Server) VerifyUserToken(ctx context.Context, req *identityv1.VerifyUser
 		    AND u.id = t.user_id AND u.disabled_at IS NULL
 		 RETURNING t.id, t.user_id`, hashToken(token)).Scan(&tokenID, &userID)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
+		if errors.Is(err, postgres.ErrNoRows) {
 			return &identityv1.VerifyUserTokenResponse{}, nil
 		}
 		return nil, status.Errorf(codes.Internal, "verify user token: %v", err)
@@ -150,7 +150,7 @@ func (s *Server) SetUserDisabled(ctx context.Context, req *identityv1.SetUserDis
 		  WHERE id=$1
 		 RETURNING `+userCols, req.GetUserId(), req.GetDisabled()))
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
+		if errors.Is(err, postgres.ErrNoRows) {
 			return nil, status.Error(codes.NotFound, "user not found")
 		}
 		return nil, status.Errorf(codes.Internal, "set user disabled: %v", err)

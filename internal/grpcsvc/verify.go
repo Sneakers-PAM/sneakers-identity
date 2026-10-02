@@ -9,8 +9,8 @@ import (
 	"strings"
 
 	log "github.com/Bugs5382/go-log"
+	postgres "github.com/Bugs5382/go-postgres"
 	identityv1 "github.com/Sneakers-PAM/sneakers-identity/gen/go/sneakers/identity/v1"
-	"github.com/jackc/pgx/v5"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -44,7 +44,7 @@ func (s *Server) sendVerificationEmail(ctx context.Context, userID string) error
 	lg := log.Ctx(ctx)
 	var username, email string
 	if err := s.db.QueryRow(ctx, `SELECT username, email FROM users WHERE id=$1`, userID).Scan(&username, &email); err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
+		if errors.Is(err, postgres.ErrNoRows) {
 			return status.Error(codes.NotFound, "user not found")
 		}
 		return status.Errorf(codes.Internal, "load user: %v", err)

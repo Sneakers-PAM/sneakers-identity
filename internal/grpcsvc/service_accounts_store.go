@@ -7,8 +7,8 @@ import (
 	"context"
 	"time"
 
+	postgres "github.com/Bugs5382/go-postgres"
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // Governed machine access: service_accounts + api_tokens store.
@@ -50,13 +50,13 @@ type apiTokenRow struct {
 	CreatedAt          time.Time
 }
 
-// serviceAccountStore is the pgxpool-backed store for service accounts and
+// serviceAccountStore is the Postgres-backed store for service accounts and
 // their API tokens.
 type serviceAccountStore struct {
-	db *pgxpool.Pool
+	db postgres.Querier
 }
 
-func newServiceAccountStore(db *pgxpool.Pool) *serviceAccountStore {
+func newServiceAccountStore(db postgres.Querier) *serviceAccountStore {
 	return &serviceAccountStore{db: db}
 }
 
@@ -114,7 +114,7 @@ func (st *serviceAccountStore) ListSA(ctx context.Context) ([]*serviceAccountRow
 	return out, rows.Err()
 }
 
-// DisableSA soft-disables a service account (no delete). Returns pgx.ErrNoRows
+// DisableSA soft-disables a service account (no delete). Returns postgres.ErrNoRows
 // if the id does not exist.
 func (st *serviceAccountStore) DisableSA(ctx context.Context, id string) (*serviceAccountRow, error) {
 	row := st.db.QueryRow(ctx,
@@ -124,7 +124,7 @@ func (st *serviceAccountStore) DisableSA(ctx context.Context, id string) (*servi
 	return scanServiceAccount(row)
 }
 
-// GetSA looks up a single service account by id. Returns pgx.ErrNoRows if it
+// GetSA looks up a single service account by id. Returns postgres.ErrNoRows if it
 // does not exist. Used by MintApiToken to reject minting for a disabled SA
 // before any token is generated or persisted.
 func (st *serviceAccountStore) GetSA(ctx context.Context, id string) (*serviceAccountRow, error) {
@@ -135,7 +135,7 @@ func (st *serviceAccountStore) GetSA(ctx context.Context, id string) (*serviceAc
 // LinkOidc binds an Ory Hydra OAuth2 client (issuer, subject=client_id) to a
 // service account, so it can authenticate via
 // ResolveByOidc/ResolveServiceAccountByOidc alongside the opaque-token path.
-// Returns pgx.ErrNoRows if the id does not exist. A second service account
+// Returns postgres.ErrNoRows if the id does not exist. A second service account
 // linking the SAME (issuer, subject) hits the service_accounts_oidc_idx
 // unique index and surfaces as a 23505 pg error to the caller.
 // allowedGroups REPLACES the stored bound wholesale; callers must pass a
@@ -152,7 +152,7 @@ func (st *serviceAccountStore) LinkOidc(ctx context.Context, id, issuer, subject
 }
 
 // UnlinkOidc clears a service account's OIDC client linkage (both columns
-// back to NULL, allowed groups back to '{}'). Returns pgx.ErrNoRows if the id
+// back to NULL, allowed groups back to '{}'). Returns postgres.ErrNoRows if the id
 // does not exist.
 func (st *serviceAccountStore) UnlinkOidc(ctx context.Context, id string) (*serviceAccountRow, error) {
 	row := st.db.QueryRow(ctx,
@@ -165,7 +165,7 @@ func (st *serviceAccountStore) UnlinkOidc(ctx context.Context, id string) (*serv
 // ResolveByOidc looks up the service account linked to the given
 // (issuer, subject), mirroring TokenByHash's fail-closed WHERE clause: an
 // unknown pair and a pair belonging to a disabled service account both
-// return pgx.ErrNoRows alike, so the caller cannot distinguish unlinked from
+// return postgres.ErrNoRows alike, so the caller cannot distinguish unlinked from
 // disabled.
 func (st *serviceAccountStore) ResolveByOidc(ctx context.Context, issuer, subject string) (*serviceAccountRow, error) {
 	row := st.db.QueryRow(ctx,
@@ -194,7 +194,7 @@ func (st *serviceAccountStore) InsertToken(ctx context.Context, saID, tokenHash,
 // TokenByHash resolves a currently-usable token by its sha256 hash: not
 // revoked, not expired (no expiry, or not yet past it), and belonging to a
 // service account that is NOT disabled. A revoked/expired/unknown/disabled-SA
-// hash all return pgx.ErrNoRows alike — the WHERE clause is the sole arbiter
+// hash all return postgres.ErrNoRows alike — the WHERE clause is the sole arbiter
 // of validity so the caller cannot leak *why* a token failed. On a hit, bumps
 // last_used_at to now() in the same statement (RETURNING the post-update row
 // plus the joined service account name).
@@ -244,7 +244,7 @@ func (st *serviceAccountStore) ListTokens(ctx context.Context, saID string) ([]*
 // RevokeToken sets revoked_at=now() (idempotent: revoking an already-revoked
 // token preserves the original revoked_at rather than re-stamping it — the
 // audit trail must record when the token was FIRST revoked). Returns
-// pgx.ErrNoRows if the id does not exist.
+// postgres.ErrNoRows if the id does not exist.
 func (st *serviceAccountStore) RevokeToken(ctx context.Context, tokenID string) (*apiTokenRow, error) {
 	row := st.db.QueryRow(ctx,
 		`UPDATE api_tokens SET revoked_at = COALESCE(revoked_at, now()) WHERE id = $1

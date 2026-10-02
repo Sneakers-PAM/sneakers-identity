@@ -8,8 +8,8 @@ import (
 	"errors"
 	"strings"
 
+	postgres "github.com/Bugs5382/go-postgres"
 	identityv1 "github.com/Sneakers-PAM/sneakers-identity/gen/go/sneakers/identity/v1"
-	"github.com/jackc/pgx/v5"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -28,7 +28,7 @@ func (s *Server) ResolveUserByEmail(ctx context.Context, req *identityv1.Resolve
 
 	u, err := s.getUserByEmail(ctx, email)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
+		if errors.Is(err, postgres.ErrNoRows) {
 			return nil, status.Error(codes.NotFound, "no user for email")
 		}
 		return nil, status.Errorf(codes.Internal, "resolve user by email: %v", err)

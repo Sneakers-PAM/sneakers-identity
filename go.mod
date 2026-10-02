@@ -7,7 +7,7 @@ toolchain go1.26.6
 require (
 	github.com/Bugs5382/go-log v1.1.0
 	github.com/Bugs5382/go-otel v1.3.2
-	github.com/Bugs5382/go-postgres v1.1.0
+	github.com/Bugs5382/go-postgres v1.2.2
 	github.com/Bugs5382/go-seed v1.0.0
 	github.com/go-ldap/ldap/v3 v3.4.14
 	github.com/go-webauthn/webauthn v0.17.4
@@ -26,6 +26,7 @@ require (
 	github.com/boombuler/barcode v1.0.1-0.20190219062509-6c824513bacc // indirect
 	github.com/cenkalti/backoff/v5 v5.0.3 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
+	github.com/exaring/otelpgx v0.11.1 // indirect
 	github.com/fxamacker/cbor/v2 v2.9.2 // indirect
 	github.com/go-asn1-ber/asn1-ber v1.5.8 // indirect
 	github.com/go-logr/logr v1.4.4 // indirect

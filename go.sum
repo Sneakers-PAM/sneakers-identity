@@ -6,8 +6,8 @@ github.com/Bugs5382/go-log v1.1.0 h1:YdsTq/vDM1hTpWhXuJp7JXn2ppHjJAjCi6wgXe2g4Bc
 github.com/Bugs5382/go-log v1.1.0/go.mod h1:OGgIWWKKNg2AXVJlbVJZb/s8dnqqsrKwWznYXik547E=
 github.com/Bugs5382/go-otel v1.3.2 h1:RNedETq9P9RFpxfJf8VWYQlBkqdf0RA8is8Oh8RdyTM=
 github.com/Bugs5382/go-otel v1.3.2/go.mod h1:UY0zaCYcarZQwgG+LONwwv224wpVueE6Yr2uuO3+7TU=
-github.com/Bugs5382/go-postgres v1.1.0 h1:SVSOhsXPQU6D40mx/PSyZrWWfb8asWgL5ThqZ7GT1lQ=
-github.com/Bugs5382/go-postgres v1.1.0/go.mod h1:vGXO5noHhSxOn1h8KdMIeXv5mhbuWLyZHBVHgzfhsUA=
+github.com/Bugs5382/go-postgres v1.2.2 h1:WnPqzrVxf4cZ5l0y2ChflLFlHU7DzuFjfXJoJB7YgDg=
+github.com/Bugs5382/go-postgres v1.2.2/go.mod h1:vGXO5noHhSxOn1h8KdMIeXv5mhbuWLyZHBVHgzfhsUA=
 github.com/Bugs5382/go-seed v1.0.0 h1:e3rHbYuJvmB9q9hkoxMA4V+CKXv7V4kYZjMsvp4kgMk=
 github.com/Bugs5382/go-seed v1.0.0/go.mod h1:jMuXZ2RDXhz/CpdpQVEIWc7ibLQzflTmLt0ulmi0Ero=
 github.com/Microsoft/go-winio v0.6.2 h1:F2VQgta7ecxGYO8k3ZZz3RS8fVIXVxONVUPlNERoyfY=
@@ -37,6 +37,8 @@ github.com/docker/go-connections v0.5.0 h1:USnMq7hx7gwdVZq1L49hLXaFtUdTADjXGp+uj
 github.com/docker/go-connections v0.5.0/go.mod h1:ov60Kzw0kKElRwhNs9UlUHAE/F9Fe6GLaXnqyDdmEXc=
 github.com/docker/go-units v0.5.0 h1:69rxXcBk27SvSaaxTtLh/8llcHD8vYHT7WSdRZ/jvr4=
 github.com/docker/go-units v0.5.0/go.mod h1:fgPhTUdO+D/Jk86RDLlptpiXQzgHJF7gydDDbaIK4Dk=
+github.com/exaring/otelpgx v0.11.1 h1:pE79fIg/qh/Lpu00kvswFC5dKfqyJJhMJ4Y4N3w5Lj4=
+github.com/exaring/otelpgx v0.11.1/go.mod h1:3OojrUKhhy3lTbYIMBijP3YjMey/jo14eHAW5cXcUdk=
 github.com/felixge/httpsnoop v1.1.0 h1:3YtUj32ZZkqZtt3sZZsClsymw/QDuVfpNhoA31zeORc=
 github.com/felixge/httpsnoop v1.1.0/go.mod h1:Zqxgdd+1Rkcz8euOqdr7lqgCRJztwr5hp9vDSi5UZCE=
 github.com/fxamacker/cbor/v2 v2.9.2 h1:X4Ksno9+x3cz0TZv69ec1hxP/+tymuR8PXQJyDwfh78=

@@ -10,8 +10,8 @@ import (
 	"strings"
 
 	log "github.com/Bugs5382/go-log"
+	postgres "github.com/Bugs5382/go-postgres"
 	identityv1 "github.com/Sneakers-PAM/sneakers-identity/gen/go/sneakers/identity/v1"
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -70,7 +70,7 @@ func (s *Server) validateUpdateUser(ctx context.Context, req *identityv1.UpdateU
 	}
 	cur, err := s.getUserByID(ctx, in.id)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
+		if errors.Is(err, postgres.ErrNoRows) {
 			return in, nil, status.Error(codes.NotFound, "user not found")
 		}
 		return in, nil, status.Errorf(codes.Internal, "load user: %v", err)

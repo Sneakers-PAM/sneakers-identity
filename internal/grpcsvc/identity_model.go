@@ -11,9 +11,9 @@ import (
 	"strings"
 
 	log "github.com/Bugs5382/go-log"
+	postgres "github.com/Bugs5382/go-postgres"
 	identityv1 "github.com/Sneakers-PAM/sneakers-identity/gen/go/sneakers/identity/v1"
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -34,7 +34,7 @@ func (s *Server) getUserBySubject(ctx context.Context, sub string) (*identityv1.
 // getUserByEmail resolves a user by case-insensitive exact email match. Mirrors
 // resetUserByEmail's `lower(email)=lower($1) ORDER BY id LIMIT 1` normalization
 // (reset.go) so every email-keyed lookup in the service agrees on which row wins
-// if duplicates ever slip past the column's uniqueness. pgx.ErrNoRows on a miss —
+// if duplicates ever slip past the column's uniqueness. postgres.ErrNoRows on a miss —
 // callers translate that to codes.NotFound (or, for the JIT adopt path, fall
 // through to provisioning).
 func (s *Server) getUserByEmail(ctx context.Context, email string) (*identityv1.User, error) {
@@ -211,7 +211,7 @@ func (s *Server) AdoptOrProvisionFederatedUser(ctx context.Context, req *identit
 	// 1. Already adopted.
 	if u, err := s.getUserBySubject(ctx, sub); err == nil {
 		return &identityv1.AdoptOrProvisionFederatedUserResponse{User: u}, nil
-	} else if !errors.Is(err, pgx.ErrNoRows) {
+	} else if !errors.Is(err, postgres.ErrNoRows) {
 		return nil, status.Errorf(codes.Internal, "lookup by subject: %v", err)
 	}
 
@@ -238,7 +238,7 @@ func (s *Server) AdoptOrProvisionFederatedUser(ctx context.Context, req *identit
 				return nil, status.Errorf(codes.Internal, "load adopted user: %v", gerr)
 			}
 			return &identityv1.AdoptOrProvisionFederatedUserResponse{User: u}, nil
-		case errors.Is(err, pgx.ErrNoRows):
+		case errors.Is(err, postgres.ErrNoRows):
 			// no adoptable row — fall through to provision
 		default:
 			return nil, status.Errorf(codes.Internal, "adopt by username/email: %v", err)
@@ -273,7 +273,7 @@ func (s *Server) GetUserByKeycloakSubject(ctx context.Context, req *identityv1.G
 	}
 	u, err := s.getUserBySubject(ctx, sub)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
+		if errors.Is(err, postgres.ErrNoRows) {
 			return nil, status.Error(codes.NotFound, "user not found")
 		}
 		return nil, status.Errorf(codes.Internal, "get user by subject: %v", err)
@@ -398,7 +398,7 @@ func (s *Server) ResolveUserContext(ctx context.Context, req *identityv1.Resolve
 	}
 	u, err := s.getUserBySubject(ctx, sub)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
+		if errors.Is(err, postgres.ErrNoRows) {
 			return nil, status.Error(codes.NotFound, "user not found")
 		}
 		return nil, status.Errorf(codes.Internal, "resolve user: %v", err)
@@ -451,7 +451,7 @@ func prefixCols(alias string) string {
 }
 
 // scanUsers drains a rows cursor selected with userCols (optionally aliased).
-func scanUsers(rows pgx.Rows) ([]*identityv1.User, error) {
+func scanUsers(rows postgres.Rows) ([]*identityv1.User, error) {
 	var out []*identityv1.User
 	for rows.Next() {
 		u, err := scanUser(rows)

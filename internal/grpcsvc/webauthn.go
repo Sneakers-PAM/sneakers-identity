@@ -13,10 +13,10 @@ import (
 	"time"
 
 	log "github.com/Bugs5382/go-log"
+	postgres "github.com/Bugs5382/go-postgres"
 	identityv1 "github.com/Sneakers-PAM/sneakers-identity/gen/go/sneakers/identity/v1"
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
-	"github.com/jackc/pgx/v5"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -71,7 +71,7 @@ func (w *webauthnUser) WebAuthnCredentials() []webauthn.Credential { return w.cr
 func (s *Server) webauthnUserFor(ctx context.Context, userID string) (*webauthnUser, error) {
 	wu := &webauthnUser{id: userID}
 	err := s.db.QueryRow(ctx, `SELECT name, email, username FROM users WHERE id=$1`, userID).Scan(&wu.name, &wu.email, &wu.username)
-	if errors.Is(err, pgx.ErrNoRows) {
+	if errors.Is(err, postgres.ErrNoRows) {
 		return nil, status.Error(codes.NotFound, "user not found")
 	}
 	if err != nil {
@@ -165,7 +165,7 @@ func (s *Server) consumeSession(ctx context.Context, sessionID, userID, purpose 
 	err := s.db.QueryRow(ctx,
 		`DELETE FROM webauthn_sessions WHERE session_id=$1 AND user_id=$2 AND purpose=$3 AND expires_at>now() RETURNING data_json`,
 		sessionID, userID, purpose).Scan(&blob)
-	if errors.Is(err, pgx.ErrNoRows) {
+	if errors.Is(err, postgres.ErrNoRows) {
 		return nil, status.Error(codes.NotFound, "webauthn session not found or expired")
 	}
 	if err != nil {
