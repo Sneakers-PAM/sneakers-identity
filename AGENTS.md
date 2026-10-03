@@ -80,4 +80,7 @@ Follow the logging rules in `CLAUDE.md`. In short:
   use a git-ignored `go.work` beside `go.mod` (`go work init . ../go-<pkg>`, which writes
   `use . ../go-<pkg>`); `go.work` and `go.work.sum` are in `.gitignore`. For local callee protos,
   point `SNEAKERS_AUDIT_PROTO_DIR` at a local `proto/` directory when running
-  `scripts/proto-generate.sh`, rather than editing a pin in `proto-refs.env`.
+  `scripts/proto-generate.sh`, rather than editing a pin in `proto-refs.env`. `SNEAKERS_VAULT_REF`
+  pins no protos: it is the sneakers-vault commit `internal/workloadauth/` is copied from, and
+  `SNEAKERS_VAULT_DIR` points `scripts/workloadauth-check.sh` at a local sneakers-vault checkout
+  instead.
