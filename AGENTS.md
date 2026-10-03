@@ -74,3 +74,10 @@ Follow the logging rules in `CLAUDE.md`. In short:
 - Every change to a user, group, role, factor, service account or token records an audit event
   (`internal/grpcsvc/audit.go`, listed in `docs/api.md`). An event never carries a password,
   code, secret or token value; a new mutating RPC records one too.
+- `go.mod` holds tagged releases only: no `replace` directive, and no pseudo-version (`@main`,
+  `@<sha>`) of a `github.com/Bugs5382/*` or `github.com/Sneakers-PAM/*` module; the
+  `proto-sync / check` job fails on either. To compile and test against a local package checkout,
+  use a git-ignored `go.work` beside `go.mod` (`go work init . ../go-<pkg>`, which writes
+  `use . ../go-<pkg>`); `go.work` and `go.work.sum` are in `.gitignore`. For local callee protos,
+  point `SNEAKERS_AUDIT_PROTO_DIR` at a local `proto/` directory when running
+  `scripts/proto-generate.sh`, rather than editing a pin in `proto-refs.env`.

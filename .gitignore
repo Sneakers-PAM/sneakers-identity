@@ -17,3 +17,7 @@ coverage.*
 
 # local environment - copy .env.example to .env
 .env
+
+# Local module links (see AGENTS.md); never committed.
+go.work
+go.work.sum
