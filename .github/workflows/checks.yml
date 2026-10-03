@@ -3,6 +3,10 @@ name: checks
 # commits, title and body. The ruleset on main requires its `checks / scrub`
 # status, so the caller job keeps the id `checks`. `edited` reruns it when the
 # PR title or body changes.
+#
+# proto-sync checks on each PR that the callee proto pins in proto-refs.env
+# are on their owners' main, and that go.mod has no replace directive and no
+# owner package at a pseudo-version.
 on:
   pull_request:
     types: [opened, synchronize, reopened, edited, ready_for_review]
@@ -25,3 +29,10 @@ jobs:
       allowed-domains: >-
         gonum.org
         x1a9.sneakers.identity.v1.resolveserviceaccountbyoidcresponsebrzpgithub.com
+  proto-sync:
+    if: github.event_name == 'pull_request' && github.event.pull_request.draft != true
+    permissions:
+      contents: read
+    uses: Sneakers-PAM/.github/.github/workflows/proto-sync.yml@77dd2ac5815c0adb982872341813ada8511a3ab5
+    with:
+      tools-ref: 77dd2ac5815c0adb982872341813ada8511a3ab5
