@@ -53,12 +53,29 @@ admin RPCs before calling identity; the recovery role is the one rule identity a
 | `ListUsers`, `GetUser`, `SearchUsers`, `ResolveUserLabels` | Read users: all, one, a case-insensitive name/email search, and id-to-label lookups for rendering. |
 | `ListGroups`, `GetGroup`, `CreateGroup` | Read groups, and create one in identity's `groups` table. |
 | `AddGroupMember`, `RemoveGroupMember`, `ListGroupMembers`, `ListUserGroups` | Memberships. They live only in identity. |
+| `ListOrphanGroups`, `PruneOrphanGroups` | Site admin only (`acting_user_id`). List the groups with no members, with the service accounts and live API tokens that still name them, and delete the ones nothing needs. See [Orphan groups](#orphan-groups). |
 | `SetUserRoles`, `UpdateUser`, `SetUserDisabled` | Change a user's roles, profile (name, email, username) or disabled state. A disabled user can't sign in, and their personal tokens stop verifying. |
 | `ResolveUserContext` | The user, their group names and roles, keyed by login subject, with the groups' ids in the same order (`group_ids`). The gateway builds each request's actor from it, so a rule can name a group by name or by id. |
 | `SetUserAdGroups`, `ListUsersByAdGroups`, `UserAdGroups` | Retired. Kept for wire compatibility: the first returns `Unimplemented`, the others return empty results. |
 
 Groups live only in identity, managed in the Sneakers admin console. Group names are unique
 case-insensitively.
+
+### Orphan groups
+
+An orphan group has no members. A service account isn't a member: it holds groups through its
+OIDC allowed-groups bound and its tokens' scopes, so an orphan can still be in use, and
+`ListOrphanGroups` lists those references. A reference names a group by its id, or by its exact
+name or slug when that isn't another group's id.
+
+`PruneOrphanGroups` deletes the named groups in one transaction, all or nothing, re-checked at
+call time under row locks. It refuses with `FAILED_PRECONDITION`, changing nothing, if any id is
+unknown, still has a member, or, without `force`, is still referenced. With `force` the
+referencing entries are removed from the bounds and live token scopes in the same transaction, and
+the response lists each service account and token it changed. A revoked token is left alone.
+
+Vault RACI rules name groups too, and identity can't see them. A rule naming a pruned group
+matches nothing afterwards (fail closed); both responses carry that warning.
 
 ### Roles
 
@@ -132,6 +149,7 @@ event holds ids, kinds and outcomes only: never a password, code, TOTP secret or
 | `role.recovery.grant`, `role.recovery.revoke` | `SetUserRoles`, `PreCreateLocalUser`, when the recovery role is added or removed | user | `role`, `severity` (`high`) |
 | `user.disable`, `user.enable` | `SetUserDisabled` | user | |
 | `group.create` | `CreateGroup` | group | `name` |
+| `group.prune` | `PruneOrphanGroups`, per pruned group | group | `name`, `force`, `service_accounts_updated`, `api_tokens_updated` |
 | `group.member.add`, `group.member.remove` | `AddGroupMember`, `RemoveGroupMember`, when membership changed | user (the group is the event's group) | `user_id`, `group_id` |
 | `service_account.create`, `service_account.disable` | `CreateServiceAccount`, `DisableServiceAccount` | service account | `name` |
 | `service_account.oidc.link`, `service_account.oidc.unlink` | `LinkOidcClient`, `UnlinkOidcClient` | service account | `oidc_issuer`, `oidc_subject`, `allowed_groups` |

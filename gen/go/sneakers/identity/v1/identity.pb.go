@@ -618,6 +618,468 @@ func (x *CreateGroupResponse) GetGroup() *Group {
 	return nil
 }
 
+// Orphan groups are directory groups with no members. A site admin lists them
+// and prunes the ones nothing needs. Identity checks its own references: the
+// service-account bounds (oidc_allowed_groups) and the scopes of live API
+// tokens. A reference names a group by its ID, or by its exact name or slug
+// when that isn't another group's ID. Vault RACI rules name groups too and
+// identity can't see them: a RACI rule naming a pruned group matches nothing
+// afterwards (fail closed). Every response carries that warning.
+type OrphanGroupServiceAccountRef struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *OrphanGroupServiceAccountRef) Reset() {
+	*x = OrphanGroupServiceAccountRef{}
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OrphanGroupServiceAccountRef) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OrphanGroupServiceAccountRef) ProtoMessage() {}
+
+func (x *OrphanGroupServiceAccountRef) ProtoReflect() protoreflect.Message {
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OrphanGroupServiceAccountRef.ProtoReflect.Descriptor instead.
+func (*OrphanGroupServiceAccountRef) Descriptor() ([]byte, []int) {
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *OrphanGroupServiceAccountRef) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *OrphanGroupServiceAccountRef) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+type OrphanGroupTokenRef struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	Id               string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	ServiceAccountId string                 `protobuf:"bytes,2,opt,name=service_account_id,json=serviceAccountId,proto3" json:"service_account_id,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *OrphanGroupTokenRef) Reset() {
+	*x = OrphanGroupTokenRef{}
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OrphanGroupTokenRef) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OrphanGroupTokenRef) ProtoMessage() {}
+
+func (x *OrphanGroupTokenRef) ProtoReflect() protoreflect.Message {
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OrphanGroupTokenRef.ProtoReflect.Descriptor instead.
+func (*OrphanGroupTokenRef) Descriptor() ([]byte, []int) {
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *OrphanGroupTokenRef) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *OrphanGroupTokenRef) GetServiceAccountId() string {
+	if x != nil {
+		return x.ServiceAccountId
+	}
+	return ""
+}
+
+type OrphanGroup struct {
+	state           protoimpl.MessageState          `protogen:"open.v1"`
+	Id              string                          `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name            string                          `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	ServiceAccounts []*OrphanGroupServiceAccountRef `protobuf:"bytes,3,rep,name=service_accounts,json=serviceAccounts,proto3" json:"service_accounts,omitempty"` // bounds that name the group
+	ApiTokens       []*OrphanGroupTokenRef          `protobuf:"bytes,4,rep,name=api_tokens,json=apiTokens,proto3" json:"api_tokens,omitempty"`                   // live tokens whose scope names it
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *OrphanGroup) Reset() {
+	*x = OrphanGroup{}
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OrphanGroup) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OrphanGroup) ProtoMessage() {}
+
+func (x *OrphanGroup) ProtoReflect() protoreflect.Message {
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OrphanGroup.ProtoReflect.Descriptor instead.
+func (*OrphanGroup) Descriptor() ([]byte, []int) {
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *OrphanGroup) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *OrphanGroup) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *OrphanGroup) GetServiceAccounts() []*OrphanGroupServiceAccountRef {
+	if x != nil {
+		return x.ServiceAccounts
+	}
+	return nil
+}
+
+func (x *OrphanGroup) GetApiTokens() []*OrphanGroupTokenRef {
+	if x != nil {
+		return x.ApiTokens
+	}
+	return nil
+}
+
+// ListOrphanGroups needs acting_user_id to be an enabled site admin or root.
+type ListOrphanGroupsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ActingUserId  string                 `protobuf:"bytes,1,opt,name=acting_user_id,json=actingUserId,proto3" json:"acting_user_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListOrphanGroupsRequest) Reset() {
+	*x = ListOrphanGroupsRequest{}
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListOrphanGroupsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListOrphanGroupsRequest) ProtoMessage() {}
+
+func (x *ListOrphanGroupsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListOrphanGroupsRequest.ProtoReflect.Descriptor instead.
+func (*ListOrphanGroupsRequest) Descriptor() ([]byte, []int) {
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *ListOrphanGroupsRequest) GetActingUserId() string {
+	if x != nil {
+		return x.ActingUserId
+	}
+	return ""
+}
+
+type ListOrphanGroupsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Groups        []*OrphanGroup         `protobuf:"bytes,1,rep,name=groups,proto3" json:"groups,omitempty"`
+	Warning       string                 `protobuf:"bytes,2,opt,name=warning,proto3" json:"warning,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListOrphanGroupsResponse) Reset() {
+	*x = ListOrphanGroupsResponse{}
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListOrphanGroupsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListOrphanGroupsResponse) ProtoMessage() {}
+
+func (x *ListOrphanGroupsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListOrphanGroupsResponse.ProtoReflect.Descriptor instead.
+func (*ListOrphanGroupsResponse) Descriptor() ([]byte, []int) {
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *ListOrphanGroupsResponse) GetGroups() []*OrphanGroup {
+	if x != nil {
+		return x.Groups
+	}
+	return nil
+}
+
+func (x *ListOrphanGroupsResponse) GetWarning() string {
+	if x != nil {
+		return x.Warning
+	}
+	return ""
+}
+
+// PruneOrphanGroups deletes the named groups in one transaction, all or
+// nothing, after the same site-admin check. It refuses with
+// FAILED_PRECONDITION, changing nothing, if any id is unknown, still has a
+// member at call time, or (without force) is still referenced by a
+// service-account bound or a live token. With force those references are
+// removed in the same transaction, and the response lists every change.
+type PruneOrphanGroupsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Ids           []string               `protobuf:"bytes,1,rep,name=ids,proto3" json:"ids,omitempty"`
+	Force         bool                   `protobuf:"varint,2,opt,name=force,proto3" json:"force,omitempty"`
+	ActingUserId  string                 `protobuf:"bytes,3,opt,name=acting_user_id,json=actingUserId,proto3" json:"acting_user_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PruneOrphanGroupsRequest) Reset() {
+	*x = PruneOrphanGroupsRequest{}
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PruneOrphanGroupsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PruneOrphanGroupsRequest) ProtoMessage() {}
+
+func (x *PruneOrphanGroupsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PruneOrphanGroupsRequest.ProtoReflect.Descriptor instead.
+func (*PruneOrphanGroupsRequest) Descriptor() ([]byte, []int) {
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *PruneOrphanGroupsRequest) GetIds() []string {
+	if x != nil {
+		return x.Ids
+	}
+	return nil
+}
+
+func (x *PruneOrphanGroupsRequest) GetForce() bool {
+	if x != nil {
+		return x.Force
+	}
+	return false
+}
+
+func (x *PruneOrphanGroupsRequest) GetActingUserId() string {
+	if x != nil {
+		return x.ActingUserId
+	}
+	return ""
+}
+
+type PrunedGroup struct {
+	state                  protoimpl.MessageState          `protogen:"open.v1"`
+	Id                     string                          `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name                   string                          `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	ServiceAccountsUpdated []*OrphanGroupServiceAccountRef `protobuf:"bytes,3,rep,name=service_accounts_updated,json=serviceAccountsUpdated,proto3" json:"service_accounts_updated,omitempty"`
+	ApiTokensUpdated       []*OrphanGroupTokenRef          `protobuf:"bytes,4,rep,name=api_tokens_updated,json=apiTokensUpdated,proto3" json:"api_tokens_updated,omitempty"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *PrunedGroup) Reset() {
+	*x = PrunedGroup{}
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PrunedGroup) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PrunedGroup) ProtoMessage() {}
+
+func (x *PrunedGroup) ProtoReflect() protoreflect.Message {
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PrunedGroup.ProtoReflect.Descriptor instead.
+func (*PrunedGroup) Descriptor() ([]byte, []int) {
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *PrunedGroup) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *PrunedGroup) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *PrunedGroup) GetServiceAccountsUpdated() []*OrphanGroupServiceAccountRef {
+	if x != nil {
+		return x.ServiceAccountsUpdated
+	}
+	return nil
+}
+
+func (x *PrunedGroup) GetApiTokensUpdated() []*OrphanGroupTokenRef {
+	if x != nil {
+		return x.ApiTokensUpdated
+	}
+	return nil
+}
+
+type PruneOrphanGroupsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Pruned        []*PrunedGroup         `protobuf:"bytes,1,rep,name=pruned,proto3" json:"pruned,omitempty"`
+	Warning       string                 `protobuf:"bytes,2,opt,name=warning,proto3" json:"warning,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PruneOrphanGroupsResponse) Reset() {
+	*x = PruneOrphanGroupsResponse{}
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PruneOrphanGroupsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PruneOrphanGroupsResponse) ProtoMessage() {}
+
+func (x *PruneOrphanGroupsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PruneOrphanGroupsResponse.ProtoReflect.Descriptor instead.
+func (*PruneOrphanGroupsResponse) Descriptor() ([]byte, []int) {
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *PruneOrphanGroupsResponse) GetPruned() []*PrunedGroup {
+	if x != nil {
+		return x.Pruned
+	}
+	return nil
+}
+
+func (x *PruneOrphanGroupsResponse) GetWarning() string {
+	if x != nil {
+		return x.Warning
+	}
+	return ""
+}
+
 // Typeahead search over users (name/email substring, case-insensitive);
 // limit <= 0 means server-default page size.
 type SearchUsersRequest struct {
@@ -630,7 +1092,7 @@ type SearchUsersRequest struct {
 
 func (x *SearchUsersRequest) Reset() {
 	*x = SearchUsersRequest{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[12]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -642,7 +1104,7 @@ func (x *SearchUsersRequest) String() string {
 func (*SearchUsersRequest) ProtoMessage() {}
 
 func (x *SearchUsersRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[12]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -655,7 +1117,7 @@ func (x *SearchUsersRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SearchUsersRequest.ProtoReflect.Descriptor instead.
 func (*SearchUsersRequest) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{12}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *SearchUsersRequest) GetQuery() string {
@@ -681,7 +1143,7 @@ type SearchUsersResponse struct {
 
 func (x *SearchUsersResponse) Reset() {
 	*x = SearchUsersResponse{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[13]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -693,7 +1155,7 @@ func (x *SearchUsersResponse) String() string {
 func (*SearchUsersResponse) ProtoMessage() {}
 
 func (x *SearchUsersResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[13]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -706,7 +1168,7 @@ func (x *SearchUsersResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SearchUsersResponse.ProtoReflect.Descriptor instead.
 func (*SearchUsersResponse) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{13}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *SearchUsersResponse) GetUsers() []*User {
@@ -727,7 +1189,7 @@ type ResolveUserLabelsRequest struct {
 
 func (x *ResolveUserLabelsRequest) Reset() {
 	*x = ResolveUserLabelsRequest{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[14]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -739,7 +1201,7 @@ func (x *ResolveUserLabelsRequest) String() string {
 func (*ResolveUserLabelsRequest) ProtoMessage() {}
 
 func (x *ResolveUserLabelsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[14]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -752,7 +1214,7 @@ func (x *ResolveUserLabelsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResolveUserLabelsRequest.ProtoReflect.Descriptor instead.
 func (*ResolveUserLabelsRequest) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{14}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *ResolveUserLabelsRequest) GetIds() []string {
@@ -772,7 +1234,7 @@ type UserLabel struct {
 
 func (x *UserLabel) Reset() {
 	*x = UserLabel{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[15]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -784,7 +1246,7 @@ func (x *UserLabel) String() string {
 func (*UserLabel) ProtoMessage() {}
 
 func (x *UserLabel) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[15]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -797,7 +1259,7 @@ func (x *UserLabel) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UserLabel.ProtoReflect.Descriptor instead.
 func (*UserLabel) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{15}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *UserLabel) GetId() string {
@@ -823,7 +1285,7 @@ type ResolveUserLabelsResponse struct {
 
 func (x *ResolveUserLabelsResponse) Reset() {
 	*x = ResolveUserLabelsResponse{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[16]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -835,7 +1297,7 @@ func (x *ResolveUserLabelsResponse) String() string {
 func (*ResolveUserLabelsResponse) ProtoMessage() {}
 
 func (x *ResolveUserLabelsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[16]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -848,7 +1310,7 @@ func (x *ResolveUserLabelsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResolveUserLabelsResponse.ProtoReflect.Descriptor instead.
 func (*ResolveUserLabelsResponse) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{16}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *ResolveUserLabelsResponse) GetLabels() []*UserLabel {
@@ -872,7 +1334,7 @@ type PreCreateLocalUserRequest struct {
 
 func (x *PreCreateLocalUserRequest) Reset() {
 	*x = PreCreateLocalUserRequest{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[17]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -884,7 +1346,7 @@ func (x *PreCreateLocalUserRequest) String() string {
 func (*PreCreateLocalUserRequest) ProtoMessage() {}
 
 func (x *PreCreateLocalUserRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[17]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -897,7 +1359,7 @@ func (x *PreCreateLocalUserRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PreCreateLocalUserRequest.ProtoReflect.Descriptor instead.
 func (*PreCreateLocalUserRequest) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{17}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *PreCreateLocalUserRequest) GetEmail() string {
@@ -937,7 +1399,7 @@ type PreCreateLocalUserResponse struct {
 
 func (x *PreCreateLocalUserResponse) Reset() {
 	*x = PreCreateLocalUserResponse{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[18]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -949,7 +1411,7 @@ func (x *PreCreateLocalUserResponse) String() string {
 func (*PreCreateLocalUserResponse) ProtoMessage() {}
 
 func (x *PreCreateLocalUserResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[18]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -962,7 +1424,7 @@ func (x *PreCreateLocalUserResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PreCreateLocalUserResponse.ProtoReflect.Descriptor instead.
 func (*PreCreateLocalUserResponse) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{18}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *PreCreateLocalUserResponse) GetUser() *User {
@@ -989,7 +1451,7 @@ type CreateLocalUserRequest struct {
 
 func (x *CreateLocalUserRequest) Reset() {
 	*x = CreateLocalUserRequest{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[19]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1001,7 +1463,7 @@ func (x *CreateLocalUserRequest) String() string {
 func (*CreateLocalUserRequest) ProtoMessage() {}
 
 func (x *CreateLocalUserRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[19]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1014,7 +1476,7 @@ func (x *CreateLocalUserRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateLocalUserRequest.ProtoReflect.Descriptor instead.
 func (*CreateLocalUserRequest) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{19}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *CreateLocalUserRequest) GetUsername() string {
@@ -1061,7 +1523,7 @@ type CreateLocalUserResponse struct {
 
 func (x *CreateLocalUserResponse) Reset() {
 	*x = CreateLocalUserResponse{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[20]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1073,7 +1535,7 @@ func (x *CreateLocalUserResponse) String() string {
 func (*CreateLocalUserResponse) ProtoMessage() {}
 
 func (x *CreateLocalUserResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[20]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1086,7 +1548,7 @@ func (x *CreateLocalUserResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateLocalUserResponse.ProtoReflect.Descriptor instead.
 func (*CreateLocalUserResponse) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{20}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *CreateLocalUserResponse) GetUser() *User {
@@ -1113,7 +1575,7 @@ type SetUserRolesRequest struct {
 
 func (x *SetUserRolesRequest) Reset() {
 	*x = SetUserRolesRequest{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[21]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1125,7 +1587,7 @@ func (x *SetUserRolesRequest) String() string {
 func (*SetUserRolesRequest) ProtoMessage() {}
 
 func (x *SetUserRolesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[21]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1138,7 +1600,7 @@ func (x *SetUserRolesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetUserRolesRequest.ProtoReflect.Descriptor instead.
 func (*SetUserRolesRequest) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{21}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *SetUserRolesRequest) GetUserId() string {
@@ -1171,7 +1633,7 @@ type SetUserRolesResponse struct {
 
 func (x *SetUserRolesResponse) Reset() {
 	*x = SetUserRolesResponse{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[22]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1183,7 +1645,7 @@ func (x *SetUserRolesResponse) String() string {
 func (*SetUserRolesResponse) ProtoMessage() {}
 
 func (x *SetUserRolesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[22]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1196,7 +1658,7 @@ func (x *SetUserRolesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetUserRolesResponse.ProtoReflect.Descriptor instead.
 func (*SetUserRolesResponse) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{22}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *SetUserRolesResponse) GetUser() *User {
@@ -1226,7 +1688,7 @@ type UpdateUserRequest struct {
 
 func (x *UpdateUserRequest) Reset() {
 	*x = UpdateUserRequest{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[23]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1238,7 +1700,7 @@ func (x *UpdateUserRequest) String() string {
 func (*UpdateUserRequest) ProtoMessage() {}
 
 func (x *UpdateUserRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[23]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1251,7 +1713,7 @@ func (x *UpdateUserRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateUserRequest.ProtoReflect.Descriptor instead.
 func (*UpdateUserRequest) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{23}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *UpdateUserRequest) GetUserId() string {
@@ -1298,7 +1760,7 @@ type UpdateUserResponse struct {
 
 func (x *UpdateUserResponse) Reset() {
 	*x = UpdateUserResponse{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[24]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1310,7 +1772,7 @@ func (x *UpdateUserResponse) String() string {
 func (*UpdateUserResponse) ProtoMessage() {}
 
 func (x *UpdateUserResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[24]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1323,7 +1785,7 @@ func (x *UpdateUserResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateUserResponse.ProtoReflect.Descriptor instead.
 func (*UpdateUserResponse) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{24}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *UpdateUserResponse) GetUser() *User {
@@ -1350,7 +1812,7 @@ type AdoptOrProvisionFederatedUserRequest struct {
 
 func (x *AdoptOrProvisionFederatedUserRequest) Reset() {
 	*x = AdoptOrProvisionFederatedUserRequest{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[25]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1362,7 +1824,7 @@ func (x *AdoptOrProvisionFederatedUserRequest) String() string {
 func (*AdoptOrProvisionFederatedUserRequest) ProtoMessage() {}
 
 func (x *AdoptOrProvisionFederatedUserRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[25]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1375,7 +1837,7 @@ func (x *AdoptOrProvisionFederatedUserRequest) ProtoReflect() protoreflect.Messa
 
 // Deprecated: Use AdoptOrProvisionFederatedUserRequest.ProtoReflect.Descriptor instead.
 func (*AdoptOrProvisionFederatedUserRequest) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{25}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *AdoptOrProvisionFederatedUserRequest) GetEmail() string {
@@ -1415,7 +1877,7 @@ type AdoptOrProvisionFederatedUserResponse struct {
 
 func (x *AdoptOrProvisionFederatedUserResponse) Reset() {
 	*x = AdoptOrProvisionFederatedUserResponse{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[26]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1427,7 +1889,7 @@ func (x *AdoptOrProvisionFederatedUserResponse) String() string {
 func (*AdoptOrProvisionFederatedUserResponse) ProtoMessage() {}
 
 func (x *AdoptOrProvisionFederatedUserResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[26]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1440,7 +1902,7 @@ func (x *AdoptOrProvisionFederatedUserResponse) ProtoReflect() protoreflect.Mess
 
 // Deprecated: Use AdoptOrProvisionFederatedUserResponse.ProtoReflect.Descriptor instead.
 func (*AdoptOrProvisionFederatedUserResponse) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{26}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *AdoptOrProvisionFederatedUserResponse) GetUser() *User {
@@ -1466,7 +1928,7 @@ type SendTransactionalEmailRequest struct {
 
 func (x *SendTransactionalEmailRequest) Reset() {
 	*x = SendTransactionalEmailRequest{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[27]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1478,7 +1940,7 @@ func (x *SendTransactionalEmailRequest) String() string {
 func (*SendTransactionalEmailRequest) ProtoMessage() {}
 
 func (x *SendTransactionalEmailRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[27]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1491,7 +1953,7 @@ func (x *SendTransactionalEmailRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SendTransactionalEmailRequest.ProtoReflect.Descriptor instead.
 func (*SendTransactionalEmailRequest) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{27}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *SendTransactionalEmailRequest) GetTo() string {
@@ -1523,7 +1985,7 @@ type SendTransactionalEmailResponse struct {
 
 func (x *SendTransactionalEmailResponse) Reset() {
 	*x = SendTransactionalEmailResponse{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[28]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1535,7 +1997,7 @@ func (x *SendTransactionalEmailResponse) String() string {
 func (*SendTransactionalEmailResponse) ProtoMessage() {}
 
 func (x *SendTransactionalEmailResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[28]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1548,7 +2010,7 @@ func (x *SendTransactionalEmailResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SendTransactionalEmailResponse.ProtoReflect.Descriptor instead.
 func (*SendTransactionalEmailResponse) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{28}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{36}
 }
 
 // GetUserBySubject fetches a user by login subject. NotFound when no row is
@@ -1562,7 +2024,7 @@ type GetUserBySubjectRequest struct {
 
 func (x *GetUserBySubjectRequest) Reset() {
 	*x = GetUserBySubjectRequest{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[29]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1574,7 +2036,7 @@ func (x *GetUserBySubjectRequest) String() string {
 func (*GetUserBySubjectRequest) ProtoMessage() {}
 
 func (x *GetUserBySubjectRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[29]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1587,7 +2049,7 @@ func (x *GetUserBySubjectRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetUserBySubjectRequest.ProtoReflect.Descriptor instead.
 func (*GetUserBySubjectRequest) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{29}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *GetUserBySubjectRequest) GetSubject() string {
@@ -1606,7 +2068,7 @@ type GetUserBySubjectResponse struct {
 
 func (x *GetUserBySubjectResponse) Reset() {
 	*x = GetUserBySubjectResponse{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[30]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1618,7 +2080,7 @@ func (x *GetUserBySubjectResponse) String() string {
 func (*GetUserBySubjectResponse) ProtoMessage() {}
 
 func (x *GetUserBySubjectResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[30]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1631,7 +2093,7 @@ func (x *GetUserBySubjectResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetUserBySubjectResponse.ProtoReflect.Descriptor instead.
 func (*GetUserBySubjectResponse) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{30}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *GetUserBySubjectResponse) GetUser() *User {
@@ -1655,7 +2117,7 @@ type ResolveUserByEmailRequest struct {
 
 func (x *ResolveUserByEmailRequest) Reset() {
 	*x = ResolveUserByEmailRequest{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[31]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1667,7 +2129,7 @@ func (x *ResolveUserByEmailRequest) String() string {
 func (*ResolveUserByEmailRequest) ProtoMessage() {}
 
 func (x *ResolveUserByEmailRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[31]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1680,7 +2142,7 @@ func (x *ResolveUserByEmailRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResolveUserByEmailRequest.ProtoReflect.Descriptor instead.
 func (*ResolveUserByEmailRequest) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{31}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *ResolveUserByEmailRequest) GetEmail() string {
@@ -1699,7 +2161,7 @@ type ResolveUserByEmailResponse struct {
 
 func (x *ResolveUserByEmailResponse) Reset() {
 	*x = ResolveUserByEmailResponse{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[32]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1711,7 +2173,7 @@ func (x *ResolveUserByEmailResponse) String() string {
 func (*ResolveUserByEmailResponse) ProtoMessage() {}
 
 func (x *ResolveUserByEmailResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[32]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1724,7 +2186,7 @@ func (x *ResolveUserByEmailResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResolveUserByEmailResponse.ProtoReflect.Descriptor instead.
 func (*ResolveUserByEmailResponse) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{32}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{40}
 }
 
 func (x *ResolveUserByEmailResponse) GetUser() *User {
@@ -1746,7 +2208,7 @@ type GetSetupStateRequest struct {
 
 func (x *GetSetupStateRequest) Reset() {
 	*x = GetSetupStateRequest{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[33]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1758,7 +2220,7 @@ func (x *GetSetupStateRequest) String() string {
 func (*GetSetupStateRequest) ProtoMessage() {}
 
 func (x *GetSetupStateRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[33]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1771,7 +2233,7 @@ func (x *GetSetupStateRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSetupStateRequest.ProtoReflect.Descriptor instead.
 func (*GetSetupStateRequest) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{33}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{41}
 }
 
 type GetSetupStateResponse struct {
@@ -1783,7 +2245,7 @@ type GetSetupStateResponse struct {
 
 func (x *GetSetupStateResponse) Reset() {
 	*x = GetSetupStateResponse{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[34]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1795,7 +2257,7 @@ func (x *GetSetupStateResponse) String() string {
 func (*GetSetupStateResponse) ProtoMessage() {}
 
 func (x *GetSetupStateResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[34]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1808,7 +2270,7 @@ func (x *GetSetupStateResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSetupStateResponse.ProtoReflect.Descriptor instead.
 func (*GetSetupStateResponse) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{34}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{42}
 }
 
 func (x *GetSetupStateResponse) GetNeedsSetup() bool {
@@ -1834,7 +2296,7 @@ type BootstrapRootRequest struct {
 
 func (x *BootstrapRootRequest) Reset() {
 	*x = BootstrapRootRequest{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[35]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1846,7 +2308,7 @@ func (x *BootstrapRootRequest) String() string {
 func (*BootstrapRootRequest) ProtoMessage() {}
 
 func (x *BootstrapRootRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[35]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1859,7 +2321,7 @@ func (x *BootstrapRootRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BootstrapRootRequest.ProtoReflect.Descriptor instead.
 func (*BootstrapRootRequest) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{35}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{43}
 }
 
 func (x *BootstrapRootRequest) GetUsername() string {
@@ -1899,7 +2361,7 @@ type BootstrapRootResponse struct {
 
 func (x *BootstrapRootResponse) Reset() {
 	*x = BootstrapRootResponse{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[36]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[44]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1911,7 +2373,7 @@ func (x *BootstrapRootResponse) String() string {
 func (*BootstrapRootResponse) ProtoMessage() {}
 
 func (x *BootstrapRootResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[36]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[44]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1924,7 +2386,7 @@ func (x *BootstrapRootResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BootstrapRootResponse.ProtoReflect.Descriptor instead.
 func (*BootstrapRootResponse) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{36}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{44}
 }
 
 func (x *BootstrapRootResponse) GetUser() *User {
@@ -1945,7 +2407,7 @@ type AddGroupMemberRequest struct {
 
 func (x *AddGroupMemberRequest) Reset() {
 	*x = AddGroupMemberRequest{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[37]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1957,7 +2419,7 @@ func (x *AddGroupMemberRequest) String() string {
 func (*AddGroupMemberRequest) ProtoMessage() {}
 
 func (x *AddGroupMemberRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[37]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1970,7 +2432,7 @@ func (x *AddGroupMemberRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddGroupMemberRequest.ProtoReflect.Descriptor instead.
 func (*AddGroupMemberRequest) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{37}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{45}
 }
 
 func (x *AddGroupMemberRequest) GetUserId() string {
@@ -2004,7 +2466,7 @@ type AddGroupMemberResponse struct {
 
 func (x *AddGroupMemberResponse) Reset() {
 	*x = AddGroupMemberResponse{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[38]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[46]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2016,7 +2478,7 @@ func (x *AddGroupMemberResponse) String() string {
 func (*AddGroupMemberResponse) ProtoMessage() {}
 
 func (x *AddGroupMemberResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[38]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[46]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2029,7 +2491,7 @@ func (x *AddGroupMemberResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddGroupMemberResponse.ProtoReflect.Descriptor instead.
 func (*AddGroupMemberResponse) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{38}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{46}
 }
 
 func (x *AddGroupMemberResponse) GetUserId() string {
@@ -2057,7 +2519,7 @@ type RemoveGroupMemberRequest struct {
 
 func (x *RemoveGroupMemberRequest) Reset() {
 	*x = RemoveGroupMemberRequest{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[39]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[47]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2069,7 +2531,7 @@ func (x *RemoveGroupMemberRequest) String() string {
 func (*RemoveGroupMemberRequest) ProtoMessage() {}
 
 func (x *RemoveGroupMemberRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[39]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[47]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2082,7 +2544,7 @@ func (x *RemoveGroupMemberRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveGroupMemberRequest.ProtoReflect.Descriptor instead.
 func (*RemoveGroupMemberRequest) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{39}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{47}
 }
 
 func (x *RemoveGroupMemberRequest) GetUserId() string {
@@ -2116,7 +2578,7 @@ type RemoveGroupMemberResponse struct {
 
 func (x *RemoveGroupMemberResponse) Reset() {
 	*x = RemoveGroupMemberResponse{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[40]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[48]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2128,7 +2590,7 @@ func (x *RemoveGroupMemberResponse) String() string {
 func (*RemoveGroupMemberResponse) ProtoMessage() {}
 
 func (x *RemoveGroupMemberResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[40]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[48]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2141,7 +2603,7 @@ func (x *RemoveGroupMemberResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveGroupMemberResponse.ProtoReflect.Descriptor instead.
 func (*RemoveGroupMemberResponse) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{40}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{48}
 }
 
 func (x *RemoveGroupMemberResponse) GetUserId() string {
@@ -2167,7 +2629,7 @@ type ListGroupMembersRequest struct {
 
 func (x *ListGroupMembersRequest) Reset() {
 	*x = ListGroupMembersRequest{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[41]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[49]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2179,7 +2641,7 @@ func (x *ListGroupMembersRequest) String() string {
 func (*ListGroupMembersRequest) ProtoMessage() {}
 
 func (x *ListGroupMembersRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[41]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[49]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2192,7 +2654,7 @@ func (x *ListGroupMembersRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListGroupMembersRequest.ProtoReflect.Descriptor instead.
 func (*ListGroupMembersRequest) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{41}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{49}
 }
 
 func (x *ListGroupMembersRequest) GetGroupId() string {
@@ -2211,7 +2673,7 @@ type ListGroupMembersResponse struct {
 
 func (x *ListGroupMembersResponse) Reset() {
 	*x = ListGroupMembersResponse{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[42]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[50]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2223,7 +2685,7 @@ func (x *ListGroupMembersResponse) String() string {
 func (*ListGroupMembersResponse) ProtoMessage() {}
 
 func (x *ListGroupMembersResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[42]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[50]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2236,7 +2698,7 @@ func (x *ListGroupMembersResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListGroupMembersResponse.ProtoReflect.Descriptor instead.
 func (*ListGroupMembersResponse) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{42}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{50}
 }
 
 func (x *ListGroupMembersResponse) GetUsers() []*User {
@@ -2255,7 +2717,7 @@ type ListUserGroupsRequest struct {
 
 func (x *ListUserGroupsRequest) Reset() {
 	*x = ListUserGroupsRequest{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[43]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[51]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2267,7 +2729,7 @@ func (x *ListUserGroupsRequest) String() string {
 func (*ListUserGroupsRequest) ProtoMessage() {}
 
 func (x *ListUserGroupsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[43]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[51]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2280,7 +2742,7 @@ func (x *ListUserGroupsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListUserGroupsRequest.ProtoReflect.Descriptor instead.
 func (*ListUserGroupsRequest) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{43}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{51}
 }
 
 func (x *ListUserGroupsRequest) GetUserId() string {
@@ -2299,7 +2761,7 @@ type ListUserGroupsResponse struct {
 
 func (x *ListUserGroupsResponse) Reset() {
 	*x = ListUserGroupsResponse{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[44]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[52]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2311,7 +2773,7 @@ func (x *ListUserGroupsResponse) String() string {
 func (*ListUserGroupsResponse) ProtoMessage() {}
 
 func (x *ListUserGroupsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[44]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[52]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2324,7 +2786,7 @@ func (x *ListUserGroupsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListUserGroupsResponse.ProtoReflect.Descriptor instead.
 func (*ListUserGroupsResponse) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{44}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{52}
 }
 
 func (x *ListUserGroupsResponse) GetGroups() []*Group {
@@ -2353,7 +2815,7 @@ type SetUserAdGroupsRequest struct {
 
 func (x *SetUserAdGroupsRequest) Reset() {
 	*x = SetUserAdGroupsRequest{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[45]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[53]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2365,7 +2827,7 @@ func (x *SetUserAdGroupsRequest) String() string {
 func (*SetUserAdGroupsRequest) ProtoMessage() {}
 
 func (x *SetUserAdGroupsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[45]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[53]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2378,7 +2840,7 @@ func (x *SetUserAdGroupsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetUserAdGroupsRequest.ProtoReflect.Descriptor instead.
 func (*SetUserAdGroupsRequest) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{45}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{53}
 }
 
 func (x *SetUserAdGroupsRequest) GetUserId() string {
@@ -2404,7 +2866,7 @@ type SetUserAdGroupsResponse struct {
 
 func (x *SetUserAdGroupsResponse) Reset() {
 	*x = SetUserAdGroupsResponse{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[46]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[54]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2416,7 +2878,7 @@ func (x *SetUserAdGroupsResponse) String() string {
 func (*SetUserAdGroupsResponse) ProtoMessage() {}
 
 func (x *SetUserAdGroupsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[46]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[54]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2429,7 +2891,7 @@ func (x *SetUserAdGroupsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetUserAdGroupsResponse.ProtoReflect.Descriptor instead.
 func (*SetUserAdGroupsResponse) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{46}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{54}
 }
 
 // Deprecated: Marked as deprecated in sneakers/identity/v1/identity.proto.
@@ -2442,7 +2904,7 @@ type ListUsersByAdGroupsRequest struct {
 
 func (x *ListUsersByAdGroupsRequest) Reset() {
 	*x = ListUsersByAdGroupsRequest{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[47]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[55]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2454,7 +2916,7 @@ func (x *ListUsersByAdGroupsRequest) String() string {
 func (*ListUsersByAdGroupsRequest) ProtoMessage() {}
 
 func (x *ListUsersByAdGroupsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[47]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[55]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2467,7 +2929,7 @@ func (x *ListUsersByAdGroupsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListUsersByAdGroupsRequest.ProtoReflect.Descriptor instead.
 func (*ListUsersByAdGroupsRequest) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{47}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{55}
 }
 
 func (x *ListUsersByAdGroupsRequest) GetNames() []string {
@@ -2487,7 +2949,7 @@ type ListUsersByAdGroupsResponse struct {
 
 func (x *ListUsersByAdGroupsResponse) Reset() {
 	*x = ListUsersByAdGroupsResponse{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[48]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[56]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2499,7 +2961,7 @@ func (x *ListUsersByAdGroupsResponse) String() string {
 func (*ListUsersByAdGroupsResponse) ProtoMessage() {}
 
 func (x *ListUsersByAdGroupsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[48]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[56]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2512,7 +2974,7 @@ func (x *ListUsersByAdGroupsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListUsersByAdGroupsResponse.ProtoReflect.Descriptor instead.
 func (*ListUsersByAdGroupsResponse) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{48}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{56}
 }
 
 func (x *ListUsersByAdGroupsResponse) GetUsers() []*User {
@@ -2532,7 +2994,7 @@ type UserAdGroupsRequest struct {
 
 func (x *UserAdGroupsRequest) Reset() {
 	*x = UserAdGroupsRequest{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[49]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[57]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2544,7 +3006,7 @@ func (x *UserAdGroupsRequest) String() string {
 func (*UserAdGroupsRequest) ProtoMessage() {}
 
 func (x *UserAdGroupsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[49]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[57]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2557,7 +3019,7 @@ func (x *UserAdGroupsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UserAdGroupsRequest.ProtoReflect.Descriptor instead.
 func (*UserAdGroupsRequest) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{49}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{57}
 }
 
 func (x *UserAdGroupsRequest) GetUserId() string {
@@ -2577,7 +3039,7 @@ type UserAdGroupsResponse struct {
 
 func (x *UserAdGroupsResponse) Reset() {
 	*x = UserAdGroupsResponse{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[50]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[58]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2589,7 +3051,7 @@ func (x *UserAdGroupsResponse) String() string {
 func (*UserAdGroupsResponse) ProtoMessage() {}
 
 func (x *UserAdGroupsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[50]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[58]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2602,7 +3064,7 @@ func (x *UserAdGroupsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UserAdGroupsResponse.ProtoReflect.Descriptor instead.
 func (*UserAdGroupsResponse) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{50}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{58}
 }
 
 func (x *UserAdGroupsResponse) GetNames() []string {
@@ -2626,7 +3088,7 @@ type ResolveUserContextRequest struct {
 
 func (x *ResolveUserContextRequest) Reset() {
 	*x = ResolveUserContextRequest{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[51]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[59]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2638,7 +3100,7 @@ func (x *ResolveUserContextRequest) String() string {
 func (*ResolveUserContextRequest) ProtoMessage() {}
 
 func (x *ResolveUserContextRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[51]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[59]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2651,7 +3113,7 @@ func (x *ResolveUserContextRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResolveUserContextRequest.ProtoReflect.Descriptor instead.
 func (*ResolveUserContextRequest) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{51}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{59}
 }
 
 func (x *ResolveUserContextRequest) GetSubject() string {
@@ -2675,7 +3137,7 @@ type ResolveUserContextResponse struct {
 
 func (x *ResolveUserContextResponse) Reset() {
 	*x = ResolveUserContextResponse{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[52]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[60]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2687,7 +3149,7 @@ func (x *ResolveUserContextResponse) String() string {
 func (*ResolveUserContextResponse) ProtoMessage() {}
 
 func (x *ResolveUserContextResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[52]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[60]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2700,7 +3162,7 @@ func (x *ResolveUserContextResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResolveUserContextResponse.ProtoReflect.Descriptor instead.
 func (*ResolveUserContextResponse) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{52}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{60}
 }
 
 func (x *ResolveUserContextResponse) GetUser() *User {
@@ -2744,7 +3206,7 @@ type EnrollTotpRequest struct {
 
 func (x *EnrollTotpRequest) Reset() {
 	*x = EnrollTotpRequest{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[53]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[61]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2756,7 +3218,7 @@ func (x *EnrollTotpRequest) String() string {
 func (*EnrollTotpRequest) ProtoMessage() {}
 
 func (x *EnrollTotpRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[53]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[61]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2769,7 +3231,7 @@ func (x *EnrollTotpRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EnrollTotpRequest.ProtoReflect.Descriptor instead.
 func (*EnrollTotpRequest) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{53}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{61}
 }
 
 func (x *EnrollTotpRequest) GetUserId() string {
@@ -2789,7 +3251,7 @@ type EnrollTotpResponse struct {
 
 func (x *EnrollTotpResponse) Reset() {
 	*x = EnrollTotpResponse{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[54]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[62]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2801,7 +3263,7 @@ func (x *EnrollTotpResponse) String() string {
 func (*EnrollTotpResponse) ProtoMessage() {}
 
 func (x *EnrollTotpResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[54]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[62]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2814,7 +3276,7 @@ func (x *EnrollTotpResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EnrollTotpResponse.ProtoReflect.Descriptor instead.
 func (*EnrollTotpResponse) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{54}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{62}
 }
 
 func (x *EnrollTotpResponse) GetSecret() string {
@@ -2843,7 +3305,7 @@ type ConfirmTotpRequest struct {
 
 func (x *ConfirmTotpRequest) Reset() {
 	*x = ConfirmTotpRequest{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[55]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[63]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2855,7 +3317,7 @@ func (x *ConfirmTotpRequest) String() string {
 func (*ConfirmTotpRequest) ProtoMessage() {}
 
 func (x *ConfirmTotpRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[55]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[63]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2868,7 +3330,7 @@ func (x *ConfirmTotpRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConfirmTotpRequest.ProtoReflect.Descriptor instead.
 func (*ConfirmTotpRequest) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{55}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{63}
 }
 
 func (x *ConfirmTotpRequest) GetUserId() string {
@@ -2893,7 +3355,7 @@ type ConfirmTotpResponse struct {
 
 func (x *ConfirmTotpResponse) Reset() {
 	*x = ConfirmTotpResponse{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[56]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[64]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2905,7 +3367,7 @@ func (x *ConfirmTotpResponse) String() string {
 func (*ConfirmTotpResponse) ProtoMessage() {}
 
 func (x *ConfirmTotpResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[56]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[64]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2918,7 +3380,7 @@ func (x *ConfirmTotpResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConfirmTotpResponse.ProtoReflect.Descriptor instead.
 func (*ConfirmTotpResponse) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{56}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{64}
 }
 
 // VerifyTotp checks a code against the user's CONFIRMED secret (the login step).
@@ -2933,7 +3395,7 @@ type VerifyTotpRequest struct {
 
 func (x *VerifyTotpRequest) Reset() {
 	*x = VerifyTotpRequest{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[57]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[65]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2945,7 +3407,7 @@ func (x *VerifyTotpRequest) String() string {
 func (*VerifyTotpRequest) ProtoMessage() {}
 
 func (x *VerifyTotpRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[57]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[65]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2958,7 +3420,7 @@ func (x *VerifyTotpRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VerifyTotpRequest.ProtoReflect.Descriptor instead.
 func (*VerifyTotpRequest) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{57}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{65}
 }
 
 func (x *VerifyTotpRequest) GetUserId() string {
@@ -2984,7 +3446,7 @@ type VerifyTotpResponse struct {
 
 func (x *VerifyTotpResponse) Reset() {
 	*x = VerifyTotpResponse{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[58]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[66]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2996,7 +3458,7 @@ func (x *VerifyTotpResponse) String() string {
 func (*VerifyTotpResponse) ProtoMessage() {}
 
 func (x *VerifyTotpResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[58]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[66]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3009,7 +3471,7 @@ func (x *VerifyTotpResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VerifyTotpResponse.ProtoReflect.Descriptor instead.
 func (*VerifyTotpResponse) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{58}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{66}
 }
 
 func (x *VerifyTotpResponse) GetOk() bool {
@@ -3030,7 +3492,7 @@ type GetMfaStatusRequest struct {
 
 func (x *GetMfaStatusRequest) Reset() {
 	*x = GetMfaStatusRequest{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[59]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[67]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3042,7 +3504,7 @@ func (x *GetMfaStatusRequest) String() string {
 func (*GetMfaStatusRequest) ProtoMessage() {}
 
 func (x *GetMfaStatusRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[59]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[67]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3055,7 +3517,7 @@ func (x *GetMfaStatusRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetMfaStatusRequest.ProtoReflect.Descriptor instead.
 func (*GetMfaStatusRequest) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{59}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{67}
 }
 
 func (x *GetMfaStatusRequest) GetUserId() string {
@@ -3074,7 +3536,7 @@ type GetMfaStatusResponse struct {
 
 func (x *GetMfaStatusResponse) Reset() {
 	*x = GetMfaStatusResponse{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[60]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[68]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3086,7 +3548,7 @@ func (x *GetMfaStatusResponse) String() string {
 func (*GetMfaStatusResponse) ProtoMessage() {}
 
 func (x *GetMfaStatusResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[60]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[68]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3099,7 +3561,7 @@ func (x *GetMfaStatusResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetMfaStatusResponse.ProtoReflect.Descriptor instead.
 func (*GetMfaStatusResponse) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{60}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{68}
 }
 
 func (x *GetMfaStatusResponse) GetEnrolled() bool {
@@ -3120,7 +3582,7 @@ type DisableTotpRequest struct {
 
 func (x *DisableTotpRequest) Reset() {
 	*x = DisableTotpRequest{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[61]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[69]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3132,7 +3594,7 @@ func (x *DisableTotpRequest) String() string {
 func (*DisableTotpRequest) ProtoMessage() {}
 
 func (x *DisableTotpRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[61]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[69]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3145,7 +3607,7 @@ func (x *DisableTotpRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DisableTotpRequest.ProtoReflect.Descriptor instead.
 func (*DisableTotpRequest) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{61}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{69}
 }
 
 func (x *DisableTotpRequest) GetUserId() string {
@@ -3170,7 +3632,7 @@ type DisableTotpResponse struct {
 
 func (x *DisableTotpResponse) Reset() {
 	*x = DisableTotpResponse{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[62]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[70]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3182,7 +3644,7 @@ func (x *DisableTotpResponse) String() string {
 func (*DisableTotpResponse) ProtoMessage() {}
 
 func (x *DisableTotpResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[62]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[70]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3195,7 +3657,7 @@ func (x *DisableTotpResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DisableTotpResponse.ProtoReflect.Descriptor instead.
 func (*DisableTotpResponse) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{62}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{70}
 }
 
 // SendEmailOtp mints + emails a single-use MFA code. purpose scopes the
@@ -3212,7 +3674,7 @@ type SendEmailOtpRequest struct {
 
 func (x *SendEmailOtpRequest) Reset() {
 	*x = SendEmailOtpRequest{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[63]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[71]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3224,7 +3686,7 @@ func (x *SendEmailOtpRequest) String() string {
 func (*SendEmailOtpRequest) ProtoMessage() {}
 
 func (x *SendEmailOtpRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[63]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[71]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3237,7 +3699,7 @@ func (x *SendEmailOtpRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SendEmailOtpRequest.ProtoReflect.Descriptor instead.
 func (*SendEmailOtpRequest) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{63}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{71}
 }
 
 func (x *SendEmailOtpRequest) GetUserId() string {
@@ -3262,7 +3724,7 @@ type SendEmailOtpResponse struct {
 
 func (x *SendEmailOtpResponse) Reset() {
 	*x = SendEmailOtpResponse{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[64]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[72]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3274,7 +3736,7 @@ func (x *SendEmailOtpResponse) String() string {
 func (*SendEmailOtpResponse) ProtoMessage() {}
 
 func (x *SendEmailOtpResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[64]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[72]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3287,7 +3749,7 @@ func (x *SendEmailOtpResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SendEmailOtpResponse.ProtoReflect.Descriptor instead.
 func (*SendEmailOtpResponse) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{64}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{72}
 }
 
 // VerifyEmailOtp verifies an emailed MFA code for (user, purpose). ok is true
@@ -3305,7 +3767,7 @@ type VerifyEmailOtpRequest struct {
 
 func (x *VerifyEmailOtpRequest) Reset() {
 	*x = VerifyEmailOtpRequest{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[65]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[73]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3317,7 +3779,7 @@ func (x *VerifyEmailOtpRequest) String() string {
 func (*VerifyEmailOtpRequest) ProtoMessage() {}
 
 func (x *VerifyEmailOtpRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[65]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[73]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3330,7 +3792,7 @@ func (x *VerifyEmailOtpRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VerifyEmailOtpRequest.ProtoReflect.Descriptor instead.
 func (*VerifyEmailOtpRequest) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{65}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{73}
 }
 
 func (x *VerifyEmailOtpRequest) GetUserId() string {
@@ -3363,7 +3825,7 @@ type VerifyEmailOtpResponse struct {
 
 func (x *VerifyEmailOtpResponse) Reset() {
 	*x = VerifyEmailOtpResponse{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[66]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[74]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3375,7 +3837,7 @@ func (x *VerifyEmailOtpResponse) String() string {
 func (*VerifyEmailOtpResponse) ProtoMessage() {}
 
 func (x *VerifyEmailOtpResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[66]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[74]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3388,7 +3850,7 @@ func (x *VerifyEmailOtpResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VerifyEmailOtpResponse.ProtoReflect.Descriptor instead.
 func (*VerifyEmailOtpResponse) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{66}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{74}
 }
 
 func (x *VerifyEmailOtpResponse) GetOk() bool {
@@ -3411,7 +3873,7 @@ type RequestPasswordResetRequest struct {
 
 func (x *RequestPasswordResetRequest) Reset() {
 	*x = RequestPasswordResetRequest{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[67]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[75]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3423,7 +3885,7 @@ func (x *RequestPasswordResetRequest) String() string {
 func (*RequestPasswordResetRequest) ProtoMessage() {}
 
 func (x *RequestPasswordResetRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[67]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[75]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3436,7 +3898,7 @@ func (x *RequestPasswordResetRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RequestPasswordResetRequest.ProtoReflect.Descriptor instead.
 func (*RequestPasswordResetRequest) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{67}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{75}
 }
 
 func (x *RequestPasswordResetRequest) GetEmail() string {
@@ -3454,7 +3916,7 @@ type RequestPasswordResetResponse struct {
 
 func (x *RequestPasswordResetResponse) Reset() {
 	*x = RequestPasswordResetResponse{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[68]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[76]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3466,7 +3928,7 @@ func (x *RequestPasswordResetResponse) String() string {
 func (*RequestPasswordResetResponse) ProtoMessage() {}
 
 func (x *RequestPasswordResetResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[68]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[76]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3479,7 +3941,7 @@ func (x *RequestPasswordResetResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RequestPasswordResetResponse.ProtoReflect.Descriptor instead.
 func (*RequestPasswordResetResponse) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{68}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{76}
 }
 
 type ConfirmPasswordResetRequest struct {
@@ -3493,7 +3955,7 @@ type ConfirmPasswordResetRequest struct {
 
 func (x *ConfirmPasswordResetRequest) Reset() {
 	*x = ConfirmPasswordResetRequest{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[69]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[77]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3505,7 +3967,7 @@ func (x *ConfirmPasswordResetRequest) String() string {
 func (*ConfirmPasswordResetRequest) ProtoMessage() {}
 
 func (x *ConfirmPasswordResetRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[69]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[77]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3518,7 +3980,7 @@ func (x *ConfirmPasswordResetRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConfirmPasswordResetRequest.ProtoReflect.Descriptor instead.
 func (*ConfirmPasswordResetRequest) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{69}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{77}
 }
 
 func (x *ConfirmPasswordResetRequest) GetEmail() string {
@@ -3551,7 +4013,7 @@ type ConfirmPasswordResetResponse struct {
 
 func (x *ConfirmPasswordResetResponse) Reset() {
 	*x = ConfirmPasswordResetResponse{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[70]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[78]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3563,7 +4025,7 @@ func (x *ConfirmPasswordResetResponse) String() string {
 func (*ConfirmPasswordResetResponse) ProtoMessage() {}
 
 func (x *ConfirmPasswordResetResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[70]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[78]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3576,7 +4038,7 @@ func (x *ConfirmPasswordResetResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConfirmPasswordResetResponse.ProtoReflect.Descriptor instead.
 func (*ConfirmPasswordResetResponse) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{70}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{78}
 }
 
 func (x *ConfirmPasswordResetResponse) GetOk() bool {
@@ -3601,7 +4063,7 @@ type RequestEmailVerificationRequest struct {
 
 func (x *RequestEmailVerificationRequest) Reset() {
 	*x = RequestEmailVerificationRequest{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[71]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[79]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3613,7 +4075,7 @@ func (x *RequestEmailVerificationRequest) String() string {
 func (*RequestEmailVerificationRequest) ProtoMessage() {}
 
 func (x *RequestEmailVerificationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[71]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[79]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3626,7 +4088,7 @@ func (x *RequestEmailVerificationRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RequestEmailVerificationRequest.ProtoReflect.Descriptor instead.
 func (*RequestEmailVerificationRequest) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{71}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{79}
 }
 
 func (x *RequestEmailVerificationRequest) GetUserId() string {
@@ -3644,7 +4106,7 @@ type RequestEmailVerificationResponse struct {
 
 func (x *RequestEmailVerificationResponse) Reset() {
 	*x = RequestEmailVerificationResponse{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[72]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[80]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3656,7 +4118,7 @@ func (x *RequestEmailVerificationResponse) String() string {
 func (*RequestEmailVerificationResponse) ProtoMessage() {}
 
 func (x *RequestEmailVerificationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[72]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[80]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3669,7 +4131,7 @@ func (x *RequestEmailVerificationResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RequestEmailVerificationResponse.ProtoReflect.Descriptor instead.
 func (*RequestEmailVerificationResponse) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{72}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{80}
 }
 
 type ConfirmEmailVerificationRequest struct {
@@ -3683,7 +4145,7 @@ type ConfirmEmailVerificationRequest struct {
 
 func (x *ConfirmEmailVerificationRequest) Reset() {
 	*x = ConfirmEmailVerificationRequest{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[73]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[81]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3695,7 +4157,7 @@ func (x *ConfirmEmailVerificationRequest) String() string {
 func (*ConfirmEmailVerificationRequest) ProtoMessage() {}
 
 func (x *ConfirmEmailVerificationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[73]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[81]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3708,7 +4170,7 @@ func (x *ConfirmEmailVerificationRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConfirmEmailVerificationRequest.ProtoReflect.Descriptor instead.
 func (*ConfirmEmailVerificationRequest) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{73}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{81}
 }
 
 func (x *ConfirmEmailVerificationRequest) GetUserId() string {
@@ -3741,7 +4203,7 @@ type ConfirmEmailVerificationResponse struct {
 
 func (x *ConfirmEmailVerificationResponse) Reset() {
 	*x = ConfirmEmailVerificationResponse{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[74]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[82]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3753,7 +4215,7 @@ func (x *ConfirmEmailVerificationResponse) String() string {
 func (*ConfirmEmailVerificationResponse) ProtoMessage() {}
 
 func (x *ConfirmEmailVerificationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[74]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[82]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3766,7 +4228,7 @@ func (x *ConfirmEmailVerificationResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConfirmEmailVerificationResponse.ProtoReflect.Descriptor instead.
 func (*ConfirmEmailVerificationResponse) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{74}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{82}
 }
 
 func (x *ConfirmEmailVerificationResponse) GetOk() bool {
@@ -3789,7 +4251,7 @@ type WebauthnRegisterBeginRequest struct {
 
 func (x *WebauthnRegisterBeginRequest) Reset() {
 	*x = WebauthnRegisterBeginRequest{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[75]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[83]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3801,7 +4263,7 @@ func (x *WebauthnRegisterBeginRequest) String() string {
 func (*WebauthnRegisterBeginRequest) ProtoMessage() {}
 
 func (x *WebauthnRegisterBeginRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[75]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[83]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3814,7 +4276,7 @@ func (x *WebauthnRegisterBeginRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WebauthnRegisterBeginRequest.ProtoReflect.Descriptor instead.
 func (*WebauthnRegisterBeginRequest) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{75}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{83}
 }
 
 func (x *WebauthnRegisterBeginRequest) GetUserId() string {
@@ -3834,7 +4296,7 @@ type WebauthnRegisterBeginResponse struct {
 
 func (x *WebauthnRegisterBeginResponse) Reset() {
 	*x = WebauthnRegisterBeginResponse{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[76]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[84]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3846,7 +4308,7 @@ func (x *WebauthnRegisterBeginResponse) String() string {
 func (*WebauthnRegisterBeginResponse) ProtoMessage() {}
 
 func (x *WebauthnRegisterBeginResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[76]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[84]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3859,7 +4321,7 @@ func (x *WebauthnRegisterBeginResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WebauthnRegisterBeginResponse.ProtoReflect.Descriptor instead.
 func (*WebauthnRegisterBeginResponse) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{76}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{84}
 }
 
 func (x *WebauthnRegisterBeginResponse) GetOptionsJson() string {
@@ -3888,7 +4350,7 @@ type WebauthnRegisterFinishRequest struct {
 
 func (x *WebauthnRegisterFinishRequest) Reset() {
 	*x = WebauthnRegisterFinishRequest{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[77]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[85]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3900,7 +4362,7 @@ func (x *WebauthnRegisterFinishRequest) String() string {
 func (*WebauthnRegisterFinishRequest) ProtoMessage() {}
 
 func (x *WebauthnRegisterFinishRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[77]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[85]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3913,7 +4375,7 @@ func (x *WebauthnRegisterFinishRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WebauthnRegisterFinishRequest.ProtoReflect.Descriptor instead.
 func (*WebauthnRegisterFinishRequest) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{77}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{85}
 }
 
 func (x *WebauthnRegisterFinishRequest) GetUserId() string {
@@ -3952,7 +4414,7 @@ type WebauthnRegisterFinishResponse struct {
 
 func (x *WebauthnRegisterFinishResponse) Reset() {
 	*x = WebauthnRegisterFinishResponse{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[78]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[86]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3964,7 +4426,7 @@ func (x *WebauthnRegisterFinishResponse) String() string {
 func (*WebauthnRegisterFinishResponse) ProtoMessage() {}
 
 func (x *WebauthnRegisterFinishResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[78]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[86]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3977,7 +4439,7 @@ func (x *WebauthnRegisterFinishResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WebauthnRegisterFinishResponse.ProtoReflect.Descriptor instead.
 func (*WebauthnRegisterFinishResponse) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{78}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{86}
 }
 
 type WebauthnAssertBeginRequest struct {
@@ -3989,7 +4451,7 @@ type WebauthnAssertBeginRequest struct {
 
 func (x *WebauthnAssertBeginRequest) Reset() {
 	*x = WebauthnAssertBeginRequest{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[79]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[87]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4001,7 +4463,7 @@ func (x *WebauthnAssertBeginRequest) String() string {
 func (*WebauthnAssertBeginRequest) ProtoMessage() {}
 
 func (x *WebauthnAssertBeginRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[79]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[87]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4014,7 +4476,7 @@ func (x *WebauthnAssertBeginRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WebauthnAssertBeginRequest.ProtoReflect.Descriptor instead.
 func (*WebauthnAssertBeginRequest) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{79}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{87}
 }
 
 func (x *WebauthnAssertBeginRequest) GetUserId() string {
@@ -4034,7 +4496,7 @@ type WebauthnAssertBeginResponse struct {
 
 func (x *WebauthnAssertBeginResponse) Reset() {
 	*x = WebauthnAssertBeginResponse{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[80]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[88]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4046,7 +4508,7 @@ func (x *WebauthnAssertBeginResponse) String() string {
 func (*WebauthnAssertBeginResponse) ProtoMessage() {}
 
 func (x *WebauthnAssertBeginResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[80]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[88]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4059,7 +4521,7 @@ func (x *WebauthnAssertBeginResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WebauthnAssertBeginResponse.ProtoReflect.Descriptor instead.
 func (*WebauthnAssertBeginResponse) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{80}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{88}
 }
 
 func (x *WebauthnAssertBeginResponse) GetOptionsJson() string {
@@ -4087,7 +4549,7 @@ type WebauthnAssertFinishRequest struct {
 
 func (x *WebauthnAssertFinishRequest) Reset() {
 	*x = WebauthnAssertFinishRequest{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[81]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[89]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4099,7 +4561,7 @@ func (x *WebauthnAssertFinishRequest) String() string {
 func (*WebauthnAssertFinishRequest) ProtoMessage() {}
 
 func (x *WebauthnAssertFinishRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[81]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[89]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4112,7 +4574,7 @@ func (x *WebauthnAssertFinishRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WebauthnAssertFinishRequest.ProtoReflect.Descriptor instead.
 func (*WebauthnAssertFinishRequest) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{81}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{89}
 }
 
 func (x *WebauthnAssertFinishRequest) GetUserId() string {
@@ -4145,7 +4607,7 @@ type WebauthnAssertFinishResponse struct {
 
 func (x *WebauthnAssertFinishResponse) Reset() {
 	*x = WebauthnAssertFinishResponse{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[82]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[90]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4157,7 +4619,7 @@ func (x *WebauthnAssertFinishResponse) String() string {
 func (*WebauthnAssertFinishResponse) ProtoMessage() {}
 
 func (x *WebauthnAssertFinishResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[82]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[90]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4170,7 +4632,7 @@ func (x *WebauthnAssertFinishResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WebauthnAssertFinishResponse.ProtoReflect.Descriptor instead.
 func (*WebauthnAssertFinishResponse) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{82}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{90}
 }
 
 func (x *WebauthnAssertFinishResponse) GetOk() bool {
@@ -4193,7 +4655,7 @@ type WebauthnCredential struct {
 
 func (x *WebauthnCredential) Reset() {
 	*x = WebauthnCredential{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[83]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[91]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4205,7 +4667,7 @@ func (x *WebauthnCredential) String() string {
 func (*WebauthnCredential) ProtoMessage() {}
 
 func (x *WebauthnCredential) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[83]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[91]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4218,7 +4680,7 @@ func (x *WebauthnCredential) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WebauthnCredential.ProtoReflect.Descriptor instead.
 func (*WebauthnCredential) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{83}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{91}
 }
 
 func (x *WebauthnCredential) GetId() string {
@@ -4265,7 +4727,7 @@ type ListWebauthnCredentialsRequest struct {
 
 func (x *ListWebauthnCredentialsRequest) Reset() {
 	*x = ListWebauthnCredentialsRequest{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[84]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[92]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4277,7 +4739,7 @@ func (x *ListWebauthnCredentialsRequest) String() string {
 func (*ListWebauthnCredentialsRequest) ProtoMessage() {}
 
 func (x *ListWebauthnCredentialsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[84]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[92]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4290,7 +4752,7 @@ func (x *ListWebauthnCredentialsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListWebauthnCredentialsRequest.ProtoReflect.Descriptor instead.
 func (*ListWebauthnCredentialsRequest) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{84}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{92}
 }
 
 func (x *ListWebauthnCredentialsRequest) GetUserId() string {
@@ -4309,7 +4771,7 @@ type ListWebauthnCredentialsResponse struct {
 
 func (x *ListWebauthnCredentialsResponse) Reset() {
 	*x = ListWebauthnCredentialsResponse{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[85]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[93]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4321,7 +4783,7 @@ func (x *ListWebauthnCredentialsResponse) String() string {
 func (*ListWebauthnCredentialsResponse) ProtoMessage() {}
 
 func (x *ListWebauthnCredentialsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[85]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[93]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4334,7 +4796,7 @@ func (x *ListWebauthnCredentialsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListWebauthnCredentialsResponse.ProtoReflect.Descriptor instead.
 func (*ListWebauthnCredentialsResponse) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{85}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{93}
 }
 
 func (x *ListWebauthnCredentialsResponse) GetCredentials() []*WebauthnCredential {
@@ -4355,7 +4817,7 @@ type RemoveWebauthnCredentialRequest struct {
 
 func (x *RemoveWebauthnCredentialRequest) Reset() {
 	*x = RemoveWebauthnCredentialRequest{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[86]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[94]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4367,7 +4829,7 @@ func (x *RemoveWebauthnCredentialRequest) String() string {
 func (*RemoveWebauthnCredentialRequest) ProtoMessage() {}
 
 func (x *RemoveWebauthnCredentialRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[86]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[94]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4380,7 +4842,7 @@ func (x *RemoveWebauthnCredentialRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveWebauthnCredentialRequest.ProtoReflect.Descriptor instead.
 func (*RemoveWebauthnCredentialRequest) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{86}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{94}
 }
 
 func (x *RemoveWebauthnCredentialRequest) GetUserId() string {
@@ -4412,7 +4874,7 @@ type RemoveWebauthnCredentialResponse struct {
 
 func (x *RemoveWebauthnCredentialResponse) Reset() {
 	*x = RemoveWebauthnCredentialResponse{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[87]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[95]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4424,7 +4886,7 @@ func (x *RemoveWebauthnCredentialResponse) String() string {
 func (*RemoveWebauthnCredentialResponse) ProtoMessage() {}
 
 func (x *RemoveWebauthnCredentialResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[87]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[95]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4437,7 +4899,7 @@ func (x *RemoveWebauthnCredentialResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveWebauthnCredentialResponse.ProtoReflect.Descriptor instead.
 func (*RemoveWebauthnCredentialResponse) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{87}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{95}
 }
 
 // UserFactor describes one second factor the user can satisfy.
@@ -4453,7 +4915,7 @@ type UserFactor struct {
 
 func (x *UserFactor) Reset() {
 	*x = UserFactor{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[88]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[96]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4465,7 +4927,7 @@ func (x *UserFactor) String() string {
 func (*UserFactor) ProtoMessage() {}
 
 func (x *UserFactor) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[88]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[96]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4478,7 +4940,7 @@ func (x *UserFactor) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UserFactor.ProtoReflect.Descriptor instead.
 func (*UserFactor) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{88}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{96}
 }
 
 func (x *UserFactor) GetKind() string {
@@ -4508,7 +4970,7 @@ type ListUserFactorsRequest struct {
 
 func (x *ListUserFactorsRequest) Reset() {
 	*x = ListUserFactorsRequest{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[89]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[97]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4520,7 +4982,7 @@ func (x *ListUserFactorsRequest) String() string {
 func (*ListUserFactorsRequest) ProtoMessage() {}
 
 func (x *ListUserFactorsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[89]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[97]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4533,7 +4995,7 @@ func (x *ListUserFactorsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListUserFactorsRequest.ProtoReflect.Descriptor instead.
 func (*ListUserFactorsRequest) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{89}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{97}
 }
 
 func (x *ListUserFactorsRequest) GetUserId() string {
@@ -4552,7 +5014,7 @@ type ListUserFactorsResponse struct {
 
 func (x *ListUserFactorsResponse) Reset() {
 	*x = ListUserFactorsResponse{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[90]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[98]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4564,7 +5026,7 @@ func (x *ListUserFactorsResponse) String() string {
 func (*ListUserFactorsResponse) ProtoMessage() {}
 
 func (x *ListUserFactorsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[90]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[98]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4577,7 +5039,7 @@ func (x *ListUserFactorsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListUserFactorsResponse.ProtoReflect.Descriptor instead.
 func (*ListUserFactorsResponse) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{90}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{98}
 }
 
 func (x *ListUserFactorsResponse) GetFactors() []*UserFactor {
@@ -4601,7 +5063,7 @@ type RemoveFactorRequest struct {
 
 func (x *RemoveFactorRequest) Reset() {
 	*x = RemoveFactorRequest{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[91]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[99]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4613,7 +5075,7 @@ func (x *RemoveFactorRequest) String() string {
 func (*RemoveFactorRequest) ProtoMessage() {}
 
 func (x *RemoveFactorRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[91]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[99]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4626,7 +5088,7 @@ func (x *RemoveFactorRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveFactorRequest.ProtoReflect.Descriptor instead.
 func (*RemoveFactorRequest) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{91}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{99}
 }
 
 func (x *RemoveFactorRequest) GetUserId() string {
@@ -4658,7 +5120,7 @@ type RemoveFactorResponse struct {
 
 func (x *RemoveFactorResponse) Reset() {
 	*x = RemoveFactorResponse{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[92]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[100]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4670,7 +5132,7 @@ func (x *RemoveFactorResponse) String() string {
 func (*RemoveFactorResponse) ProtoMessage() {}
 
 func (x *RemoveFactorResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[92]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[100]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4683,7 +5145,7 @@ func (x *RemoveFactorResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveFactorResponse.ProtoReflect.Descriptor instead.
 func (*RemoveFactorResponse) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{92}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{100}
 }
 
 // --- Governed machine access: service accounts + API tokens ---
@@ -4720,7 +5182,7 @@ type ServiceAccount struct {
 
 func (x *ServiceAccount) Reset() {
 	*x = ServiceAccount{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[93]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[101]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4732,7 +5194,7 @@ func (x *ServiceAccount) String() string {
 func (*ServiceAccount) ProtoMessage() {}
 
 func (x *ServiceAccount) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[93]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[101]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4745,7 +5207,7 @@ func (x *ServiceAccount) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ServiceAccount.ProtoReflect.Descriptor instead.
 func (*ServiceAccount) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{93}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{101}
 }
 
 func (x *ServiceAccount) GetId() string {
@@ -4828,7 +5290,7 @@ type ApiToken struct {
 
 func (x *ApiToken) Reset() {
 	*x = ApiToken{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[94]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[102]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4840,7 +5302,7 @@ func (x *ApiToken) String() string {
 func (*ApiToken) ProtoMessage() {}
 
 func (x *ApiToken) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[94]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[102]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4853,7 +5315,7 @@ func (x *ApiToken) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ApiToken.ProtoReflect.Descriptor instead.
 func (*ApiToken) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{94}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{102}
 }
 
 func (x *ApiToken) GetId() string {
@@ -4918,7 +5380,7 @@ type CreateServiceAccountRequest struct {
 
 func (x *CreateServiceAccountRequest) Reset() {
 	*x = CreateServiceAccountRequest{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[95]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[103]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4930,7 +5392,7 @@ func (x *CreateServiceAccountRequest) String() string {
 func (*CreateServiceAccountRequest) ProtoMessage() {}
 
 func (x *CreateServiceAccountRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[95]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[103]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4943,7 +5405,7 @@ func (x *CreateServiceAccountRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateServiceAccountRequest.ProtoReflect.Descriptor instead.
 func (*CreateServiceAccountRequest) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{95}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{103}
 }
 
 func (x *CreateServiceAccountRequest) GetName() string {
@@ -4976,7 +5438,7 @@ type CreateServiceAccountResponse struct {
 
 func (x *CreateServiceAccountResponse) Reset() {
 	*x = CreateServiceAccountResponse{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[96]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[104]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4988,7 +5450,7 @@ func (x *CreateServiceAccountResponse) String() string {
 func (*CreateServiceAccountResponse) ProtoMessage() {}
 
 func (x *CreateServiceAccountResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[96]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[104]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5001,7 +5463,7 @@ func (x *CreateServiceAccountResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateServiceAccountResponse.ProtoReflect.Descriptor instead.
 func (*CreateServiceAccountResponse) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{96}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{104}
 }
 
 func (x *CreateServiceAccountResponse) GetServiceAccount() *ServiceAccount {
@@ -5019,7 +5481,7 @@ type ListServiceAccountsRequest struct {
 
 func (x *ListServiceAccountsRequest) Reset() {
 	*x = ListServiceAccountsRequest{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[97]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[105]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5031,7 +5493,7 @@ func (x *ListServiceAccountsRequest) String() string {
 func (*ListServiceAccountsRequest) ProtoMessage() {}
 
 func (x *ListServiceAccountsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[97]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[105]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5044,7 +5506,7 @@ func (x *ListServiceAccountsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListServiceAccountsRequest.ProtoReflect.Descriptor instead.
 func (*ListServiceAccountsRequest) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{97}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{105}
 }
 
 type ListServiceAccountsResponse struct {
@@ -5056,7 +5518,7 @@ type ListServiceAccountsResponse struct {
 
 func (x *ListServiceAccountsResponse) Reset() {
 	*x = ListServiceAccountsResponse{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[98]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[106]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5068,7 +5530,7 @@ func (x *ListServiceAccountsResponse) String() string {
 func (*ListServiceAccountsResponse) ProtoMessage() {}
 
 func (x *ListServiceAccountsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[98]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[106]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5081,7 +5543,7 @@ func (x *ListServiceAccountsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListServiceAccountsResponse.ProtoReflect.Descriptor instead.
 func (*ListServiceAccountsResponse) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{98}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{106}
 }
 
 func (x *ListServiceAccountsResponse) GetServiceAccounts() []*ServiceAccount {
@@ -5103,7 +5565,7 @@ type DisableServiceAccountRequest struct {
 
 func (x *DisableServiceAccountRequest) Reset() {
 	*x = DisableServiceAccountRequest{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[99]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[107]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5115,7 +5577,7 @@ func (x *DisableServiceAccountRequest) String() string {
 func (*DisableServiceAccountRequest) ProtoMessage() {}
 
 func (x *DisableServiceAccountRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[99]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[107]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5128,7 +5590,7 @@ func (x *DisableServiceAccountRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DisableServiceAccountRequest.ProtoReflect.Descriptor instead.
 func (*DisableServiceAccountRequest) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{99}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{107}
 }
 
 func (x *DisableServiceAccountRequest) GetId() string {
@@ -5154,7 +5616,7 @@ type DisableServiceAccountResponse struct {
 
 func (x *DisableServiceAccountResponse) Reset() {
 	*x = DisableServiceAccountResponse{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[100]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[108]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5166,7 +5628,7 @@ func (x *DisableServiceAccountResponse) String() string {
 func (*DisableServiceAccountResponse) ProtoMessage() {}
 
 func (x *DisableServiceAccountResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[100]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[108]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5179,7 +5641,7 @@ func (x *DisableServiceAccountResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DisableServiceAccountResponse.ProtoReflect.Descriptor instead.
 func (*DisableServiceAccountResponse) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{100}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{108}
 }
 
 func (x *DisableServiceAccountResponse) GetServiceAccount() *ServiceAccount {
@@ -5206,7 +5668,7 @@ type MintApiTokenRequest struct {
 
 func (x *MintApiTokenRequest) Reset() {
 	*x = MintApiTokenRequest{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[101]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[109]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5218,7 +5680,7 @@ func (x *MintApiTokenRequest) String() string {
 func (*MintApiTokenRequest) ProtoMessage() {}
 
 func (x *MintApiTokenRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[101]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[109]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5231,7 +5693,7 @@ func (x *MintApiTokenRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MintApiTokenRequest.ProtoReflect.Descriptor instead.
 func (*MintApiTokenRequest) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{101}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{109}
 }
 
 func (x *MintApiTokenRequest) GetServiceAccountId() string {
@@ -5272,7 +5734,7 @@ type MintApiTokenResponse struct {
 
 func (x *MintApiTokenResponse) Reset() {
 	*x = MintApiTokenResponse{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[102]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[110]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5284,7 +5746,7 @@ func (x *MintApiTokenResponse) String() string {
 func (*MintApiTokenResponse) ProtoMessage() {}
 
 func (x *MintApiTokenResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[102]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[110]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5297,7 +5759,7 @@ func (x *MintApiTokenResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MintApiTokenResponse.ProtoReflect.Descriptor instead.
 func (*MintApiTokenResponse) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{102}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{110}
 }
 
 func (x *MintApiTokenResponse) GetToken() string {
@@ -5323,7 +5785,7 @@ type ListApiTokensRequest struct {
 
 func (x *ListApiTokensRequest) Reset() {
 	*x = ListApiTokensRequest{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[103]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[111]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5335,7 +5797,7 @@ func (x *ListApiTokensRequest) String() string {
 func (*ListApiTokensRequest) ProtoMessage() {}
 
 func (x *ListApiTokensRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[103]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[111]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5348,7 +5810,7 @@ func (x *ListApiTokensRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListApiTokensRequest.ProtoReflect.Descriptor instead.
 func (*ListApiTokensRequest) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{103}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{111}
 }
 
 func (x *ListApiTokensRequest) GetServiceAccountId() string {
@@ -5367,7 +5829,7 @@ type ListApiTokensResponse struct {
 
 func (x *ListApiTokensResponse) Reset() {
 	*x = ListApiTokensResponse{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[104]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[112]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5379,7 +5841,7 @@ func (x *ListApiTokensResponse) String() string {
 func (*ListApiTokensResponse) ProtoMessage() {}
 
 func (x *ListApiTokensResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[104]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[112]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5392,7 +5854,7 @@ func (x *ListApiTokensResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListApiTokensResponse.ProtoReflect.Descriptor instead.
 func (*ListApiTokensResponse) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{104}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{112}
 }
 
 func (x *ListApiTokensResponse) GetTokens() []*ApiToken {
@@ -5412,7 +5874,7 @@ type RevokeApiTokenRequest struct {
 
 func (x *RevokeApiTokenRequest) Reset() {
 	*x = RevokeApiTokenRequest{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[105]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[113]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5424,7 +5886,7 @@ func (x *RevokeApiTokenRequest) String() string {
 func (*RevokeApiTokenRequest) ProtoMessage() {}
 
 func (x *RevokeApiTokenRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[105]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[113]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5437,7 +5899,7 @@ func (x *RevokeApiTokenRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RevokeApiTokenRequest.ProtoReflect.Descriptor instead.
 func (*RevokeApiTokenRequest) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{105}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{113}
 }
 
 func (x *RevokeApiTokenRequest) GetId() string {
@@ -5463,7 +5925,7 @@ type RevokeApiTokenResponse struct {
 
 func (x *RevokeApiTokenResponse) Reset() {
 	*x = RevokeApiTokenResponse{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[106]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[114]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5475,7 +5937,7 @@ func (x *RevokeApiTokenResponse) String() string {
 func (*RevokeApiTokenResponse) ProtoMessage() {}
 
 func (x *RevokeApiTokenResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[106]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[114]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5488,7 +5950,7 @@ func (x *RevokeApiTokenResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RevokeApiTokenResponse.ProtoReflect.Descriptor instead.
 func (*RevokeApiTokenResponse) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{106}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{114}
 }
 
 func (x *RevokeApiTokenResponse) GetMeta() *ApiToken {
@@ -5520,7 +5982,7 @@ type UserToken struct {
 
 func (x *UserToken) Reset() {
 	*x = UserToken{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[107]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[115]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5532,7 +5994,7 @@ func (x *UserToken) String() string {
 func (*UserToken) ProtoMessage() {}
 
 func (x *UserToken) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[107]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[115]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5545,7 +6007,7 @@ func (x *UserToken) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UserToken.ProtoReflect.Descriptor instead.
 func (*UserToken) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{107}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{115}
 }
 
 func (x *UserToken) GetId() string {
@@ -5625,7 +6087,7 @@ type MintUserTokenRequest struct {
 
 func (x *MintUserTokenRequest) Reset() {
 	*x = MintUserTokenRequest{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[108]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[116]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5637,7 +6099,7 @@ func (x *MintUserTokenRequest) String() string {
 func (*MintUserTokenRequest) ProtoMessage() {}
 
 func (x *MintUserTokenRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[108]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[116]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5650,7 +6112,7 @@ func (x *MintUserTokenRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MintUserTokenRequest.ProtoReflect.Descriptor instead.
 func (*MintUserTokenRequest) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{108}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{116}
 }
 
 func (x *MintUserTokenRequest) GetUserId() string {
@@ -5698,7 +6160,7 @@ type MintUserTokenResponse struct {
 
 func (x *MintUserTokenResponse) Reset() {
 	*x = MintUserTokenResponse{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[109]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[117]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5710,7 +6172,7 @@ func (x *MintUserTokenResponse) String() string {
 func (*MintUserTokenResponse) ProtoMessage() {}
 
 func (x *MintUserTokenResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[109]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[117]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5723,7 +6185,7 @@ func (x *MintUserTokenResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MintUserTokenResponse.ProtoReflect.Descriptor instead.
 func (*MintUserTokenResponse) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{109}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{117}
 }
 
 func (x *MintUserTokenResponse) GetToken() string {
@@ -5749,7 +6211,7 @@ type ListUserTokensRequest struct {
 
 func (x *ListUserTokensRequest) Reset() {
 	*x = ListUserTokensRequest{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[110]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[118]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5761,7 +6223,7 @@ func (x *ListUserTokensRequest) String() string {
 func (*ListUserTokensRequest) ProtoMessage() {}
 
 func (x *ListUserTokensRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[110]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[118]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5774,7 +6236,7 @@ func (x *ListUserTokensRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListUserTokensRequest.ProtoReflect.Descriptor instead.
 func (*ListUserTokensRequest) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{110}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{118}
 }
 
 func (x *ListUserTokensRequest) GetUserId() string {
@@ -5793,7 +6255,7 @@ type ListUserTokensResponse struct {
 
 func (x *ListUserTokensResponse) Reset() {
 	*x = ListUserTokensResponse{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[111]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[119]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5805,7 +6267,7 @@ func (x *ListUserTokensResponse) String() string {
 func (*ListUserTokensResponse) ProtoMessage() {}
 
 func (x *ListUserTokensResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[111]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[119]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5818,7 +6280,7 @@ func (x *ListUserTokensResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListUserTokensResponse.ProtoReflect.Descriptor instead.
 func (*ListUserTokensResponse) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{111}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{119}
 }
 
 func (x *ListUserTokensResponse) GetTokens() []*UserToken {
@@ -5841,7 +6303,7 @@ type RevokeUserTokenRequest struct {
 
 func (x *RevokeUserTokenRequest) Reset() {
 	*x = RevokeUserTokenRequest{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[112]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[120]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5853,7 +6315,7 @@ func (x *RevokeUserTokenRequest) String() string {
 func (*RevokeUserTokenRequest) ProtoMessage() {}
 
 func (x *RevokeUserTokenRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[112]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[120]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5866,7 +6328,7 @@ func (x *RevokeUserTokenRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RevokeUserTokenRequest.ProtoReflect.Descriptor instead.
 func (*RevokeUserTokenRequest) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{112}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{120}
 }
 
 func (x *RevokeUserTokenRequest) GetId() string {
@@ -5899,7 +6361,7 @@ type RevokeUserTokenResponse struct {
 
 func (x *RevokeUserTokenResponse) Reset() {
 	*x = RevokeUserTokenResponse{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[113]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[121]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5911,7 +6373,7 @@ func (x *RevokeUserTokenResponse) String() string {
 func (*RevokeUserTokenResponse) ProtoMessage() {}
 
 func (x *RevokeUserTokenResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[113]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[121]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5924,7 +6386,7 @@ func (x *RevokeUserTokenResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RevokeUserTokenResponse.ProtoReflect.Descriptor instead.
 func (*RevokeUserTokenResponse) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{113}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{121}
 }
 
 func (x *RevokeUserTokenResponse) GetMeta() *UserToken {
@@ -5945,7 +6407,7 @@ type VerifyUserTokenRequest struct {
 
 func (x *VerifyUserTokenRequest) Reset() {
 	*x = VerifyUserTokenRequest{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[114]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[122]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5957,7 +6419,7 @@ func (x *VerifyUserTokenRequest) String() string {
 func (*VerifyUserTokenRequest) ProtoMessage() {}
 
 func (x *VerifyUserTokenRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[114]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[122]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5970,7 +6432,7 @@ func (x *VerifyUserTokenRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VerifyUserTokenRequest.ProtoReflect.Descriptor instead.
 func (*VerifyUserTokenRequest) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{114}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{122}
 }
 
 func (x *VerifyUserTokenRequest) GetToken() string {
@@ -5997,7 +6459,7 @@ type VerifyUserTokenResponse struct {
 
 func (x *VerifyUserTokenResponse) Reset() {
 	*x = VerifyUserTokenResponse{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[115]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[123]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6009,7 +6471,7 @@ func (x *VerifyUserTokenResponse) String() string {
 func (*VerifyUserTokenResponse) ProtoMessage() {}
 
 func (x *VerifyUserTokenResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[115]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[123]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6022,7 +6484,7 @@ func (x *VerifyUserTokenResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VerifyUserTokenResponse.ProtoReflect.Descriptor instead.
 func (*VerifyUserTokenResponse) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{115}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{123}
 }
 
 func (x *VerifyUserTokenResponse) GetValid() bool {
@@ -6078,7 +6540,7 @@ type RevokeTokensByClientKindRequest struct {
 
 func (x *RevokeTokensByClientKindRequest) Reset() {
 	*x = RevokeTokensByClientKindRequest{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[116]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[124]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6090,7 +6552,7 @@ func (x *RevokeTokensByClientKindRequest) String() string {
 func (*RevokeTokensByClientKindRequest) ProtoMessage() {}
 
 func (x *RevokeTokensByClientKindRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[116]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[124]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6103,7 +6565,7 @@ func (x *RevokeTokensByClientKindRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RevokeTokensByClientKindRequest.ProtoReflect.Descriptor instead.
 func (*RevokeTokensByClientKindRequest) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{116}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{124}
 }
 
 func (x *RevokeTokensByClientKindRequest) GetKind() string {
@@ -6122,7 +6584,7 @@ type RevokeTokensByClientKindResponse struct {
 
 func (x *RevokeTokensByClientKindResponse) Reset() {
 	*x = RevokeTokensByClientKindResponse{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[117]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[125]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6134,7 +6596,7 @@ func (x *RevokeTokensByClientKindResponse) String() string {
 func (*RevokeTokensByClientKindResponse) ProtoMessage() {}
 
 func (x *RevokeTokensByClientKindResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[117]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[125]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6147,7 +6609,7 @@ func (x *RevokeTokensByClientKindResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RevokeTokensByClientKindResponse.ProtoReflect.Descriptor instead.
 func (*RevokeTokensByClientKindResponse) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{117}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{125}
 }
 
 func (x *RevokeTokensByClientKindResponse) GetRevoked() int64 {
@@ -6168,7 +6630,7 @@ type SetUserDisabledRequest struct {
 
 func (x *SetUserDisabledRequest) Reset() {
 	*x = SetUserDisabledRequest{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[118]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[126]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6180,7 +6642,7 @@ func (x *SetUserDisabledRequest) String() string {
 func (*SetUserDisabledRequest) ProtoMessage() {}
 
 func (x *SetUserDisabledRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[118]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[126]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6193,7 +6655,7 @@ func (x *SetUserDisabledRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetUserDisabledRequest.ProtoReflect.Descriptor instead.
 func (*SetUserDisabledRequest) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{118}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{126}
 }
 
 func (x *SetUserDisabledRequest) GetUserId() string {
@@ -6226,7 +6688,7 @@ type SetUserDisabledResponse struct {
 
 func (x *SetUserDisabledResponse) Reset() {
 	*x = SetUserDisabledResponse{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[119]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[127]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6238,7 +6700,7 @@ func (x *SetUserDisabledResponse) String() string {
 func (*SetUserDisabledResponse) ProtoMessage() {}
 
 func (x *SetUserDisabledResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[119]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[127]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6251,7 +6713,7 @@ func (x *SetUserDisabledResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetUserDisabledResponse.ProtoReflect.Descriptor instead.
 func (*SetUserDisabledResponse) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{119}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{127}
 }
 
 func (x *SetUserDisabledResponse) GetUser() *User {
@@ -6273,7 +6735,7 @@ type VerifyApiTokenRequest struct {
 
 func (x *VerifyApiTokenRequest) Reset() {
 	*x = VerifyApiTokenRequest{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[120]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[128]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6285,7 +6747,7 @@ func (x *VerifyApiTokenRequest) String() string {
 func (*VerifyApiTokenRequest) ProtoMessage() {}
 
 func (x *VerifyApiTokenRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[120]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[128]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6298,7 +6760,7 @@ func (x *VerifyApiTokenRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VerifyApiTokenRequest.ProtoReflect.Descriptor instead.
 func (*VerifyApiTokenRequest) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{120}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{128}
 }
 
 func (x *VerifyApiTokenRequest) GetToken() string {
@@ -6328,7 +6790,7 @@ type VerifyApiTokenResponse struct {
 
 func (x *VerifyApiTokenResponse) Reset() {
 	*x = VerifyApiTokenResponse{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[121]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[129]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6340,7 +6802,7 @@ func (x *VerifyApiTokenResponse) String() string {
 func (*VerifyApiTokenResponse) ProtoMessage() {}
 
 func (x *VerifyApiTokenResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[121]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[129]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6353,7 +6815,7 @@ func (x *VerifyApiTokenResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VerifyApiTokenResponse.ProtoReflect.Descriptor instead.
 func (*VerifyApiTokenResponse) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{121}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{129}
 }
 
 func (x *VerifyApiTokenResponse) GetServiceAccountId() string {
@@ -6419,7 +6881,7 @@ type LinkOidcClientRequest struct {
 
 func (x *LinkOidcClientRequest) Reset() {
 	*x = LinkOidcClientRequest{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[122]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[130]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6431,7 +6893,7 @@ func (x *LinkOidcClientRequest) String() string {
 func (*LinkOidcClientRequest) ProtoMessage() {}
 
 func (x *LinkOidcClientRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[122]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[130]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6444,7 +6906,7 @@ func (x *LinkOidcClientRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LinkOidcClientRequest.ProtoReflect.Descriptor instead.
 func (*LinkOidcClientRequest) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{122}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{130}
 }
 
 func (x *LinkOidcClientRequest) GetServiceAccountId() string {
@@ -6491,7 +6953,7 @@ type LinkOidcClientResponse struct {
 
 func (x *LinkOidcClientResponse) Reset() {
 	*x = LinkOidcClientResponse{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[123]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[131]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6503,7 +6965,7 @@ func (x *LinkOidcClientResponse) String() string {
 func (*LinkOidcClientResponse) ProtoMessage() {}
 
 func (x *LinkOidcClientResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[123]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[131]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6516,7 +6978,7 @@ func (x *LinkOidcClientResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LinkOidcClientResponse.ProtoReflect.Descriptor instead.
 func (*LinkOidcClientResponse) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{123}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{131}
 }
 
 func (x *LinkOidcClientResponse) GetServiceAccount() *ServiceAccount {
@@ -6536,7 +6998,7 @@ type UnlinkOidcClientRequest struct {
 
 func (x *UnlinkOidcClientRequest) Reset() {
 	*x = UnlinkOidcClientRequest{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[124]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[132]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6548,7 +7010,7 @@ func (x *UnlinkOidcClientRequest) String() string {
 func (*UnlinkOidcClientRequest) ProtoMessage() {}
 
 func (x *UnlinkOidcClientRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[124]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[132]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6561,7 +7023,7 @@ func (x *UnlinkOidcClientRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UnlinkOidcClientRequest.ProtoReflect.Descriptor instead.
 func (*UnlinkOidcClientRequest) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{124}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{132}
 }
 
 func (x *UnlinkOidcClientRequest) GetServiceAccountId() string {
@@ -6587,7 +7049,7 @@ type UnlinkOidcClientResponse struct {
 
 func (x *UnlinkOidcClientResponse) Reset() {
 	*x = UnlinkOidcClientResponse{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[125]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[133]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6599,7 +7061,7 @@ func (x *UnlinkOidcClientResponse) String() string {
 func (*UnlinkOidcClientResponse) ProtoMessage() {}
 
 func (x *UnlinkOidcClientResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[125]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[133]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6612,7 +7074,7 @@ func (x *UnlinkOidcClientResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UnlinkOidcClientResponse.ProtoReflect.Descriptor instead.
 func (*UnlinkOidcClientResponse) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{125}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{133}
 }
 
 func (x *UnlinkOidcClientResponse) GetServiceAccount() *ServiceAccount {
@@ -6639,7 +7101,7 @@ type ResolveServiceAccountByOidcRequest struct {
 
 func (x *ResolveServiceAccountByOidcRequest) Reset() {
 	*x = ResolveServiceAccountByOidcRequest{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[126]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[134]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6651,7 +7113,7 @@ func (x *ResolveServiceAccountByOidcRequest) String() string {
 func (*ResolveServiceAccountByOidcRequest) ProtoMessage() {}
 
 func (x *ResolveServiceAccountByOidcRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[126]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[134]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6664,7 +7126,7 @@ func (x *ResolveServiceAccountByOidcRequest) ProtoReflect() protoreflect.Message
 
 // Deprecated: Use ResolveServiceAccountByOidcRequest.ProtoReflect.Descriptor instead.
 func (*ResolveServiceAccountByOidcRequest) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{126}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{134}
 }
 
 func (x *ResolveServiceAccountByOidcRequest) GetOidcIssuer() string {
@@ -6710,7 +7172,7 @@ type ResolveServiceAccountByOidcResponse struct {
 
 func (x *ResolveServiceAccountByOidcResponse) Reset() {
 	*x = ResolveServiceAccountByOidcResponse{}
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[127]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[135]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6722,7 +7184,7 @@ func (x *ResolveServiceAccountByOidcResponse) String() string {
 func (*ResolveServiceAccountByOidcResponse) ProtoMessage() {}
 
 func (x *ResolveServiceAccountByOidcResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[127]
+	mi := &file_sneakers_identity_v1_identity_proto_msgTypes[135]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6735,7 +7197,7 @@ func (x *ResolveServiceAccountByOidcResponse) ProtoReflect() protoreflect.Messag
 
 // Deprecated: Use ResolveServiceAccountByOidcResponse.ProtoReflect.Descriptor instead.
 func (*ResolveServiceAccountByOidcResponse) Descriptor() ([]byte, []int) {
-	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{127}
+	return file_sneakers_identity_v1_identity_proto_rawDescGZIP(), []int{135}
 }
 
 func (x *ResolveServiceAccountByOidcResponse) GetValid() bool {
@@ -6824,7 +7286,36 @@ const file_sneakers_identity_v1_identity_proto_rawDesc = "" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12$\n" +
 	"\x0eacting_user_id\x18\x02 \x01(\tR\factingUserId\"H\n" +
 	"\x13CreateGroupResponse\x121\n" +
-	"\x05group\x18\x01 \x01(\v2\x1b.sneakers.identity.v1.GroupR\x05group\"@\n" +
+	"\x05group\x18\x01 \x01(\v2\x1b.sneakers.identity.v1.GroupR\x05group\"B\n" +
+	"\x1cOrphanGroupServiceAccountRef\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\"S\n" +
+	"\x13OrphanGroupTokenRef\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12,\n" +
+	"\x12service_account_id\x18\x02 \x01(\tR\x10serviceAccountId\"\xda\x01\n" +
+	"\vOrphanGroup\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12]\n" +
+	"\x10service_accounts\x18\x03 \x03(\v22.sneakers.identity.v1.OrphanGroupServiceAccountRefR\x0fserviceAccounts\x12H\n" +
+	"\n" +
+	"api_tokens\x18\x04 \x03(\v2).sneakers.identity.v1.OrphanGroupTokenRefR\tapiTokens\"?\n" +
+	"\x17ListOrphanGroupsRequest\x12$\n" +
+	"\x0eacting_user_id\x18\x01 \x01(\tR\factingUserId\"o\n" +
+	"\x18ListOrphanGroupsResponse\x129\n" +
+	"\x06groups\x18\x01 \x03(\v2!.sneakers.identity.v1.OrphanGroupR\x06groups\x12\x18\n" +
+	"\awarning\x18\x02 \x01(\tR\awarning\"h\n" +
+	"\x18PruneOrphanGroupsRequest\x12\x10\n" +
+	"\x03ids\x18\x01 \x03(\tR\x03ids\x12\x14\n" +
+	"\x05force\x18\x02 \x01(\bR\x05force\x12$\n" +
+	"\x0eacting_user_id\x18\x03 \x01(\tR\factingUserId\"\xf8\x01\n" +
+	"\vPrunedGroup\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12l\n" +
+	"\x18service_accounts_updated\x18\x03 \x03(\v22.sneakers.identity.v1.OrphanGroupServiceAccountRefR\x16serviceAccountsUpdated\x12W\n" +
+	"\x12api_tokens_updated\x18\x04 \x03(\v2).sneakers.identity.v1.OrphanGroupTokenRefR\x10apiTokensUpdated\"p\n" +
+	"\x19PruneOrphanGroupsResponse\x129\n" +
+	"\x06pruned\x18\x01 \x03(\v2!.sneakers.identity.v1.PrunedGroupR\x06pruned\x12\x18\n" +
+	"\awarning\x18\x02 \x01(\tR\awarning\"@\n" +
 	"\x12SearchUsersRequest\x12\x14\n" +
 	"\x05query\x18\x01 \x01(\tR\x05query\x12\x14\n" +
 	"\x05limit\x18\x02 \x01(\x05R\x05limit\"G\n" +
@@ -7194,14 +7685,16 @@ const file_sneakers_identity_v1_identity_proto_rawDesc = "" +
 	"\x0eallowed_groups\x18\x05 \x03(\tR\rallowedGroups\x12\x1f\n" +
 	"\vgroup_names\x18\x06 \x03(\tR\n" +
 	"groupNames\x12\x1b\n" +
-	"\tgroup_ids\x18\a \x03(\tR\bgroupIds2\x8d6\n" +
+	"\tgroup_ids\x18\a \x03(\tR\bgroupIds2\xf67\n" +
 	"\x0fIdentityService\x12\\\n" +
 	"\tListUsers\x12&.sneakers.identity.v1.ListUsersRequest\x1a'.sneakers.identity.v1.ListUsersResponse\x12V\n" +
 	"\aGetUser\x12$.sneakers.identity.v1.GetUserRequest\x1a%.sneakers.identity.v1.GetUserResponse\x12_\n" +
 	"\n" +
 	"ListGroups\x12'.sneakers.identity.v1.ListGroupsRequest\x1a(.sneakers.identity.v1.ListGroupsResponse\x12Y\n" +
 	"\bGetGroup\x12%.sneakers.identity.v1.GetGroupRequest\x1a&.sneakers.identity.v1.GetGroupResponse\x12b\n" +
-	"\vCreateGroup\x12(.sneakers.identity.v1.CreateGroupRequest\x1a).sneakers.identity.v1.CreateGroupResponse\x12b\n" +
+	"\vCreateGroup\x12(.sneakers.identity.v1.CreateGroupRequest\x1a).sneakers.identity.v1.CreateGroupResponse\x12q\n" +
+	"\x10ListOrphanGroups\x12-.sneakers.identity.v1.ListOrphanGroupsRequest\x1a..sneakers.identity.v1.ListOrphanGroupsResponse\x12t\n" +
+	"\x11PruneOrphanGroups\x12..sneakers.identity.v1.PruneOrphanGroupsRequest\x1a/.sneakers.identity.v1.PruneOrphanGroupsResponse\x12b\n" +
 	"\vSearchUsers\x12(.sneakers.identity.v1.SearchUsersRequest\x1a).sneakers.identity.v1.SearchUsersResponse\x12t\n" +
 	"\x11ResolveUserLabels\x12..sneakers.identity.v1.ResolveUserLabelsRequest\x1a/.sneakers.identity.v1.ResolveUserLabelsResponse\x12w\n" +
 	"\x12PreCreateLocalUser\x12/.sneakers.identity.v1.PreCreateLocalUserRequest\x1a0.sneakers.identity.v1.PreCreateLocalUserResponse\x12n\n" +
@@ -7273,7 +7766,7 @@ func file_sneakers_identity_v1_identity_proto_rawDescGZIP() []byte {
 	return file_sneakers_identity_v1_identity_proto_rawDescData
 }
 
-var file_sneakers_identity_v1_identity_proto_msgTypes = make([]protoimpl.MessageInfo, 128)
+var file_sneakers_identity_v1_identity_proto_msgTypes = make([]protoimpl.MessageInfo, 136)
 var file_sneakers_identity_v1_identity_proto_goTypes = []any{
 	(*User)(nil),                                  // 0: sneakers.identity.v1.User
 	(*Group)(nil),                                 // 1: sneakers.identity.v1.Group
@@ -7287,122 +7780,130 @@ var file_sneakers_identity_v1_identity_proto_goTypes = []any{
 	(*GetGroupResponse)(nil),                      // 9: sneakers.identity.v1.GetGroupResponse
 	(*CreateGroupRequest)(nil),                    // 10: sneakers.identity.v1.CreateGroupRequest
 	(*CreateGroupResponse)(nil),                   // 11: sneakers.identity.v1.CreateGroupResponse
-	(*SearchUsersRequest)(nil),                    // 12: sneakers.identity.v1.SearchUsersRequest
-	(*SearchUsersResponse)(nil),                   // 13: sneakers.identity.v1.SearchUsersResponse
-	(*ResolveUserLabelsRequest)(nil),              // 14: sneakers.identity.v1.ResolveUserLabelsRequest
-	(*UserLabel)(nil),                             // 15: sneakers.identity.v1.UserLabel
-	(*ResolveUserLabelsResponse)(nil),             // 16: sneakers.identity.v1.ResolveUserLabelsResponse
-	(*PreCreateLocalUserRequest)(nil),             // 17: sneakers.identity.v1.PreCreateLocalUserRequest
-	(*PreCreateLocalUserResponse)(nil),            // 18: sneakers.identity.v1.PreCreateLocalUserResponse
-	(*CreateLocalUserRequest)(nil),                // 19: sneakers.identity.v1.CreateLocalUserRequest
-	(*CreateLocalUserResponse)(nil),               // 20: sneakers.identity.v1.CreateLocalUserResponse
-	(*SetUserRolesRequest)(nil),                   // 21: sneakers.identity.v1.SetUserRolesRequest
-	(*SetUserRolesResponse)(nil),                  // 22: sneakers.identity.v1.SetUserRolesResponse
-	(*UpdateUserRequest)(nil),                     // 23: sneakers.identity.v1.UpdateUserRequest
-	(*UpdateUserResponse)(nil),                    // 24: sneakers.identity.v1.UpdateUserResponse
-	(*AdoptOrProvisionFederatedUserRequest)(nil),  // 25: sneakers.identity.v1.AdoptOrProvisionFederatedUserRequest
-	(*AdoptOrProvisionFederatedUserResponse)(nil), // 26: sneakers.identity.v1.AdoptOrProvisionFederatedUserResponse
-	(*SendTransactionalEmailRequest)(nil),         // 27: sneakers.identity.v1.SendTransactionalEmailRequest
-	(*SendTransactionalEmailResponse)(nil),        // 28: sneakers.identity.v1.SendTransactionalEmailResponse
-	(*GetUserBySubjectRequest)(nil),               // 29: sneakers.identity.v1.GetUserBySubjectRequest
-	(*GetUserBySubjectResponse)(nil),              // 30: sneakers.identity.v1.GetUserBySubjectResponse
-	(*ResolveUserByEmailRequest)(nil),             // 31: sneakers.identity.v1.ResolveUserByEmailRequest
-	(*ResolveUserByEmailResponse)(nil),            // 32: sneakers.identity.v1.ResolveUserByEmailResponse
-	(*GetSetupStateRequest)(nil),                  // 33: sneakers.identity.v1.GetSetupStateRequest
-	(*GetSetupStateResponse)(nil),                 // 34: sneakers.identity.v1.GetSetupStateResponse
-	(*BootstrapRootRequest)(nil),                  // 35: sneakers.identity.v1.BootstrapRootRequest
-	(*BootstrapRootResponse)(nil),                 // 36: sneakers.identity.v1.BootstrapRootResponse
-	(*AddGroupMemberRequest)(nil),                 // 37: sneakers.identity.v1.AddGroupMemberRequest
-	(*AddGroupMemberResponse)(nil),                // 38: sneakers.identity.v1.AddGroupMemberResponse
-	(*RemoveGroupMemberRequest)(nil),              // 39: sneakers.identity.v1.RemoveGroupMemberRequest
-	(*RemoveGroupMemberResponse)(nil),             // 40: sneakers.identity.v1.RemoveGroupMemberResponse
-	(*ListGroupMembersRequest)(nil),               // 41: sneakers.identity.v1.ListGroupMembersRequest
-	(*ListGroupMembersResponse)(nil),              // 42: sneakers.identity.v1.ListGroupMembersResponse
-	(*ListUserGroupsRequest)(nil),                 // 43: sneakers.identity.v1.ListUserGroupsRequest
-	(*ListUserGroupsResponse)(nil),                // 44: sneakers.identity.v1.ListUserGroupsResponse
-	(*SetUserAdGroupsRequest)(nil),                // 45: sneakers.identity.v1.SetUserAdGroupsRequest
-	(*SetUserAdGroupsResponse)(nil),               // 46: sneakers.identity.v1.SetUserAdGroupsResponse
-	(*ListUsersByAdGroupsRequest)(nil),            // 47: sneakers.identity.v1.ListUsersByAdGroupsRequest
-	(*ListUsersByAdGroupsResponse)(nil),           // 48: sneakers.identity.v1.ListUsersByAdGroupsResponse
-	(*UserAdGroupsRequest)(nil),                   // 49: sneakers.identity.v1.UserAdGroupsRequest
-	(*UserAdGroupsResponse)(nil),                  // 50: sneakers.identity.v1.UserAdGroupsResponse
-	(*ResolveUserContextRequest)(nil),             // 51: sneakers.identity.v1.ResolveUserContextRequest
-	(*ResolveUserContextResponse)(nil),            // 52: sneakers.identity.v1.ResolveUserContextResponse
-	(*EnrollTotpRequest)(nil),                     // 53: sneakers.identity.v1.EnrollTotpRequest
-	(*EnrollTotpResponse)(nil),                    // 54: sneakers.identity.v1.EnrollTotpResponse
-	(*ConfirmTotpRequest)(nil),                    // 55: sneakers.identity.v1.ConfirmTotpRequest
-	(*ConfirmTotpResponse)(nil),                   // 56: sneakers.identity.v1.ConfirmTotpResponse
-	(*VerifyTotpRequest)(nil),                     // 57: sneakers.identity.v1.VerifyTotpRequest
-	(*VerifyTotpResponse)(nil),                    // 58: sneakers.identity.v1.VerifyTotpResponse
-	(*GetMfaStatusRequest)(nil),                   // 59: sneakers.identity.v1.GetMfaStatusRequest
-	(*GetMfaStatusResponse)(nil),                  // 60: sneakers.identity.v1.GetMfaStatusResponse
-	(*DisableTotpRequest)(nil),                    // 61: sneakers.identity.v1.DisableTotpRequest
-	(*DisableTotpResponse)(nil),                   // 62: sneakers.identity.v1.DisableTotpResponse
-	(*SendEmailOtpRequest)(nil),                   // 63: sneakers.identity.v1.SendEmailOtpRequest
-	(*SendEmailOtpResponse)(nil),                  // 64: sneakers.identity.v1.SendEmailOtpResponse
-	(*VerifyEmailOtpRequest)(nil),                 // 65: sneakers.identity.v1.VerifyEmailOtpRequest
-	(*VerifyEmailOtpResponse)(nil),                // 66: sneakers.identity.v1.VerifyEmailOtpResponse
-	(*RequestPasswordResetRequest)(nil),           // 67: sneakers.identity.v1.RequestPasswordResetRequest
-	(*RequestPasswordResetResponse)(nil),          // 68: sneakers.identity.v1.RequestPasswordResetResponse
-	(*ConfirmPasswordResetRequest)(nil),           // 69: sneakers.identity.v1.ConfirmPasswordResetRequest
-	(*ConfirmPasswordResetResponse)(nil),          // 70: sneakers.identity.v1.ConfirmPasswordResetResponse
-	(*RequestEmailVerificationRequest)(nil),       // 71: sneakers.identity.v1.RequestEmailVerificationRequest
-	(*RequestEmailVerificationResponse)(nil),      // 72: sneakers.identity.v1.RequestEmailVerificationResponse
-	(*ConfirmEmailVerificationRequest)(nil),       // 73: sneakers.identity.v1.ConfirmEmailVerificationRequest
-	(*ConfirmEmailVerificationResponse)(nil),      // 74: sneakers.identity.v1.ConfirmEmailVerificationResponse
-	(*WebauthnRegisterBeginRequest)(nil),          // 75: sneakers.identity.v1.WebauthnRegisterBeginRequest
-	(*WebauthnRegisterBeginResponse)(nil),         // 76: sneakers.identity.v1.WebauthnRegisterBeginResponse
-	(*WebauthnRegisterFinishRequest)(nil),         // 77: sneakers.identity.v1.WebauthnRegisterFinishRequest
-	(*WebauthnRegisterFinishResponse)(nil),        // 78: sneakers.identity.v1.WebauthnRegisterFinishResponse
-	(*WebauthnAssertBeginRequest)(nil),            // 79: sneakers.identity.v1.WebauthnAssertBeginRequest
-	(*WebauthnAssertBeginResponse)(nil),           // 80: sneakers.identity.v1.WebauthnAssertBeginResponse
-	(*WebauthnAssertFinishRequest)(nil),           // 81: sneakers.identity.v1.WebauthnAssertFinishRequest
-	(*WebauthnAssertFinishResponse)(nil),          // 82: sneakers.identity.v1.WebauthnAssertFinishResponse
-	(*WebauthnCredential)(nil),                    // 83: sneakers.identity.v1.WebauthnCredential
-	(*ListWebauthnCredentialsRequest)(nil),        // 84: sneakers.identity.v1.ListWebauthnCredentialsRequest
-	(*ListWebauthnCredentialsResponse)(nil),       // 85: sneakers.identity.v1.ListWebauthnCredentialsResponse
-	(*RemoveWebauthnCredentialRequest)(nil),       // 86: sneakers.identity.v1.RemoveWebauthnCredentialRequest
-	(*RemoveWebauthnCredentialResponse)(nil),      // 87: sneakers.identity.v1.RemoveWebauthnCredentialResponse
-	(*UserFactor)(nil),                            // 88: sneakers.identity.v1.UserFactor
-	(*ListUserFactorsRequest)(nil),                // 89: sneakers.identity.v1.ListUserFactorsRequest
-	(*ListUserFactorsResponse)(nil),               // 90: sneakers.identity.v1.ListUserFactorsResponse
-	(*RemoveFactorRequest)(nil),                   // 91: sneakers.identity.v1.RemoveFactorRequest
-	(*RemoveFactorResponse)(nil),                  // 92: sneakers.identity.v1.RemoveFactorResponse
-	(*ServiceAccount)(nil),                        // 93: sneakers.identity.v1.ServiceAccount
-	(*ApiToken)(nil),                              // 94: sneakers.identity.v1.ApiToken
-	(*CreateServiceAccountRequest)(nil),           // 95: sneakers.identity.v1.CreateServiceAccountRequest
-	(*CreateServiceAccountResponse)(nil),          // 96: sneakers.identity.v1.CreateServiceAccountResponse
-	(*ListServiceAccountsRequest)(nil),            // 97: sneakers.identity.v1.ListServiceAccountsRequest
-	(*ListServiceAccountsResponse)(nil),           // 98: sneakers.identity.v1.ListServiceAccountsResponse
-	(*DisableServiceAccountRequest)(nil),          // 99: sneakers.identity.v1.DisableServiceAccountRequest
-	(*DisableServiceAccountResponse)(nil),         // 100: sneakers.identity.v1.DisableServiceAccountResponse
-	(*MintApiTokenRequest)(nil),                   // 101: sneakers.identity.v1.MintApiTokenRequest
-	(*MintApiTokenResponse)(nil),                  // 102: sneakers.identity.v1.MintApiTokenResponse
-	(*ListApiTokensRequest)(nil),                  // 103: sneakers.identity.v1.ListApiTokensRequest
-	(*ListApiTokensResponse)(nil),                 // 104: sneakers.identity.v1.ListApiTokensResponse
-	(*RevokeApiTokenRequest)(nil),                 // 105: sneakers.identity.v1.RevokeApiTokenRequest
-	(*RevokeApiTokenResponse)(nil),                // 106: sneakers.identity.v1.RevokeApiTokenResponse
-	(*UserToken)(nil),                             // 107: sneakers.identity.v1.UserToken
-	(*MintUserTokenRequest)(nil),                  // 108: sneakers.identity.v1.MintUserTokenRequest
-	(*MintUserTokenResponse)(nil),                 // 109: sneakers.identity.v1.MintUserTokenResponse
-	(*ListUserTokensRequest)(nil),                 // 110: sneakers.identity.v1.ListUserTokensRequest
-	(*ListUserTokensResponse)(nil),                // 111: sneakers.identity.v1.ListUserTokensResponse
-	(*RevokeUserTokenRequest)(nil),                // 112: sneakers.identity.v1.RevokeUserTokenRequest
-	(*RevokeUserTokenResponse)(nil),               // 113: sneakers.identity.v1.RevokeUserTokenResponse
-	(*VerifyUserTokenRequest)(nil),                // 114: sneakers.identity.v1.VerifyUserTokenRequest
-	(*VerifyUserTokenResponse)(nil),               // 115: sneakers.identity.v1.VerifyUserTokenResponse
-	(*RevokeTokensByClientKindRequest)(nil),       // 116: sneakers.identity.v1.RevokeTokensByClientKindRequest
-	(*RevokeTokensByClientKindResponse)(nil),      // 117: sneakers.identity.v1.RevokeTokensByClientKindResponse
-	(*SetUserDisabledRequest)(nil),                // 118: sneakers.identity.v1.SetUserDisabledRequest
-	(*SetUserDisabledResponse)(nil),               // 119: sneakers.identity.v1.SetUserDisabledResponse
-	(*VerifyApiTokenRequest)(nil),                 // 120: sneakers.identity.v1.VerifyApiTokenRequest
-	(*VerifyApiTokenResponse)(nil),                // 121: sneakers.identity.v1.VerifyApiTokenResponse
-	(*LinkOidcClientRequest)(nil),                 // 122: sneakers.identity.v1.LinkOidcClientRequest
-	(*LinkOidcClientResponse)(nil),                // 123: sneakers.identity.v1.LinkOidcClientResponse
-	(*UnlinkOidcClientRequest)(nil),               // 124: sneakers.identity.v1.UnlinkOidcClientRequest
-	(*UnlinkOidcClientResponse)(nil),              // 125: sneakers.identity.v1.UnlinkOidcClientResponse
-	(*ResolveServiceAccountByOidcRequest)(nil),    // 126: sneakers.identity.v1.ResolveServiceAccountByOidcRequest
-	(*ResolveServiceAccountByOidcResponse)(nil),   // 127: sneakers.identity.v1.ResolveServiceAccountByOidcResponse
+	(*OrphanGroupServiceAccountRef)(nil),          // 12: sneakers.identity.v1.OrphanGroupServiceAccountRef
+	(*OrphanGroupTokenRef)(nil),                   // 13: sneakers.identity.v1.OrphanGroupTokenRef
+	(*OrphanGroup)(nil),                           // 14: sneakers.identity.v1.OrphanGroup
+	(*ListOrphanGroupsRequest)(nil),               // 15: sneakers.identity.v1.ListOrphanGroupsRequest
+	(*ListOrphanGroupsResponse)(nil),              // 16: sneakers.identity.v1.ListOrphanGroupsResponse
+	(*PruneOrphanGroupsRequest)(nil),              // 17: sneakers.identity.v1.PruneOrphanGroupsRequest
+	(*PrunedGroup)(nil),                           // 18: sneakers.identity.v1.PrunedGroup
+	(*PruneOrphanGroupsResponse)(nil),             // 19: sneakers.identity.v1.PruneOrphanGroupsResponse
+	(*SearchUsersRequest)(nil),                    // 20: sneakers.identity.v1.SearchUsersRequest
+	(*SearchUsersResponse)(nil),                   // 21: sneakers.identity.v1.SearchUsersResponse
+	(*ResolveUserLabelsRequest)(nil),              // 22: sneakers.identity.v1.ResolveUserLabelsRequest
+	(*UserLabel)(nil),                             // 23: sneakers.identity.v1.UserLabel
+	(*ResolveUserLabelsResponse)(nil),             // 24: sneakers.identity.v1.ResolveUserLabelsResponse
+	(*PreCreateLocalUserRequest)(nil),             // 25: sneakers.identity.v1.PreCreateLocalUserRequest
+	(*PreCreateLocalUserResponse)(nil),            // 26: sneakers.identity.v1.PreCreateLocalUserResponse
+	(*CreateLocalUserRequest)(nil),                // 27: sneakers.identity.v1.CreateLocalUserRequest
+	(*CreateLocalUserResponse)(nil),               // 28: sneakers.identity.v1.CreateLocalUserResponse
+	(*SetUserRolesRequest)(nil),                   // 29: sneakers.identity.v1.SetUserRolesRequest
+	(*SetUserRolesResponse)(nil),                  // 30: sneakers.identity.v1.SetUserRolesResponse
+	(*UpdateUserRequest)(nil),                     // 31: sneakers.identity.v1.UpdateUserRequest
+	(*UpdateUserResponse)(nil),                    // 32: sneakers.identity.v1.UpdateUserResponse
+	(*AdoptOrProvisionFederatedUserRequest)(nil),  // 33: sneakers.identity.v1.AdoptOrProvisionFederatedUserRequest
+	(*AdoptOrProvisionFederatedUserResponse)(nil), // 34: sneakers.identity.v1.AdoptOrProvisionFederatedUserResponse
+	(*SendTransactionalEmailRequest)(nil),         // 35: sneakers.identity.v1.SendTransactionalEmailRequest
+	(*SendTransactionalEmailResponse)(nil),        // 36: sneakers.identity.v1.SendTransactionalEmailResponse
+	(*GetUserBySubjectRequest)(nil),               // 37: sneakers.identity.v1.GetUserBySubjectRequest
+	(*GetUserBySubjectResponse)(nil),              // 38: sneakers.identity.v1.GetUserBySubjectResponse
+	(*ResolveUserByEmailRequest)(nil),             // 39: sneakers.identity.v1.ResolveUserByEmailRequest
+	(*ResolveUserByEmailResponse)(nil),            // 40: sneakers.identity.v1.ResolveUserByEmailResponse
+	(*GetSetupStateRequest)(nil),                  // 41: sneakers.identity.v1.GetSetupStateRequest
+	(*GetSetupStateResponse)(nil),                 // 42: sneakers.identity.v1.GetSetupStateResponse
+	(*BootstrapRootRequest)(nil),                  // 43: sneakers.identity.v1.BootstrapRootRequest
+	(*BootstrapRootResponse)(nil),                 // 44: sneakers.identity.v1.BootstrapRootResponse
+	(*AddGroupMemberRequest)(nil),                 // 45: sneakers.identity.v1.AddGroupMemberRequest
+	(*AddGroupMemberResponse)(nil),                // 46: sneakers.identity.v1.AddGroupMemberResponse
+	(*RemoveGroupMemberRequest)(nil),              // 47: sneakers.identity.v1.RemoveGroupMemberRequest
+	(*RemoveGroupMemberResponse)(nil),             // 48: sneakers.identity.v1.RemoveGroupMemberResponse
+	(*ListGroupMembersRequest)(nil),               // 49: sneakers.identity.v1.ListGroupMembersRequest
+	(*ListGroupMembersResponse)(nil),              // 50: sneakers.identity.v1.ListGroupMembersResponse
+	(*ListUserGroupsRequest)(nil),                 // 51: sneakers.identity.v1.ListUserGroupsRequest
+	(*ListUserGroupsResponse)(nil),                // 52: sneakers.identity.v1.ListUserGroupsResponse
+	(*SetUserAdGroupsRequest)(nil),                // 53: sneakers.identity.v1.SetUserAdGroupsRequest
+	(*SetUserAdGroupsResponse)(nil),               // 54: sneakers.identity.v1.SetUserAdGroupsResponse
+	(*ListUsersByAdGroupsRequest)(nil),            // 55: sneakers.identity.v1.ListUsersByAdGroupsRequest
+	(*ListUsersByAdGroupsResponse)(nil),           // 56: sneakers.identity.v1.ListUsersByAdGroupsResponse
+	(*UserAdGroupsRequest)(nil),                   // 57: sneakers.identity.v1.UserAdGroupsRequest
+	(*UserAdGroupsResponse)(nil),                  // 58: sneakers.identity.v1.UserAdGroupsResponse
+	(*ResolveUserContextRequest)(nil),             // 59: sneakers.identity.v1.ResolveUserContextRequest
+	(*ResolveUserContextResponse)(nil),            // 60: sneakers.identity.v1.ResolveUserContextResponse
+	(*EnrollTotpRequest)(nil),                     // 61: sneakers.identity.v1.EnrollTotpRequest
+	(*EnrollTotpResponse)(nil),                    // 62: sneakers.identity.v1.EnrollTotpResponse
+	(*ConfirmTotpRequest)(nil),                    // 63: sneakers.identity.v1.ConfirmTotpRequest
+	(*ConfirmTotpResponse)(nil),                   // 64: sneakers.identity.v1.ConfirmTotpResponse
+	(*VerifyTotpRequest)(nil),                     // 65: sneakers.identity.v1.VerifyTotpRequest
+	(*VerifyTotpResponse)(nil),                    // 66: sneakers.identity.v1.VerifyTotpResponse
+	(*GetMfaStatusRequest)(nil),                   // 67: sneakers.identity.v1.GetMfaStatusRequest
+	(*GetMfaStatusResponse)(nil),                  // 68: sneakers.identity.v1.GetMfaStatusResponse
+	(*DisableTotpRequest)(nil),                    // 69: sneakers.identity.v1.DisableTotpRequest
+	(*DisableTotpResponse)(nil),                   // 70: sneakers.identity.v1.DisableTotpResponse
+	(*SendEmailOtpRequest)(nil),                   // 71: sneakers.identity.v1.SendEmailOtpRequest
+	(*SendEmailOtpResponse)(nil),                  // 72: sneakers.identity.v1.SendEmailOtpResponse
+	(*VerifyEmailOtpRequest)(nil),                 // 73: sneakers.identity.v1.VerifyEmailOtpRequest
+	(*VerifyEmailOtpResponse)(nil),                // 74: sneakers.identity.v1.VerifyEmailOtpResponse
+	(*RequestPasswordResetRequest)(nil),           // 75: sneakers.identity.v1.RequestPasswordResetRequest
+	(*RequestPasswordResetResponse)(nil),          // 76: sneakers.identity.v1.RequestPasswordResetResponse
+	(*ConfirmPasswordResetRequest)(nil),           // 77: sneakers.identity.v1.ConfirmPasswordResetRequest
+	(*ConfirmPasswordResetResponse)(nil),          // 78: sneakers.identity.v1.ConfirmPasswordResetResponse
+	(*RequestEmailVerificationRequest)(nil),       // 79: sneakers.identity.v1.RequestEmailVerificationRequest
+	(*RequestEmailVerificationResponse)(nil),      // 80: sneakers.identity.v1.RequestEmailVerificationResponse
+	(*ConfirmEmailVerificationRequest)(nil),       // 81: sneakers.identity.v1.ConfirmEmailVerificationRequest
+	(*ConfirmEmailVerificationResponse)(nil),      // 82: sneakers.identity.v1.ConfirmEmailVerificationResponse
+	(*WebauthnRegisterBeginRequest)(nil),          // 83: sneakers.identity.v1.WebauthnRegisterBeginRequest
+	(*WebauthnRegisterBeginResponse)(nil),         // 84: sneakers.identity.v1.WebauthnRegisterBeginResponse
+	(*WebauthnRegisterFinishRequest)(nil),         // 85: sneakers.identity.v1.WebauthnRegisterFinishRequest
+	(*WebauthnRegisterFinishResponse)(nil),        // 86: sneakers.identity.v1.WebauthnRegisterFinishResponse
+	(*WebauthnAssertBeginRequest)(nil),            // 87: sneakers.identity.v1.WebauthnAssertBeginRequest
+	(*WebauthnAssertBeginResponse)(nil),           // 88: sneakers.identity.v1.WebauthnAssertBeginResponse
+	(*WebauthnAssertFinishRequest)(nil),           // 89: sneakers.identity.v1.WebauthnAssertFinishRequest
+	(*WebauthnAssertFinishResponse)(nil),          // 90: sneakers.identity.v1.WebauthnAssertFinishResponse
+	(*WebauthnCredential)(nil),                    // 91: sneakers.identity.v1.WebauthnCredential
+	(*ListWebauthnCredentialsRequest)(nil),        // 92: sneakers.identity.v1.ListWebauthnCredentialsRequest
+	(*ListWebauthnCredentialsResponse)(nil),       // 93: sneakers.identity.v1.ListWebauthnCredentialsResponse
+	(*RemoveWebauthnCredentialRequest)(nil),       // 94: sneakers.identity.v1.RemoveWebauthnCredentialRequest
+	(*RemoveWebauthnCredentialResponse)(nil),      // 95: sneakers.identity.v1.RemoveWebauthnCredentialResponse
+	(*UserFactor)(nil),                            // 96: sneakers.identity.v1.UserFactor
+	(*ListUserFactorsRequest)(nil),                // 97: sneakers.identity.v1.ListUserFactorsRequest
+	(*ListUserFactorsResponse)(nil),               // 98: sneakers.identity.v1.ListUserFactorsResponse
+	(*RemoveFactorRequest)(nil),                   // 99: sneakers.identity.v1.RemoveFactorRequest
+	(*RemoveFactorResponse)(nil),                  // 100: sneakers.identity.v1.RemoveFactorResponse
+	(*ServiceAccount)(nil),                        // 101: sneakers.identity.v1.ServiceAccount
+	(*ApiToken)(nil),                              // 102: sneakers.identity.v1.ApiToken
+	(*CreateServiceAccountRequest)(nil),           // 103: sneakers.identity.v1.CreateServiceAccountRequest
+	(*CreateServiceAccountResponse)(nil),          // 104: sneakers.identity.v1.CreateServiceAccountResponse
+	(*ListServiceAccountsRequest)(nil),            // 105: sneakers.identity.v1.ListServiceAccountsRequest
+	(*ListServiceAccountsResponse)(nil),           // 106: sneakers.identity.v1.ListServiceAccountsResponse
+	(*DisableServiceAccountRequest)(nil),          // 107: sneakers.identity.v1.DisableServiceAccountRequest
+	(*DisableServiceAccountResponse)(nil),         // 108: sneakers.identity.v1.DisableServiceAccountResponse
+	(*MintApiTokenRequest)(nil),                   // 109: sneakers.identity.v1.MintApiTokenRequest
+	(*MintApiTokenResponse)(nil),                  // 110: sneakers.identity.v1.MintApiTokenResponse
+	(*ListApiTokensRequest)(nil),                  // 111: sneakers.identity.v1.ListApiTokensRequest
+	(*ListApiTokensResponse)(nil),                 // 112: sneakers.identity.v1.ListApiTokensResponse
+	(*RevokeApiTokenRequest)(nil),                 // 113: sneakers.identity.v1.RevokeApiTokenRequest
+	(*RevokeApiTokenResponse)(nil),                // 114: sneakers.identity.v1.RevokeApiTokenResponse
+	(*UserToken)(nil),                             // 115: sneakers.identity.v1.UserToken
+	(*MintUserTokenRequest)(nil),                  // 116: sneakers.identity.v1.MintUserTokenRequest
+	(*MintUserTokenResponse)(nil),                 // 117: sneakers.identity.v1.MintUserTokenResponse
+	(*ListUserTokensRequest)(nil),                 // 118: sneakers.identity.v1.ListUserTokensRequest
+	(*ListUserTokensResponse)(nil),                // 119: sneakers.identity.v1.ListUserTokensResponse
+	(*RevokeUserTokenRequest)(nil),                // 120: sneakers.identity.v1.RevokeUserTokenRequest
+	(*RevokeUserTokenResponse)(nil),               // 121: sneakers.identity.v1.RevokeUserTokenResponse
+	(*VerifyUserTokenRequest)(nil),                // 122: sneakers.identity.v1.VerifyUserTokenRequest
+	(*VerifyUserTokenResponse)(nil),               // 123: sneakers.identity.v1.VerifyUserTokenResponse
+	(*RevokeTokensByClientKindRequest)(nil),       // 124: sneakers.identity.v1.RevokeTokensByClientKindRequest
+	(*RevokeTokensByClientKindResponse)(nil),      // 125: sneakers.identity.v1.RevokeTokensByClientKindResponse
+	(*SetUserDisabledRequest)(nil),                // 126: sneakers.identity.v1.SetUserDisabledRequest
+	(*SetUserDisabledResponse)(nil),               // 127: sneakers.identity.v1.SetUserDisabledResponse
+	(*VerifyApiTokenRequest)(nil),                 // 128: sneakers.identity.v1.VerifyApiTokenRequest
+	(*VerifyApiTokenResponse)(nil),                // 129: sneakers.identity.v1.VerifyApiTokenResponse
+	(*LinkOidcClientRequest)(nil),                 // 130: sneakers.identity.v1.LinkOidcClientRequest
+	(*LinkOidcClientResponse)(nil),                // 131: sneakers.identity.v1.LinkOidcClientResponse
+	(*UnlinkOidcClientRequest)(nil),               // 132: sneakers.identity.v1.UnlinkOidcClientRequest
+	(*UnlinkOidcClientResponse)(nil),              // 133: sneakers.identity.v1.UnlinkOidcClientResponse
+	(*ResolveServiceAccountByOidcRequest)(nil),    // 134: sneakers.identity.v1.ResolveServiceAccountByOidcRequest
+	(*ResolveServiceAccountByOidcResponse)(nil),   // 135: sneakers.identity.v1.ResolveServiceAccountByOidcResponse
 }
 var file_sneakers_identity_v1_identity_proto_depIdxs = []int32{
 	0,   // 0: sneakers.identity.v1.ListUsersResponse.users:type_name -> sneakers.identity.v1.User
@@ -7410,160 +7911,170 @@ var file_sneakers_identity_v1_identity_proto_depIdxs = []int32{
 	1,   // 2: sneakers.identity.v1.ListGroupsResponse.groups:type_name -> sneakers.identity.v1.Group
 	1,   // 3: sneakers.identity.v1.GetGroupResponse.group:type_name -> sneakers.identity.v1.Group
 	1,   // 4: sneakers.identity.v1.CreateGroupResponse.group:type_name -> sneakers.identity.v1.Group
-	0,   // 5: sneakers.identity.v1.SearchUsersResponse.users:type_name -> sneakers.identity.v1.User
-	15,  // 6: sneakers.identity.v1.ResolveUserLabelsResponse.labels:type_name -> sneakers.identity.v1.UserLabel
-	0,   // 7: sneakers.identity.v1.PreCreateLocalUserResponse.user:type_name -> sneakers.identity.v1.User
-	0,   // 8: sneakers.identity.v1.CreateLocalUserResponse.user:type_name -> sneakers.identity.v1.User
-	0,   // 9: sneakers.identity.v1.SetUserRolesResponse.user:type_name -> sneakers.identity.v1.User
-	0,   // 10: sneakers.identity.v1.UpdateUserResponse.user:type_name -> sneakers.identity.v1.User
-	0,   // 11: sneakers.identity.v1.AdoptOrProvisionFederatedUserResponse.user:type_name -> sneakers.identity.v1.User
-	0,   // 12: sneakers.identity.v1.GetUserBySubjectResponse.user:type_name -> sneakers.identity.v1.User
-	0,   // 13: sneakers.identity.v1.ResolveUserByEmailResponse.user:type_name -> sneakers.identity.v1.User
-	0,   // 14: sneakers.identity.v1.BootstrapRootResponse.user:type_name -> sneakers.identity.v1.User
-	0,   // 15: sneakers.identity.v1.ListGroupMembersResponse.users:type_name -> sneakers.identity.v1.User
-	1,   // 16: sneakers.identity.v1.ListUserGroupsResponse.groups:type_name -> sneakers.identity.v1.Group
-	0,   // 17: sneakers.identity.v1.ListUsersByAdGroupsResponse.users:type_name -> sneakers.identity.v1.User
-	0,   // 18: sneakers.identity.v1.ResolveUserContextResponse.user:type_name -> sneakers.identity.v1.User
-	83,  // 19: sneakers.identity.v1.ListWebauthnCredentialsResponse.credentials:type_name -> sneakers.identity.v1.WebauthnCredential
-	88,  // 20: sneakers.identity.v1.ListUserFactorsResponse.factors:type_name -> sneakers.identity.v1.UserFactor
-	93,  // 21: sneakers.identity.v1.CreateServiceAccountResponse.service_account:type_name -> sneakers.identity.v1.ServiceAccount
-	93,  // 22: sneakers.identity.v1.ListServiceAccountsResponse.service_accounts:type_name -> sneakers.identity.v1.ServiceAccount
-	93,  // 23: sneakers.identity.v1.DisableServiceAccountResponse.service_account:type_name -> sneakers.identity.v1.ServiceAccount
-	94,  // 24: sneakers.identity.v1.MintApiTokenResponse.meta:type_name -> sneakers.identity.v1.ApiToken
-	94,  // 25: sneakers.identity.v1.ListApiTokensResponse.tokens:type_name -> sneakers.identity.v1.ApiToken
-	94,  // 26: sneakers.identity.v1.RevokeApiTokenResponse.meta:type_name -> sneakers.identity.v1.ApiToken
-	107, // 27: sneakers.identity.v1.MintUserTokenResponse.meta:type_name -> sneakers.identity.v1.UserToken
-	107, // 28: sneakers.identity.v1.ListUserTokensResponse.tokens:type_name -> sneakers.identity.v1.UserToken
-	107, // 29: sneakers.identity.v1.RevokeUserTokenResponse.meta:type_name -> sneakers.identity.v1.UserToken
-	0,   // 30: sneakers.identity.v1.VerifyUserTokenResponse.user:type_name -> sneakers.identity.v1.User
-	0,   // 31: sneakers.identity.v1.SetUserDisabledResponse.user:type_name -> sneakers.identity.v1.User
-	93,  // 32: sneakers.identity.v1.LinkOidcClientResponse.service_account:type_name -> sneakers.identity.v1.ServiceAccount
-	93,  // 33: sneakers.identity.v1.UnlinkOidcClientResponse.service_account:type_name -> sneakers.identity.v1.ServiceAccount
-	2,   // 34: sneakers.identity.v1.IdentityService.ListUsers:input_type -> sneakers.identity.v1.ListUsersRequest
-	4,   // 35: sneakers.identity.v1.IdentityService.GetUser:input_type -> sneakers.identity.v1.GetUserRequest
-	6,   // 36: sneakers.identity.v1.IdentityService.ListGroups:input_type -> sneakers.identity.v1.ListGroupsRequest
-	8,   // 37: sneakers.identity.v1.IdentityService.GetGroup:input_type -> sneakers.identity.v1.GetGroupRequest
-	10,  // 38: sneakers.identity.v1.IdentityService.CreateGroup:input_type -> sneakers.identity.v1.CreateGroupRequest
-	12,  // 39: sneakers.identity.v1.IdentityService.SearchUsers:input_type -> sneakers.identity.v1.SearchUsersRequest
-	14,  // 40: sneakers.identity.v1.IdentityService.ResolveUserLabels:input_type -> sneakers.identity.v1.ResolveUserLabelsRequest
-	17,  // 41: sneakers.identity.v1.IdentityService.PreCreateLocalUser:input_type -> sneakers.identity.v1.PreCreateLocalUserRequest
-	19,  // 42: sneakers.identity.v1.IdentityService.CreateLocalUser:input_type -> sneakers.identity.v1.CreateLocalUserRequest
-	21,  // 43: sneakers.identity.v1.IdentityService.SetUserRoles:input_type -> sneakers.identity.v1.SetUserRolesRequest
-	23,  // 44: sneakers.identity.v1.IdentityService.UpdateUser:input_type -> sneakers.identity.v1.UpdateUserRequest
-	25,  // 45: sneakers.identity.v1.IdentityService.AdoptOrProvisionFederatedUser:input_type -> sneakers.identity.v1.AdoptOrProvisionFederatedUserRequest
-	27,  // 46: sneakers.identity.v1.IdentityService.SendTransactionalEmail:input_type -> sneakers.identity.v1.SendTransactionalEmailRequest
-	29,  // 47: sneakers.identity.v1.IdentityService.GetUserBySubject:input_type -> sneakers.identity.v1.GetUserBySubjectRequest
-	31,  // 48: sneakers.identity.v1.IdentityService.ResolveUserByEmail:input_type -> sneakers.identity.v1.ResolveUserByEmailRequest
-	33,  // 49: sneakers.identity.v1.IdentityService.GetSetupState:input_type -> sneakers.identity.v1.GetSetupStateRequest
-	35,  // 50: sneakers.identity.v1.IdentityService.BootstrapRoot:input_type -> sneakers.identity.v1.BootstrapRootRequest
-	37,  // 51: sneakers.identity.v1.IdentityService.AddGroupMember:input_type -> sneakers.identity.v1.AddGroupMemberRequest
-	39,  // 52: sneakers.identity.v1.IdentityService.RemoveGroupMember:input_type -> sneakers.identity.v1.RemoveGroupMemberRequest
-	41,  // 53: sneakers.identity.v1.IdentityService.ListGroupMembers:input_type -> sneakers.identity.v1.ListGroupMembersRequest
-	43,  // 54: sneakers.identity.v1.IdentityService.ListUserGroups:input_type -> sneakers.identity.v1.ListUserGroupsRequest
-	45,  // 55: sneakers.identity.v1.IdentityService.SetUserAdGroups:input_type -> sneakers.identity.v1.SetUserAdGroupsRequest
-	47,  // 56: sneakers.identity.v1.IdentityService.ListUsersByAdGroups:input_type -> sneakers.identity.v1.ListUsersByAdGroupsRequest
-	49,  // 57: sneakers.identity.v1.IdentityService.UserAdGroups:input_type -> sneakers.identity.v1.UserAdGroupsRequest
-	51,  // 58: sneakers.identity.v1.IdentityService.ResolveUserContext:input_type -> sneakers.identity.v1.ResolveUserContextRequest
-	53,  // 59: sneakers.identity.v1.IdentityService.EnrollTotp:input_type -> sneakers.identity.v1.EnrollTotpRequest
-	55,  // 60: sneakers.identity.v1.IdentityService.ConfirmTotp:input_type -> sneakers.identity.v1.ConfirmTotpRequest
-	57,  // 61: sneakers.identity.v1.IdentityService.VerifyTotp:input_type -> sneakers.identity.v1.VerifyTotpRequest
-	59,  // 62: sneakers.identity.v1.IdentityService.GetMfaStatus:input_type -> sneakers.identity.v1.GetMfaStatusRequest
-	61,  // 63: sneakers.identity.v1.IdentityService.DisableTotp:input_type -> sneakers.identity.v1.DisableTotpRequest
-	67,  // 64: sneakers.identity.v1.IdentityService.RequestPasswordReset:input_type -> sneakers.identity.v1.RequestPasswordResetRequest
-	69,  // 65: sneakers.identity.v1.IdentityService.ConfirmPasswordReset:input_type -> sneakers.identity.v1.ConfirmPasswordResetRequest
-	71,  // 66: sneakers.identity.v1.IdentityService.RequestEmailVerification:input_type -> sneakers.identity.v1.RequestEmailVerificationRequest
-	73,  // 67: sneakers.identity.v1.IdentityService.ConfirmEmailVerification:input_type -> sneakers.identity.v1.ConfirmEmailVerificationRequest
-	75,  // 68: sneakers.identity.v1.IdentityService.WebauthnRegisterBegin:input_type -> sneakers.identity.v1.WebauthnRegisterBeginRequest
-	77,  // 69: sneakers.identity.v1.IdentityService.WebauthnRegisterFinish:input_type -> sneakers.identity.v1.WebauthnRegisterFinishRequest
-	79,  // 70: sneakers.identity.v1.IdentityService.WebauthnAssertBegin:input_type -> sneakers.identity.v1.WebauthnAssertBeginRequest
-	81,  // 71: sneakers.identity.v1.IdentityService.WebauthnAssertFinish:input_type -> sneakers.identity.v1.WebauthnAssertFinishRequest
-	84,  // 72: sneakers.identity.v1.IdentityService.ListWebauthnCredentials:input_type -> sneakers.identity.v1.ListWebauthnCredentialsRequest
-	86,  // 73: sneakers.identity.v1.IdentityService.RemoveWebauthnCredential:input_type -> sneakers.identity.v1.RemoveWebauthnCredentialRequest
-	63,  // 74: sneakers.identity.v1.IdentityService.SendEmailOtp:input_type -> sneakers.identity.v1.SendEmailOtpRequest
-	65,  // 75: sneakers.identity.v1.IdentityService.VerifyEmailOtp:input_type -> sneakers.identity.v1.VerifyEmailOtpRequest
-	89,  // 76: sneakers.identity.v1.IdentityService.ListUserFactors:input_type -> sneakers.identity.v1.ListUserFactorsRequest
-	91,  // 77: sneakers.identity.v1.IdentityService.RemoveFactor:input_type -> sneakers.identity.v1.RemoveFactorRequest
-	95,  // 78: sneakers.identity.v1.IdentityService.CreateServiceAccount:input_type -> sneakers.identity.v1.CreateServiceAccountRequest
-	97,  // 79: sneakers.identity.v1.IdentityService.ListServiceAccounts:input_type -> sneakers.identity.v1.ListServiceAccountsRequest
-	99,  // 80: sneakers.identity.v1.IdentityService.DisableServiceAccount:input_type -> sneakers.identity.v1.DisableServiceAccountRequest
-	101, // 81: sneakers.identity.v1.IdentityService.MintApiToken:input_type -> sneakers.identity.v1.MintApiTokenRequest
-	103, // 82: sneakers.identity.v1.IdentityService.ListApiTokens:input_type -> sneakers.identity.v1.ListApiTokensRequest
-	105, // 83: sneakers.identity.v1.IdentityService.RevokeApiToken:input_type -> sneakers.identity.v1.RevokeApiTokenRequest
-	120, // 84: sneakers.identity.v1.IdentityService.VerifyApiToken:input_type -> sneakers.identity.v1.VerifyApiTokenRequest
-	108, // 85: sneakers.identity.v1.IdentityService.MintUserToken:input_type -> sneakers.identity.v1.MintUserTokenRequest
-	110, // 86: sneakers.identity.v1.IdentityService.ListUserTokens:input_type -> sneakers.identity.v1.ListUserTokensRequest
-	112, // 87: sneakers.identity.v1.IdentityService.RevokeUserToken:input_type -> sneakers.identity.v1.RevokeUserTokenRequest
-	114, // 88: sneakers.identity.v1.IdentityService.VerifyUserToken:input_type -> sneakers.identity.v1.VerifyUserTokenRequest
-	116, // 89: sneakers.identity.v1.IdentityService.RevokeTokensByClientKind:input_type -> sneakers.identity.v1.RevokeTokensByClientKindRequest
-	118, // 90: sneakers.identity.v1.IdentityService.SetUserDisabled:input_type -> sneakers.identity.v1.SetUserDisabledRequest
-	122, // 91: sneakers.identity.v1.IdentityService.LinkOidcClient:input_type -> sneakers.identity.v1.LinkOidcClientRequest
-	124, // 92: sneakers.identity.v1.IdentityService.UnlinkOidcClient:input_type -> sneakers.identity.v1.UnlinkOidcClientRequest
-	126, // 93: sneakers.identity.v1.IdentityService.ResolveServiceAccountByOidc:input_type -> sneakers.identity.v1.ResolveServiceAccountByOidcRequest
-	3,   // 94: sneakers.identity.v1.IdentityService.ListUsers:output_type -> sneakers.identity.v1.ListUsersResponse
-	5,   // 95: sneakers.identity.v1.IdentityService.GetUser:output_type -> sneakers.identity.v1.GetUserResponse
-	7,   // 96: sneakers.identity.v1.IdentityService.ListGroups:output_type -> sneakers.identity.v1.ListGroupsResponse
-	9,   // 97: sneakers.identity.v1.IdentityService.GetGroup:output_type -> sneakers.identity.v1.GetGroupResponse
-	11,  // 98: sneakers.identity.v1.IdentityService.CreateGroup:output_type -> sneakers.identity.v1.CreateGroupResponse
-	13,  // 99: sneakers.identity.v1.IdentityService.SearchUsers:output_type -> sneakers.identity.v1.SearchUsersResponse
-	16,  // 100: sneakers.identity.v1.IdentityService.ResolveUserLabels:output_type -> sneakers.identity.v1.ResolveUserLabelsResponse
-	18,  // 101: sneakers.identity.v1.IdentityService.PreCreateLocalUser:output_type -> sneakers.identity.v1.PreCreateLocalUserResponse
-	20,  // 102: sneakers.identity.v1.IdentityService.CreateLocalUser:output_type -> sneakers.identity.v1.CreateLocalUserResponse
-	22,  // 103: sneakers.identity.v1.IdentityService.SetUserRoles:output_type -> sneakers.identity.v1.SetUserRolesResponse
-	24,  // 104: sneakers.identity.v1.IdentityService.UpdateUser:output_type -> sneakers.identity.v1.UpdateUserResponse
-	26,  // 105: sneakers.identity.v1.IdentityService.AdoptOrProvisionFederatedUser:output_type -> sneakers.identity.v1.AdoptOrProvisionFederatedUserResponse
-	28,  // 106: sneakers.identity.v1.IdentityService.SendTransactionalEmail:output_type -> sneakers.identity.v1.SendTransactionalEmailResponse
-	30,  // 107: sneakers.identity.v1.IdentityService.GetUserBySubject:output_type -> sneakers.identity.v1.GetUserBySubjectResponse
-	32,  // 108: sneakers.identity.v1.IdentityService.ResolveUserByEmail:output_type -> sneakers.identity.v1.ResolveUserByEmailResponse
-	34,  // 109: sneakers.identity.v1.IdentityService.GetSetupState:output_type -> sneakers.identity.v1.GetSetupStateResponse
-	36,  // 110: sneakers.identity.v1.IdentityService.BootstrapRoot:output_type -> sneakers.identity.v1.BootstrapRootResponse
-	38,  // 111: sneakers.identity.v1.IdentityService.AddGroupMember:output_type -> sneakers.identity.v1.AddGroupMemberResponse
-	40,  // 112: sneakers.identity.v1.IdentityService.RemoveGroupMember:output_type -> sneakers.identity.v1.RemoveGroupMemberResponse
-	42,  // 113: sneakers.identity.v1.IdentityService.ListGroupMembers:output_type -> sneakers.identity.v1.ListGroupMembersResponse
-	44,  // 114: sneakers.identity.v1.IdentityService.ListUserGroups:output_type -> sneakers.identity.v1.ListUserGroupsResponse
-	46,  // 115: sneakers.identity.v1.IdentityService.SetUserAdGroups:output_type -> sneakers.identity.v1.SetUserAdGroupsResponse
-	48,  // 116: sneakers.identity.v1.IdentityService.ListUsersByAdGroups:output_type -> sneakers.identity.v1.ListUsersByAdGroupsResponse
-	50,  // 117: sneakers.identity.v1.IdentityService.UserAdGroups:output_type -> sneakers.identity.v1.UserAdGroupsResponse
-	52,  // 118: sneakers.identity.v1.IdentityService.ResolveUserContext:output_type -> sneakers.identity.v1.ResolveUserContextResponse
-	54,  // 119: sneakers.identity.v1.IdentityService.EnrollTotp:output_type -> sneakers.identity.v1.EnrollTotpResponse
-	56,  // 120: sneakers.identity.v1.IdentityService.ConfirmTotp:output_type -> sneakers.identity.v1.ConfirmTotpResponse
-	58,  // 121: sneakers.identity.v1.IdentityService.VerifyTotp:output_type -> sneakers.identity.v1.VerifyTotpResponse
-	60,  // 122: sneakers.identity.v1.IdentityService.GetMfaStatus:output_type -> sneakers.identity.v1.GetMfaStatusResponse
-	62,  // 123: sneakers.identity.v1.IdentityService.DisableTotp:output_type -> sneakers.identity.v1.DisableTotpResponse
-	68,  // 124: sneakers.identity.v1.IdentityService.RequestPasswordReset:output_type -> sneakers.identity.v1.RequestPasswordResetResponse
-	70,  // 125: sneakers.identity.v1.IdentityService.ConfirmPasswordReset:output_type -> sneakers.identity.v1.ConfirmPasswordResetResponse
-	72,  // 126: sneakers.identity.v1.IdentityService.RequestEmailVerification:output_type -> sneakers.identity.v1.RequestEmailVerificationResponse
-	74,  // 127: sneakers.identity.v1.IdentityService.ConfirmEmailVerification:output_type -> sneakers.identity.v1.ConfirmEmailVerificationResponse
-	76,  // 128: sneakers.identity.v1.IdentityService.WebauthnRegisterBegin:output_type -> sneakers.identity.v1.WebauthnRegisterBeginResponse
-	78,  // 129: sneakers.identity.v1.IdentityService.WebauthnRegisterFinish:output_type -> sneakers.identity.v1.WebauthnRegisterFinishResponse
-	80,  // 130: sneakers.identity.v1.IdentityService.WebauthnAssertBegin:output_type -> sneakers.identity.v1.WebauthnAssertBeginResponse
-	82,  // 131: sneakers.identity.v1.IdentityService.WebauthnAssertFinish:output_type -> sneakers.identity.v1.WebauthnAssertFinishResponse
-	85,  // 132: sneakers.identity.v1.IdentityService.ListWebauthnCredentials:output_type -> sneakers.identity.v1.ListWebauthnCredentialsResponse
-	87,  // 133: sneakers.identity.v1.IdentityService.RemoveWebauthnCredential:output_type -> sneakers.identity.v1.RemoveWebauthnCredentialResponse
-	64,  // 134: sneakers.identity.v1.IdentityService.SendEmailOtp:output_type -> sneakers.identity.v1.SendEmailOtpResponse
-	66,  // 135: sneakers.identity.v1.IdentityService.VerifyEmailOtp:output_type -> sneakers.identity.v1.VerifyEmailOtpResponse
-	90,  // 136: sneakers.identity.v1.IdentityService.ListUserFactors:output_type -> sneakers.identity.v1.ListUserFactorsResponse
-	92,  // 137: sneakers.identity.v1.IdentityService.RemoveFactor:output_type -> sneakers.identity.v1.RemoveFactorResponse
-	96,  // 138: sneakers.identity.v1.IdentityService.CreateServiceAccount:output_type -> sneakers.identity.v1.CreateServiceAccountResponse
-	98,  // 139: sneakers.identity.v1.IdentityService.ListServiceAccounts:output_type -> sneakers.identity.v1.ListServiceAccountsResponse
-	100, // 140: sneakers.identity.v1.IdentityService.DisableServiceAccount:output_type -> sneakers.identity.v1.DisableServiceAccountResponse
-	102, // 141: sneakers.identity.v1.IdentityService.MintApiToken:output_type -> sneakers.identity.v1.MintApiTokenResponse
-	104, // 142: sneakers.identity.v1.IdentityService.ListApiTokens:output_type -> sneakers.identity.v1.ListApiTokensResponse
-	106, // 143: sneakers.identity.v1.IdentityService.RevokeApiToken:output_type -> sneakers.identity.v1.RevokeApiTokenResponse
-	121, // 144: sneakers.identity.v1.IdentityService.VerifyApiToken:output_type -> sneakers.identity.v1.VerifyApiTokenResponse
-	109, // 145: sneakers.identity.v1.IdentityService.MintUserToken:output_type -> sneakers.identity.v1.MintUserTokenResponse
-	111, // 146: sneakers.identity.v1.IdentityService.ListUserTokens:output_type -> sneakers.identity.v1.ListUserTokensResponse
-	113, // 147: sneakers.identity.v1.IdentityService.RevokeUserToken:output_type -> sneakers.identity.v1.RevokeUserTokenResponse
-	115, // 148: sneakers.identity.v1.IdentityService.VerifyUserToken:output_type -> sneakers.identity.v1.VerifyUserTokenResponse
-	117, // 149: sneakers.identity.v1.IdentityService.RevokeTokensByClientKind:output_type -> sneakers.identity.v1.RevokeTokensByClientKindResponse
-	119, // 150: sneakers.identity.v1.IdentityService.SetUserDisabled:output_type -> sneakers.identity.v1.SetUserDisabledResponse
-	123, // 151: sneakers.identity.v1.IdentityService.LinkOidcClient:output_type -> sneakers.identity.v1.LinkOidcClientResponse
-	125, // 152: sneakers.identity.v1.IdentityService.UnlinkOidcClient:output_type -> sneakers.identity.v1.UnlinkOidcClientResponse
-	127, // 153: sneakers.identity.v1.IdentityService.ResolveServiceAccountByOidc:output_type -> sneakers.identity.v1.ResolveServiceAccountByOidcResponse
-	94,  // [94:154] is the sub-list for method output_type
-	34,  // [34:94] is the sub-list for method input_type
-	34,  // [34:34] is the sub-list for extension type_name
-	34,  // [34:34] is the sub-list for extension extendee
-	0,   // [0:34] is the sub-list for field type_name
+	12,  // 5: sneakers.identity.v1.OrphanGroup.service_accounts:type_name -> sneakers.identity.v1.OrphanGroupServiceAccountRef
+	13,  // 6: sneakers.identity.v1.OrphanGroup.api_tokens:type_name -> sneakers.identity.v1.OrphanGroupTokenRef
+	14,  // 7: sneakers.identity.v1.ListOrphanGroupsResponse.groups:type_name -> sneakers.identity.v1.OrphanGroup
+	12,  // 8: sneakers.identity.v1.PrunedGroup.service_accounts_updated:type_name -> sneakers.identity.v1.OrphanGroupServiceAccountRef
+	13,  // 9: sneakers.identity.v1.PrunedGroup.api_tokens_updated:type_name -> sneakers.identity.v1.OrphanGroupTokenRef
+	18,  // 10: sneakers.identity.v1.PruneOrphanGroupsResponse.pruned:type_name -> sneakers.identity.v1.PrunedGroup
+	0,   // 11: sneakers.identity.v1.SearchUsersResponse.users:type_name -> sneakers.identity.v1.User
+	23,  // 12: sneakers.identity.v1.ResolveUserLabelsResponse.labels:type_name -> sneakers.identity.v1.UserLabel
+	0,   // 13: sneakers.identity.v1.PreCreateLocalUserResponse.user:type_name -> sneakers.identity.v1.User
+	0,   // 14: sneakers.identity.v1.CreateLocalUserResponse.user:type_name -> sneakers.identity.v1.User
+	0,   // 15: sneakers.identity.v1.SetUserRolesResponse.user:type_name -> sneakers.identity.v1.User
+	0,   // 16: sneakers.identity.v1.UpdateUserResponse.user:type_name -> sneakers.identity.v1.User
+	0,   // 17: sneakers.identity.v1.AdoptOrProvisionFederatedUserResponse.user:type_name -> sneakers.identity.v1.User
+	0,   // 18: sneakers.identity.v1.GetUserBySubjectResponse.user:type_name -> sneakers.identity.v1.User
+	0,   // 19: sneakers.identity.v1.ResolveUserByEmailResponse.user:type_name -> sneakers.identity.v1.User
+	0,   // 20: sneakers.identity.v1.BootstrapRootResponse.user:type_name -> sneakers.identity.v1.User
+	0,   // 21: sneakers.identity.v1.ListGroupMembersResponse.users:type_name -> sneakers.identity.v1.User
+	1,   // 22: sneakers.identity.v1.ListUserGroupsResponse.groups:type_name -> sneakers.identity.v1.Group
+	0,   // 23: sneakers.identity.v1.ListUsersByAdGroupsResponse.users:type_name -> sneakers.identity.v1.User
+	0,   // 24: sneakers.identity.v1.ResolveUserContextResponse.user:type_name -> sneakers.identity.v1.User
+	91,  // 25: sneakers.identity.v1.ListWebauthnCredentialsResponse.credentials:type_name -> sneakers.identity.v1.WebauthnCredential
+	96,  // 26: sneakers.identity.v1.ListUserFactorsResponse.factors:type_name -> sneakers.identity.v1.UserFactor
+	101, // 27: sneakers.identity.v1.CreateServiceAccountResponse.service_account:type_name -> sneakers.identity.v1.ServiceAccount
+	101, // 28: sneakers.identity.v1.ListServiceAccountsResponse.service_accounts:type_name -> sneakers.identity.v1.ServiceAccount
+	101, // 29: sneakers.identity.v1.DisableServiceAccountResponse.service_account:type_name -> sneakers.identity.v1.ServiceAccount
+	102, // 30: sneakers.identity.v1.MintApiTokenResponse.meta:type_name -> sneakers.identity.v1.ApiToken
+	102, // 31: sneakers.identity.v1.ListApiTokensResponse.tokens:type_name -> sneakers.identity.v1.ApiToken
+	102, // 32: sneakers.identity.v1.RevokeApiTokenResponse.meta:type_name -> sneakers.identity.v1.ApiToken
+	115, // 33: sneakers.identity.v1.MintUserTokenResponse.meta:type_name -> sneakers.identity.v1.UserToken
+	115, // 34: sneakers.identity.v1.ListUserTokensResponse.tokens:type_name -> sneakers.identity.v1.UserToken
+	115, // 35: sneakers.identity.v1.RevokeUserTokenResponse.meta:type_name -> sneakers.identity.v1.UserToken
+	0,   // 36: sneakers.identity.v1.VerifyUserTokenResponse.user:type_name -> sneakers.identity.v1.User
+	0,   // 37: sneakers.identity.v1.SetUserDisabledResponse.user:type_name -> sneakers.identity.v1.User
+	101, // 38: sneakers.identity.v1.LinkOidcClientResponse.service_account:type_name -> sneakers.identity.v1.ServiceAccount
+	101, // 39: sneakers.identity.v1.UnlinkOidcClientResponse.service_account:type_name -> sneakers.identity.v1.ServiceAccount
+	2,   // 40: sneakers.identity.v1.IdentityService.ListUsers:input_type -> sneakers.identity.v1.ListUsersRequest
+	4,   // 41: sneakers.identity.v1.IdentityService.GetUser:input_type -> sneakers.identity.v1.GetUserRequest
+	6,   // 42: sneakers.identity.v1.IdentityService.ListGroups:input_type -> sneakers.identity.v1.ListGroupsRequest
+	8,   // 43: sneakers.identity.v1.IdentityService.GetGroup:input_type -> sneakers.identity.v1.GetGroupRequest
+	10,  // 44: sneakers.identity.v1.IdentityService.CreateGroup:input_type -> sneakers.identity.v1.CreateGroupRequest
+	15,  // 45: sneakers.identity.v1.IdentityService.ListOrphanGroups:input_type -> sneakers.identity.v1.ListOrphanGroupsRequest
+	17,  // 46: sneakers.identity.v1.IdentityService.PruneOrphanGroups:input_type -> sneakers.identity.v1.PruneOrphanGroupsRequest
+	20,  // 47: sneakers.identity.v1.IdentityService.SearchUsers:input_type -> sneakers.identity.v1.SearchUsersRequest
+	22,  // 48: sneakers.identity.v1.IdentityService.ResolveUserLabels:input_type -> sneakers.identity.v1.ResolveUserLabelsRequest
+	25,  // 49: sneakers.identity.v1.IdentityService.PreCreateLocalUser:input_type -> sneakers.identity.v1.PreCreateLocalUserRequest
+	27,  // 50: sneakers.identity.v1.IdentityService.CreateLocalUser:input_type -> sneakers.identity.v1.CreateLocalUserRequest
+	29,  // 51: sneakers.identity.v1.IdentityService.SetUserRoles:input_type -> sneakers.identity.v1.SetUserRolesRequest
+	31,  // 52: sneakers.identity.v1.IdentityService.UpdateUser:input_type -> sneakers.identity.v1.UpdateUserRequest
+	33,  // 53: sneakers.identity.v1.IdentityService.AdoptOrProvisionFederatedUser:input_type -> sneakers.identity.v1.AdoptOrProvisionFederatedUserRequest
+	35,  // 54: sneakers.identity.v1.IdentityService.SendTransactionalEmail:input_type -> sneakers.identity.v1.SendTransactionalEmailRequest
+	37,  // 55: sneakers.identity.v1.IdentityService.GetUserBySubject:input_type -> sneakers.identity.v1.GetUserBySubjectRequest
+	39,  // 56: sneakers.identity.v1.IdentityService.ResolveUserByEmail:input_type -> sneakers.identity.v1.ResolveUserByEmailRequest
+	41,  // 57: sneakers.identity.v1.IdentityService.GetSetupState:input_type -> sneakers.identity.v1.GetSetupStateRequest
+	43,  // 58: sneakers.identity.v1.IdentityService.BootstrapRoot:input_type -> sneakers.identity.v1.BootstrapRootRequest
+	45,  // 59: sneakers.identity.v1.IdentityService.AddGroupMember:input_type -> sneakers.identity.v1.AddGroupMemberRequest
+	47,  // 60: sneakers.identity.v1.IdentityService.RemoveGroupMember:input_type -> sneakers.identity.v1.RemoveGroupMemberRequest
+	49,  // 61: sneakers.identity.v1.IdentityService.ListGroupMembers:input_type -> sneakers.identity.v1.ListGroupMembersRequest
+	51,  // 62: sneakers.identity.v1.IdentityService.ListUserGroups:input_type -> sneakers.identity.v1.ListUserGroupsRequest
+	53,  // 63: sneakers.identity.v1.IdentityService.SetUserAdGroups:input_type -> sneakers.identity.v1.SetUserAdGroupsRequest
+	55,  // 64: sneakers.identity.v1.IdentityService.ListUsersByAdGroups:input_type -> sneakers.identity.v1.ListUsersByAdGroupsRequest
+	57,  // 65: sneakers.identity.v1.IdentityService.UserAdGroups:input_type -> sneakers.identity.v1.UserAdGroupsRequest
+	59,  // 66: sneakers.identity.v1.IdentityService.ResolveUserContext:input_type -> sneakers.identity.v1.ResolveUserContextRequest
+	61,  // 67: sneakers.identity.v1.IdentityService.EnrollTotp:input_type -> sneakers.identity.v1.EnrollTotpRequest
+	63,  // 68: sneakers.identity.v1.IdentityService.ConfirmTotp:input_type -> sneakers.identity.v1.ConfirmTotpRequest
+	65,  // 69: sneakers.identity.v1.IdentityService.VerifyTotp:input_type -> sneakers.identity.v1.VerifyTotpRequest
+	67,  // 70: sneakers.identity.v1.IdentityService.GetMfaStatus:input_type -> sneakers.identity.v1.GetMfaStatusRequest
+	69,  // 71: sneakers.identity.v1.IdentityService.DisableTotp:input_type -> sneakers.identity.v1.DisableTotpRequest
+	75,  // 72: sneakers.identity.v1.IdentityService.RequestPasswordReset:input_type -> sneakers.identity.v1.RequestPasswordResetRequest
+	77,  // 73: sneakers.identity.v1.IdentityService.ConfirmPasswordReset:input_type -> sneakers.identity.v1.ConfirmPasswordResetRequest
+	79,  // 74: sneakers.identity.v1.IdentityService.RequestEmailVerification:input_type -> sneakers.identity.v1.RequestEmailVerificationRequest
+	81,  // 75: sneakers.identity.v1.IdentityService.ConfirmEmailVerification:input_type -> sneakers.identity.v1.ConfirmEmailVerificationRequest
+	83,  // 76: sneakers.identity.v1.IdentityService.WebauthnRegisterBegin:input_type -> sneakers.identity.v1.WebauthnRegisterBeginRequest
+	85,  // 77: sneakers.identity.v1.IdentityService.WebauthnRegisterFinish:input_type -> sneakers.identity.v1.WebauthnRegisterFinishRequest
+	87,  // 78: sneakers.identity.v1.IdentityService.WebauthnAssertBegin:input_type -> sneakers.identity.v1.WebauthnAssertBeginRequest
+	89,  // 79: sneakers.identity.v1.IdentityService.WebauthnAssertFinish:input_type -> sneakers.identity.v1.WebauthnAssertFinishRequest
+	92,  // 80: sneakers.identity.v1.IdentityService.ListWebauthnCredentials:input_type -> sneakers.identity.v1.ListWebauthnCredentialsRequest
+	94,  // 81: sneakers.identity.v1.IdentityService.RemoveWebauthnCredential:input_type -> sneakers.identity.v1.RemoveWebauthnCredentialRequest
+	71,  // 82: sneakers.identity.v1.IdentityService.SendEmailOtp:input_type -> sneakers.identity.v1.SendEmailOtpRequest
+	73,  // 83: sneakers.identity.v1.IdentityService.VerifyEmailOtp:input_type -> sneakers.identity.v1.VerifyEmailOtpRequest
+	97,  // 84: sneakers.identity.v1.IdentityService.ListUserFactors:input_type -> sneakers.identity.v1.ListUserFactorsRequest
+	99,  // 85: sneakers.identity.v1.IdentityService.RemoveFactor:input_type -> sneakers.identity.v1.RemoveFactorRequest
+	103, // 86: sneakers.identity.v1.IdentityService.CreateServiceAccount:input_type -> sneakers.identity.v1.CreateServiceAccountRequest
+	105, // 87: sneakers.identity.v1.IdentityService.ListServiceAccounts:input_type -> sneakers.identity.v1.ListServiceAccountsRequest
+	107, // 88: sneakers.identity.v1.IdentityService.DisableServiceAccount:input_type -> sneakers.identity.v1.DisableServiceAccountRequest
+	109, // 89: sneakers.identity.v1.IdentityService.MintApiToken:input_type -> sneakers.identity.v1.MintApiTokenRequest
+	111, // 90: sneakers.identity.v1.IdentityService.ListApiTokens:input_type -> sneakers.identity.v1.ListApiTokensRequest
+	113, // 91: sneakers.identity.v1.IdentityService.RevokeApiToken:input_type -> sneakers.identity.v1.RevokeApiTokenRequest
+	128, // 92: sneakers.identity.v1.IdentityService.VerifyApiToken:input_type -> sneakers.identity.v1.VerifyApiTokenRequest
+	116, // 93: sneakers.identity.v1.IdentityService.MintUserToken:input_type -> sneakers.identity.v1.MintUserTokenRequest
+	118, // 94: sneakers.identity.v1.IdentityService.ListUserTokens:input_type -> sneakers.identity.v1.ListUserTokensRequest
+	120, // 95: sneakers.identity.v1.IdentityService.RevokeUserToken:input_type -> sneakers.identity.v1.RevokeUserTokenRequest
+	122, // 96: sneakers.identity.v1.IdentityService.VerifyUserToken:input_type -> sneakers.identity.v1.VerifyUserTokenRequest
+	124, // 97: sneakers.identity.v1.IdentityService.RevokeTokensByClientKind:input_type -> sneakers.identity.v1.RevokeTokensByClientKindRequest
+	126, // 98: sneakers.identity.v1.IdentityService.SetUserDisabled:input_type -> sneakers.identity.v1.SetUserDisabledRequest
+	130, // 99: sneakers.identity.v1.IdentityService.LinkOidcClient:input_type -> sneakers.identity.v1.LinkOidcClientRequest
+	132, // 100: sneakers.identity.v1.IdentityService.UnlinkOidcClient:input_type -> sneakers.identity.v1.UnlinkOidcClientRequest
+	134, // 101: sneakers.identity.v1.IdentityService.ResolveServiceAccountByOidc:input_type -> sneakers.identity.v1.ResolveServiceAccountByOidcRequest
+	3,   // 102: sneakers.identity.v1.IdentityService.ListUsers:output_type -> sneakers.identity.v1.ListUsersResponse
+	5,   // 103: sneakers.identity.v1.IdentityService.GetUser:output_type -> sneakers.identity.v1.GetUserResponse
+	7,   // 104: sneakers.identity.v1.IdentityService.ListGroups:output_type -> sneakers.identity.v1.ListGroupsResponse
+	9,   // 105: sneakers.identity.v1.IdentityService.GetGroup:output_type -> sneakers.identity.v1.GetGroupResponse
+	11,  // 106: sneakers.identity.v1.IdentityService.CreateGroup:output_type -> sneakers.identity.v1.CreateGroupResponse
+	16,  // 107: sneakers.identity.v1.IdentityService.ListOrphanGroups:output_type -> sneakers.identity.v1.ListOrphanGroupsResponse
+	19,  // 108: sneakers.identity.v1.IdentityService.PruneOrphanGroups:output_type -> sneakers.identity.v1.PruneOrphanGroupsResponse
+	21,  // 109: sneakers.identity.v1.IdentityService.SearchUsers:output_type -> sneakers.identity.v1.SearchUsersResponse
+	24,  // 110: sneakers.identity.v1.IdentityService.ResolveUserLabels:output_type -> sneakers.identity.v1.ResolveUserLabelsResponse
+	26,  // 111: sneakers.identity.v1.IdentityService.PreCreateLocalUser:output_type -> sneakers.identity.v1.PreCreateLocalUserResponse
+	28,  // 112: sneakers.identity.v1.IdentityService.CreateLocalUser:output_type -> sneakers.identity.v1.CreateLocalUserResponse
+	30,  // 113: sneakers.identity.v1.IdentityService.SetUserRoles:output_type -> sneakers.identity.v1.SetUserRolesResponse
+	32,  // 114: sneakers.identity.v1.IdentityService.UpdateUser:output_type -> sneakers.identity.v1.UpdateUserResponse
+	34,  // 115: sneakers.identity.v1.IdentityService.AdoptOrProvisionFederatedUser:output_type -> sneakers.identity.v1.AdoptOrProvisionFederatedUserResponse
+	36,  // 116: sneakers.identity.v1.IdentityService.SendTransactionalEmail:output_type -> sneakers.identity.v1.SendTransactionalEmailResponse
+	38,  // 117: sneakers.identity.v1.IdentityService.GetUserBySubject:output_type -> sneakers.identity.v1.GetUserBySubjectResponse
+	40,  // 118: sneakers.identity.v1.IdentityService.ResolveUserByEmail:output_type -> sneakers.identity.v1.ResolveUserByEmailResponse
+	42,  // 119: sneakers.identity.v1.IdentityService.GetSetupState:output_type -> sneakers.identity.v1.GetSetupStateResponse
+	44,  // 120: sneakers.identity.v1.IdentityService.BootstrapRoot:output_type -> sneakers.identity.v1.BootstrapRootResponse
+	46,  // 121: sneakers.identity.v1.IdentityService.AddGroupMember:output_type -> sneakers.identity.v1.AddGroupMemberResponse
+	48,  // 122: sneakers.identity.v1.IdentityService.RemoveGroupMember:output_type -> sneakers.identity.v1.RemoveGroupMemberResponse
+	50,  // 123: sneakers.identity.v1.IdentityService.ListGroupMembers:output_type -> sneakers.identity.v1.ListGroupMembersResponse
+	52,  // 124: sneakers.identity.v1.IdentityService.ListUserGroups:output_type -> sneakers.identity.v1.ListUserGroupsResponse
+	54,  // 125: sneakers.identity.v1.IdentityService.SetUserAdGroups:output_type -> sneakers.identity.v1.SetUserAdGroupsResponse
+	56,  // 126: sneakers.identity.v1.IdentityService.ListUsersByAdGroups:output_type -> sneakers.identity.v1.ListUsersByAdGroupsResponse
+	58,  // 127: sneakers.identity.v1.IdentityService.UserAdGroups:output_type -> sneakers.identity.v1.UserAdGroupsResponse
+	60,  // 128: sneakers.identity.v1.IdentityService.ResolveUserContext:output_type -> sneakers.identity.v1.ResolveUserContextResponse
+	62,  // 129: sneakers.identity.v1.IdentityService.EnrollTotp:output_type -> sneakers.identity.v1.EnrollTotpResponse
+	64,  // 130: sneakers.identity.v1.IdentityService.ConfirmTotp:output_type -> sneakers.identity.v1.ConfirmTotpResponse
+	66,  // 131: sneakers.identity.v1.IdentityService.VerifyTotp:output_type -> sneakers.identity.v1.VerifyTotpResponse
+	68,  // 132: sneakers.identity.v1.IdentityService.GetMfaStatus:output_type -> sneakers.identity.v1.GetMfaStatusResponse
+	70,  // 133: sneakers.identity.v1.IdentityService.DisableTotp:output_type -> sneakers.identity.v1.DisableTotpResponse
+	76,  // 134: sneakers.identity.v1.IdentityService.RequestPasswordReset:output_type -> sneakers.identity.v1.RequestPasswordResetResponse
+	78,  // 135: sneakers.identity.v1.IdentityService.ConfirmPasswordReset:output_type -> sneakers.identity.v1.ConfirmPasswordResetResponse
+	80,  // 136: sneakers.identity.v1.IdentityService.RequestEmailVerification:output_type -> sneakers.identity.v1.RequestEmailVerificationResponse
+	82,  // 137: sneakers.identity.v1.IdentityService.ConfirmEmailVerification:output_type -> sneakers.identity.v1.ConfirmEmailVerificationResponse
+	84,  // 138: sneakers.identity.v1.IdentityService.WebauthnRegisterBegin:output_type -> sneakers.identity.v1.WebauthnRegisterBeginResponse
+	86,  // 139: sneakers.identity.v1.IdentityService.WebauthnRegisterFinish:output_type -> sneakers.identity.v1.WebauthnRegisterFinishResponse
+	88,  // 140: sneakers.identity.v1.IdentityService.WebauthnAssertBegin:output_type -> sneakers.identity.v1.WebauthnAssertBeginResponse
+	90,  // 141: sneakers.identity.v1.IdentityService.WebauthnAssertFinish:output_type -> sneakers.identity.v1.WebauthnAssertFinishResponse
+	93,  // 142: sneakers.identity.v1.IdentityService.ListWebauthnCredentials:output_type -> sneakers.identity.v1.ListWebauthnCredentialsResponse
+	95,  // 143: sneakers.identity.v1.IdentityService.RemoveWebauthnCredential:output_type -> sneakers.identity.v1.RemoveWebauthnCredentialResponse
+	72,  // 144: sneakers.identity.v1.IdentityService.SendEmailOtp:output_type -> sneakers.identity.v1.SendEmailOtpResponse
+	74,  // 145: sneakers.identity.v1.IdentityService.VerifyEmailOtp:output_type -> sneakers.identity.v1.VerifyEmailOtpResponse
+	98,  // 146: sneakers.identity.v1.IdentityService.ListUserFactors:output_type -> sneakers.identity.v1.ListUserFactorsResponse
+	100, // 147: sneakers.identity.v1.IdentityService.RemoveFactor:output_type -> sneakers.identity.v1.RemoveFactorResponse
+	104, // 148: sneakers.identity.v1.IdentityService.CreateServiceAccount:output_type -> sneakers.identity.v1.CreateServiceAccountResponse
+	106, // 149: sneakers.identity.v1.IdentityService.ListServiceAccounts:output_type -> sneakers.identity.v1.ListServiceAccountsResponse
+	108, // 150: sneakers.identity.v1.IdentityService.DisableServiceAccount:output_type -> sneakers.identity.v1.DisableServiceAccountResponse
+	110, // 151: sneakers.identity.v1.IdentityService.MintApiToken:output_type -> sneakers.identity.v1.MintApiTokenResponse
+	112, // 152: sneakers.identity.v1.IdentityService.ListApiTokens:output_type -> sneakers.identity.v1.ListApiTokensResponse
+	114, // 153: sneakers.identity.v1.IdentityService.RevokeApiToken:output_type -> sneakers.identity.v1.RevokeApiTokenResponse
+	129, // 154: sneakers.identity.v1.IdentityService.VerifyApiToken:output_type -> sneakers.identity.v1.VerifyApiTokenResponse
+	117, // 155: sneakers.identity.v1.IdentityService.MintUserToken:output_type -> sneakers.identity.v1.MintUserTokenResponse
+	119, // 156: sneakers.identity.v1.IdentityService.ListUserTokens:output_type -> sneakers.identity.v1.ListUserTokensResponse
+	121, // 157: sneakers.identity.v1.IdentityService.RevokeUserToken:output_type -> sneakers.identity.v1.RevokeUserTokenResponse
+	123, // 158: sneakers.identity.v1.IdentityService.VerifyUserToken:output_type -> sneakers.identity.v1.VerifyUserTokenResponse
+	125, // 159: sneakers.identity.v1.IdentityService.RevokeTokensByClientKind:output_type -> sneakers.identity.v1.RevokeTokensByClientKindResponse
+	127, // 160: sneakers.identity.v1.IdentityService.SetUserDisabled:output_type -> sneakers.identity.v1.SetUserDisabledResponse
+	131, // 161: sneakers.identity.v1.IdentityService.LinkOidcClient:output_type -> sneakers.identity.v1.LinkOidcClientResponse
+	133, // 162: sneakers.identity.v1.IdentityService.UnlinkOidcClient:output_type -> sneakers.identity.v1.UnlinkOidcClientResponse
+	135, // 163: sneakers.identity.v1.IdentityService.ResolveServiceAccountByOidc:output_type -> sneakers.identity.v1.ResolveServiceAccountByOidcResponse
+	102, // [102:164] is the sub-list for method output_type
+	40,  // [40:102] is the sub-list for method input_type
+	40,  // [40:40] is the sub-list for extension type_name
+	40,  // [40:40] is the sub-list for extension extendee
+	0,   // [0:40] is the sub-list for field type_name
 }
 
 func init() { file_sneakers_identity_v1_identity_proto_init() }
@@ -7577,7 +8088,7 @@ func file_sneakers_identity_v1_identity_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_sneakers_identity_v1_identity_proto_rawDesc), len(file_sneakers_identity_v1_identity_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   128,
+			NumMessages:   136,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

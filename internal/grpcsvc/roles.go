@@ -29,8 +29,15 @@ var siteAdminRoles = []string{"site-admin", "admin"}
 // root or holds a site-admin role. Only the recovery role is gated here: the
 // gateway gates the other role changes.
 func requireSiteAdmin(ctx context.Context, q postgres.Querier, actingUserID string) error {
+	return requireSiteAdminTo(ctx, q, actingUserID, "grant or revoke the recovery role")
+}
+
+// requireSiteAdminTo is requireSiteAdmin for any site-admin-only action; what
+// completes the refusal "only a site admin can ...".
+func requireSiteAdminTo(ctx context.Context, q postgres.Querier, actingUserID, what string) error {
+	refused := status.Error(codes.PermissionDenied, "only a site admin can "+what)
 	if actingUserID == "" {
-		return status.Error(codes.PermissionDenied, "only a site admin can grant or revoke the recovery role")
+		return refused
 	}
 	var (
 		roles  []string
@@ -38,7 +45,7 @@ func requireSiteAdmin(ctx context.Context, q postgres.Querier, actingUserID stri
 	)
 	err := q.QueryRow(ctx, `SELECT roles, is_root FROM users WHERE id=$1 AND disabled_at IS NULL`, actingUserID).Scan(&roles, &isRoot)
 	if errors.Is(err, postgres.ErrNoRows) {
-		return status.Error(codes.PermissionDenied, "only a site admin can grant or revoke the recovery role")
+		return refused
 	}
 	if err != nil {
 		return status.Errorf(codes.Internal, "load acting user: %v", err)
@@ -46,7 +53,7 @@ func requireSiteAdmin(ctx context.Context, q postgres.Querier, actingUserID stri
 	if isRoot || slices.ContainsFunc(roles, func(r string) bool { return slices.Contains(siteAdminRoles, r) }) {
 		return nil
 	}
-	return status.Error(codes.PermissionDenied, "only a site admin can grant or revoke the recovery role")
+	return refused
 }
 
 // recordRecoveryRoleChange records a recovery-role grant or revoke as its own

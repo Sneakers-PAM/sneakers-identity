@@ -30,6 +30,7 @@ const (
 	ActionGroupCreate           = "group.create"
 	ActionGroupMemberAdd        = "group.member.add"
 	ActionGroupMemberRemove     = "group.member.remove"
+	ActionGroupPrune            = "group.prune"
 	ActionServiceAccountCreate  = "service_account.create"
 	ActionServiceAccountDisable = "service_account.disable"
 	ActionOidcClientLink        = "service_account.oidc.link"
