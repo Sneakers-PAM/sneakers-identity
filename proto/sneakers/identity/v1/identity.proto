@@ -412,12 +412,17 @@ message UserToken {
   int64 last_used_at_unix = 6;
   int64 revoked_at_unix = 7;
   int64 expires_at_unix = 8;          // 0 = never
+  // "mcp" for a token minted through the OAuth flow for native (MCP)
+  // clients, "cli" for one minted on the tokens page.
+  string client_kind = 9;
 }
 message MintUserTokenRequest {
   string user_id = 1;
   string label = 2;
   string client_name = 3;
   int64 expires_at_unix = 4;          // 0 = never
+  // "mcp" or "cli"; empty means "cli". Any other value is InvalidArgument.
+  string client_kind = 5;
 }
 message MintUserTokenResponse {
   string token = 1;                   // plaintext, returned exactly once
@@ -441,6 +446,9 @@ message VerifyUserTokenResponse {
   repeated string group_names = 4;
   // The ids of the same groups as group_names, in the same order.
   repeated string group_ids = 5;
+  // The token's client kind ("mcp" or "cli"), so the caller can tell an MCP
+  // agent token from a machine-API token.
+  string client_kind = 6;
 }
 
 message SetUserDisabledRequest  { string user_id = 1; bool disabled = 2; string acting_user_id = 3; }

@@ -5511,8 +5511,11 @@ type UserToken struct {
 	LastUsedAtUnix int64                  `protobuf:"varint,6,opt,name=last_used_at_unix,json=lastUsedAtUnix,proto3" json:"last_used_at_unix,omitempty"`
 	RevokedAtUnix  int64                  `protobuf:"varint,7,opt,name=revoked_at_unix,json=revokedAtUnix,proto3" json:"revoked_at_unix,omitempty"`
 	ExpiresAtUnix  int64                  `protobuf:"varint,8,opt,name=expires_at_unix,json=expiresAtUnix,proto3" json:"expires_at_unix,omitempty"` // 0 = never
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// "mcp" for a token minted through the OAuth flow for native (MCP)
+	// clients, "cli" for one minted on the tokens page.
+	ClientKind    string `protobuf:"bytes,9,opt,name=client_kind,json=clientKind,proto3" json:"client_kind,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *UserToken) Reset() {
@@ -5601,12 +5604,21 @@ func (x *UserToken) GetExpiresAtUnix() int64 {
 	return 0
 }
 
+func (x *UserToken) GetClientKind() string {
+	if x != nil {
+		return x.ClientKind
+	}
+	return ""
+}
+
 type MintUserTokenRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	Label         string                 `protobuf:"bytes,2,opt,name=label,proto3" json:"label,omitempty"`
 	ClientName    string                 `protobuf:"bytes,3,opt,name=client_name,json=clientName,proto3" json:"client_name,omitempty"`
 	ExpiresAtUnix int64                  `protobuf:"varint,4,opt,name=expires_at_unix,json=expiresAtUnix,proto3" json:"expires_at_unix,omitempty"` // 0 = never
+	// "mcp" or "cli"; empty means "cli". Any other value is InvalidArgument.
+	ClientKind    string `protobuf:"bytes,5,opt,name=client_kind,json=clientKind,proto3" json:"client_kind,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -5667,6 +5679,13 @@ func (x *MintUserTokenRequest) GetExpiresAtUnix() int64 {
 		return x.ExpiresAtUnix
 	}
 	return 0
+}
+
+func (x *MintUserTokenRequest) GetClientKind() string {
+	if x != nil {
+		return x.ClientKind
+	}
+	return ""
 }
 
 type MintUserTokenResponse struct {
@@ -5968,7 +5987,10 @@ type VerifyUserTokenResponse struct {
 	User       *User                  `protobuf:"bytes,3,opt,name=user,proto3" json:"user,omitempty"`
 	GroupNames []string               `protobuf:"bytes,4,rep,name=group_names,json=groupNames,proto3" json:"group_names,omitempty"`
 	// The ids of the same groups as group_names, in the same order.
-	GroupIds      []string `protobuf:"bytes,5,rep,name=group_ids,json=groupIds,proto3" json:"group_ids,omitempty"`
+	GroupIds []string `protobuf:"bytes,5,rep,name=group_ids,json=groupIds,proto3" json:"group_ids,omitempty"`
+	// The token's client kind ("mcp" or "cli"), so the caller can tell an MCP
+	// agent token from a machine-API token.
+	ClientKind    string `protobuf:"bytes,6,opt,name=client_kind,json=clientKind,proto3" json:"client_kind,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -6036,6 +6058,13 @@ func (x *VerifyUserTokenResponse) GetGroupIds() []string {
 		return x.GroupIds
 	}
 	return nil
+}
+
+func (x *VerifyUserTokenResponse) GetClientKind() string {
+	if x != nil {
+		return x.ClientKind
+	}
+	return ""
 }
 
 type SetUserDisabledRequest struct {
@@ -6983,7 +7012,7 @@ const file_sneakers_identity_v1_identity_proto_rawDesc = "" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12$\n" +
 	"\x0eacting_user_id\x18\x02 \x01(\tR\factingUserId\"L\n" +
 	"\x16RevokeApiTokenResponse\x122\n" +
-	"\x04meta\x18\x01 \x01(\v2\x1e.sneakers.identity.v1.ApiTokenR\x04meta\"\x8e\x02\n" +
+	"\x04meta\x18\x01 \x01(\v2\x1e.sneakers.identity.v1.ApiTokenR\x04meta\"\xaf\x02\n" +
 	"\tUserToken\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
 	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x14\n" +
@@ -6993,13 +7022,17 @@ const file_sneakers_identity_v1_identity_proto_rawDesc = "" +
 	"\x0fcreated_at_unix\x18\x05 \x01(\x03R\rcreatedAtUnix\x12)\n" +
 	"\x11last_used_at_unix\x18\x06 \x01(\x03R\x0elastUsedAtUnix\x12&\n" +
 	"\x0frevoked_at_unix\x18\a \x01(\x03R\rrevokedAtUnix\x12&\n" +
-	"\x0fexpires_at_unix\x18\b \x01(\x03R\rexpiresAtUnix\"\x8e\x01\n" +
+	"\x0fexpires_at_unix\x18\b \x01(\x03R\rexpiresAtUnix\x12\x1f\n" +
+	"\vclient_kind\x18\t \x01(\tR\n" +
+	"clientKind\"\xaf\x01\n" +
 	"\x14MintUserTokenRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x14\n" +
 	"\x05label\x18\x02 \x01(\tR\x05label\x12\x1f\n" +
 	"\vclient_name\x18\x03 \x01(\tR\n" +
 	"clientName\x12&\n" +
-	"\x0fexpires_at_unix\x18\x04 \x01(\x03R\rexpiresAtUnix\"b\n" +
+	"\x0fexpires_at_unix\x18\x04 \x01(\x03R\rexpiresAtUnix\x12\x1f\n" +
+	"\vclient_kind\x18\x05 \x01(\tR\n" +
+	"clientKind\"b\n" +
 	"\x15MintUserTokenResponse\x12\x14\n" +
 	"\x05token\x18\x01 \x01(\tR\x05token\x123\n" +
 	"\x04meta\x18\x02 \x01(\v2\x1f.sneakers.identity.v1.UserTokenR\x04meta\"0\n" +
@@ -7014,14 +7047,16 @@ const file_sneakers_identity_v1_identity_proto_rawDesc = "" +
 	"\x17RevokeUserTokenResponse\x123\n" +
 	"\x04meta\x18\x01 \x01(\v2\x1f.sneakers.identity.v1.UserTokenR\x04meta\".\n" +
 	"\x16VerifyUserTokenRequest\x12\x14\n" +
-	"\x05token\x18\x01 \x01(\tR\x05token\"\xb8\x01\n" +
+	"\x05token\x18\x01 \x01(\tR\x05token\"\xd9\x01\n" +
 	"\x17VerifyUserTokenResponse\x12\x14\n" +
 	"\x05valid\x18\x01 \x01(\bR\x05valid\x12\x19\n" +
 	"\btoken_id\x18\x02 \x01(\tR\atokenId\x12.\n" +
 	"\x04user\x18\x03 \x01(\v2\x1a.sneakers.identity.v1.UserR\x04user\x12\x1f\n" +
 	"\vgroup_names\x18\x04 \x03(\tR\n" +
 	"groupNames\x12\x1b\n" +
-	"\tgroup_ids\x18\x05 \x03(\tR\bgroupIds\"s\n" +
+	"\tgroup_ids\x18\x05 \x03(\tR\bgroupIds\x12\x1f\n" +
+	"\vclient_kind\x18\x06 \x01(\tR\n" +
+	"clientKind\"s\n" +
 	"\x16SetUserDisabledRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x1a\n" +
 	"\bdisabled\x18\x02 \x01(\bR\bdisabled\x12$\n" +

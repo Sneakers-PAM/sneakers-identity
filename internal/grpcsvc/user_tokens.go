@@ -23,7 +23,27 @@ import (
 // database probe, and lets secret scanners recognise a leaked token.
 const userTokenPrefix = "snk_u_"
 
-const userTokenCols = `id, user_id, label, client_name, created_at, last_used_at, revoked_at, expires_at` // #nosec G101 -- a column list, not a credential
+const userTokenCols = `id, user_id, label, client_name, created_at, last_used_at, revoked_at, expires_at, client_kind` // #nosec G101 -- a column list, not a credential
+
+// Client kinds of a personal token. An MCP agent token comes from the
+// gateway's OAuth flow for native clients; a CLI token from the tokens page.
+const (
+	ClientKindCLI = "cli"
+	ClientKindMCP = "mcp"
+)
+
+// clientKind maps a requested kind to the stored one: empty means CLI, and
+// anything but the two known kinds is refused.
+func clientKind(raw string) (string, bool) {
+	switch k := strings.TrimSpace(raw); k {
+	case "", ClientKindCLI:
+		return ClientKindCLI, true
+	case ClientKindMCP:
+		return k, true
+	default:
+		return "", false
+	}
+}
 
 func scanUserToken(row interface{ Scan(...any) error }) (*identityv1.UserToken, error) {
 	var (
@@ -31,7 +51,7 @@ func scanUserToken(row interface{ Scan(...any) error }) (*identityv1.UserToken, 
 		created                    time.Time
 		lastUsed, revoked, expires *time.Time
 	)
-	if err := row.Scan(&t.Id, &t.UserId, &t.Label, &t.ClientName, &created, &lastUsed, &revoked, &expires); err != nil {
+	if err := row.Scan(&t.Id, &t.UserId, &t.Label, &t.ClientName, &created, &lastUsed, &revoked, &expires, &t.ClientKind); err != nil {
 		return nil, err
 	}
 	t.CreatedAtUnix = created.Unix()
@@ -45,6 +65,10 @@ func (s *Server) MintUserToken(ctx context.Context, req *identityv1.MintUserToke
 	userID := strings.TrimSpace(req.GetUserId())
 	if userID == "" {
 		return nil, status.Error(codes.InvalidArgument, "user_id is required")
+	}
+	kind, ok := clientKind(req.GetClientKind())
+	if !ok {
+		return nil, status.Error(codes.InvalidArgument, `client_kind must be "cli" or "mcp"`)
 	}
 	u, err := s.getUserByID(ctx, userID)
 	if err != nil {
@@ -67,21 +91,22 @@ func (s *Server) MintUserToken(ctx context.Context, req *identityv1.MintUserToke
 		expiresAt = &t
 	}
 	meta, err := scanUserToken(s.db.QueryRow(ctx,
-		`INSERT INTO user_tokens (id, user_id, token_hash, label, client_name, expires_at)
-		 VALUES ($1, $2, $3, $4, $5, $6)
+		`INSERT INTO user_tokens (id, user_id, token_hash, label, client_name, expires_at, client_kind)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7)
 		 RETURNING `+userTokenCols,
-		"utok-"+uuid.NewString(), userID, hashToken(token), strings.TrimSpace(req.GetLabel()), strings.TrimSpace(req.GetClientName()), expiresAt))
+		"utok-"+uuid.NewString(), userID, hashToken(token), strings.TrimSpace(req.GetLabel()), strings.TrimSpace(req.GetClientName()), expiresAt, kind))
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "mint user token: %v", err)
 	}
 	lg := s.lg(ctx)
-	lg.Info("user token minted", log.F("token_id", meta.GetId()), log.F("user_id", userID))
+	lg.Info("user token minted", log.F("token_id", meta.GetId()), log.F("user_id", userID), log.F("client_kind", kind))
 	s.record(ctx, audit.Event{
 		Action: audit.ActionUserTokenMint, ActorUserID: userID, Subject: meta.GetId(),
 		Attributes: map[string]string{
 			"user_id":         userID,
 			"label":           meta.GetLabel(),
 			"client_name":     meta.GetClientName(),
+			"client_kind":     meta.GetClientKind(),
 			"expires_at_unix": strconv.FormatInt(meta.GetExpiresAtUnix(), 10),
 		},
 	})
@@ -135,13 +160,13 @@ func (s *Server) VerifyUserToken(ctx context.Context, req *identityv1.VerifyUser
 	if !strings.HasPrefix(token, userTokenPrefix) {
 		return &identityv1.VerifyUserTokenResponse{}, nil
 	}
-	var tokenID, userID string
+	var tokenID, userID, kind string
 	err := s.db.QueryRow(ctx,
 		`UPDATE user_tokens t SET last_used_at = now()
 		   FROM users u
 		  WHERE t.token_hash=$1 AND t.revoked_at IS NULL AND (t.expires_at IS NULL OR t.expires_at > now())
 		    AND u.id = t.user_id AND u.disabled_at IS NULL
-		 RETURNING t.id, t.user_id`, hashToken(token)).Scan(&tokenID, &userID)
+		 RETURNING t.id, t.user_id, t.client_kind`, hashToken(token)).Scan(&tokenID, &userID, &kind)
 	if err != nil {
 		if errors.Is(err, postgres.ErrNoRows) {
 			return &identityv1.VerifyUserTokenResponse{}, nil
@@ -156,7 +181,7 @@ func (s *Server) VerifyUserToken(ctx context.Context, req *identityv1.VerifyUser
 	if err != nil {
 		return nil, err
 	}
-	return &identityv1.VerifyUserTokenResponse{Valid: true, TokenId: tokenID, User: u, GroupNames: groups, GroupIds: groupIDs}, nil
+	return &identityv1.VerifyUserTokenResponse{Valid: true, TokenId: tokenID, User: u, GroupNames: groups, GroupIds: groupIDs, ClientKind: kind}, nil
 }
 
 func (s *Server) SetUserDisabled(ctx context.Context, req *identityv1.SetUserDisabledRequest) (*identityv1.SetUserDisabledResponse, error) {
