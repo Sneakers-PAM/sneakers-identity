@@ -8,6 +8,10 @@ documents every RPC and field. Go clients import the generated code from
 The server also registers the standard gRPC health service (`grpc.health.v1.Health`) and server
 reflection.
 
+A health check's answer carries the build in its response headers: `sneakers-version` (the image
+tag, `dev` when unstamped) and `sneakers-commit` (the source commit, `unknown` when neither the
+build nor Go's VCS stamp knows it). The gateway's diagnostics read them.
+
 Every call must carry the caller's workload identity: its projected Kubernetes ServiceAccount
 token as `authorization: Bearer <token>` (see [configuration.md](configuration.md#service-to-service-authentication)).
 Identity verifies it and checks the caller against a per-method allow-list (`grpcsvc.CallerPolicy`):

@@ -30,6 +30,14 @@ Use the standard gRPC health check:
 grpcurl -plaintext localhost:9090 grpc.health.v1.Health/Check
 ```
 
+To see which build is running, ask for the response headers (`grpcurl -v`): the answer carries
+`sneakers-version` and `sneakers-commit`. The image build stamps them from its `VERSION` and
+`COMMIT` build arguments:
+
+```bash
+docker build --build-arg VERSION=v0.1.0 --build-arg COMMIT="$(git rev-parse HEAD)" .
+```
+
 ## First-run setup
 
 A new installation has no administrator. `GetSetupState` reports `needs_setup: true` until
