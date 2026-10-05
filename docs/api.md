@@ -5,8 +5,21 @@ The service implements `sneakers.identity.v1.IdentityService`, defined in
 documents every RPC and field. Go clients import the generated code from
 `github.com/Sneakers-PAM/sneakers-identity/gen/go/sneakers/identity/v1`.
 
-The server also registers the standard gRPC health service (`grpc.health.v1.Health`) and server
-reflection.
+The server also registers the gRPC health service (`grpc.health.v1.Health`) and server
+reflection. The health service answers two names:
+
+- `""` (the default) is readiness: `SERVING` unless a required dependency is down, then
+  `NOT_SERVING`. Its answer carries `sneakers-health`, the readiness report as compact JSON:
+  `{"status":"ok|degraded|down","dependencies":[{"name":"postgres","state":"ok","required":true,"checkedAt":"2026-10-05T12:00:00Z","version":"17.11"}]}`.
+  A failing dependency adds `error`, a class from a fixed set (`timeout`, `refused`,
+  `unavailable`, `unauthenticated`, `error`), never the error's text, an address or a DSN.
+  `version` is there when the dependency's version is known.
+- `liveness` is the process only: `SERVING` while the process answers, whatever its
+  dependencies.
+
+Any other name gets `NotFound`, and `Watch` is unimplemented. Each dependency is checked with a
+1-second timeout and the result is reused for 5 seconds, so probes don't load the dependencies;
+readiness recovers on its own once the dependency is back and that window has passed.
 
 A health check's answer carries the build in its response headers: `sneakers-version` (the image
 tag, `dev` when unstamped) and `sneakers-commit` (the source commit, `unknown` when neither the
