@@ -174,3 +174,43 @@ func TestPGUserTokenMintNeedsAnExistingUser(t *testing.T) {
 		t.Fatalf("mint for unknown user: want NotFound, got %v", err)
 	}
 }
+
+func TestPGUserTokenClientKind(t *testing.T) {
+	ctx := context.Background()
+	s := newPGServer(t)
+	seedTokenUser(ctx, t, s, "u-ada")
+
+	for _, tc := range []struct{ in, want string }{
+		{in: "mcp", want: "mcp"},
+		{in: "cli", want: "cli"},
+		{in: "", want: "cli"},
+	} {
+		minted, err := s.MintUserToken(ctx, &identityv1.MintUserTokenRequest{UserId: "u-ada", Label: "agent", ClientKind: tc.in})
+		if err != nil {
+			t.Fatalf("MintUserToken(%q): %v", tc.in, err)
+		}
+		if got := minted.GetMeta().GetClientKind(); got != tc.want {
+			t.Fatalf("mint %q: meta client_kind = %q, want %q", tc.in, got, tc.want)
+		}
+		if got := verifyUserToken(ctx, t, s, minted.GetToken()).GetClientKind(); got != tc.want {
+			t.Fatalf("mint %q: verify client_kind = %q, want %q", tc.in, got, tc.want)
+		}
+	}
+	list, err := s.ListUserTokens(ctx, &identityv1.ListUserTokensRequest{UserId: "u-ada"})
+	if err != nil {
+		t.Fatalf("ListUserTokens: %v", err)
+	}
+	kinds := []string{}
+	for _, tok := range list.GetTokens() {
+		kinds = append(kinds, tok.GetClientKind())
+	}
+	slices.Sort(kinds)
+	if !slices.Equal(kinds, []string{"cli", "cli", "mcp"}) {
+		t.Fatalf("listed kinds = %v", kinds)
+	}
+
+	_, err = s.MintUserToken(ctx, &identityv1.MintUserTokenRequest{UserId: "u-ada", ClientKind: "browser"})
+	if status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("unknown kind: err = %v, want InvalidArgument", err)
+	}
+}
