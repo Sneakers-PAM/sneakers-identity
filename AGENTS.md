@@ -25,7 +25,8 @@ holds them.
   sneakers-vault's package at `SNEAKERS_VAULT_REF`. Never edit it here: change it in the vault,
   then copy it and bump the ref (`scripts/workloadauth-check.sh` fails CI otherwise). The
   allow-list is `internal/grpcsvc/callers.go`; a new RPC gets the gateway by default.
-- `internal/config/`, `internal/server/` - the env loader and the gRPC server bootstrap.
+- `internal/config/`, `internal/server/` - the env loader and the gRPC server bootstrap, with the
+  health service and readiness checks from `github.com/Bugs5382/go-buildinfo`.
 - `proto/` - the API; `gen/go/` - the generated Go (committed, checked current in CI).
   `gen/go/thirdparty/` holds the audit client stubs, generated from the sneakers-audit proto at
   the commit pinned in `proto-refs.env` (pin-and-fetch, never a Go module import).

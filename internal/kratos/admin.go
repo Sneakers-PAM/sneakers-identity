@@ -17,7 +17,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Sneakers-PAM/sneakers-identity/internal/health"
+	"github.com/Bugs5382/go-buildinfo/health"
 )
 
 var (
@@ -183,14 +183,18 @@ func (a *Admin) DeleteIdentity(ctx context.Context, id string) error {
 }
 
 // Ready asks Kratos's /health/ready, for identity's readiness. A status other
-// than 2xx is a health.HTTPStatusError.
+// than 2xx is an error; 401 and 403 are classed unauthenticated.
 func (a *Admin) Ready(ctx context.Context) error {
 	code, err := a.do(ctx, http.MethodGet, "/health/ready", nil, nil)
 	if err != nil {
 		return err
 	}
 	if code < 200 || code > 299 {
-		return &health.HTTPStatusError{Code: code}
+		err := fmt.Errorf("kratos ready: unexpected status %d", code)
+		if code == http.StatusUnauthorized || code == http.StatusForbidden {
+			return health.Classify(err, "unauthenticated")
+		}
+		return err
 	}
 	return nil
 }
