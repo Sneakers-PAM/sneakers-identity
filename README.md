@@ -63,6 +63,10 @@ scripts/workloadauth-check.sh  # internal/workloadauth must match the vault's co
 - [proto/sneakers/identity/v1/identity.proto](proto/sneakers/identity/v1/identity.proto): the API
   definition.
 
+## 🙏 Acknowledgements
+
+Sneakers-PAM was originally written by [@Bugs5382](https://github.com/Bugs5382).
+
 ## ⚖️ License
 
 Apache-2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE).
