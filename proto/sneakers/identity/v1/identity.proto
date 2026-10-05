@@ -451,6 +451,11 @@ message VerifyUserTokenResponse {
   string client_kind = 6;
 }
 
+// kind is "mcp" or "cli". revoked counts the tokens this call revoked; tokens
+// already revoked or expired aren't counted.
+message RevokeTokensByClientKindRequest  { string kind = 1; }
+message RevokeTokensByClientKindResponse { int64 revoked = 1; }
+
 message SetUserDisabledRequest  { string user_id = 1; bool disabled = 2; string acting_user_id = 3; }
 message SetUserDisabledResponse { User user = 1; }
 
@@ -623,6 +628,10 @@ service IdentityService {
   rpc ListUserTokens(ListUserTokensRequest) returns (ListUserTokensResponse);
   rpc RevokeUserToken(RevokeUserTokenRequest) returns (RevokeUserTokenResponse);
   rpc VerifyUserToken(VerifyUserTokenRequest) returns (VerifyUserTokenResponse);
+  // Revokes every live personal token of one client kind. Only the
+  // appliance may call it, as itself: turning the MCP off revokes every
+  // agent token ("mcp").
+  rpc RevokeTokensByClientKind(RevokeTokensByClientKindRequest) returns (RevokeTokensByClientKindResponse);
   rpc SetUserDisabled(SetUserDisabledRequest) returns (SetUserDisabledResponse);
   // OIDC client linkage: admin-gated bind/unbind of an Ory Hydra
   // OAuth2 client to a service account, and the gateway's OIDC machine-auth

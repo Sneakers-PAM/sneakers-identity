@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	identityv1 "github.com/Sneakers-PAM/sneakers-identity/gen/go/sneakers/identity/v1"
+	"github.com/Sneakers-PAM/sneakers-identity/internal/audit"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -213,4 +214,62 @@ func TestPGUserTokenClientKind(t *testing.T) {
 	if status.Code(err) != codes.InvalidArgument {
 		t.Fatalf("unknown kind: err = %v, want InvalidArgument", err)
 	}
+}
+
+func TestPGRevokeTokensByClientKind(t *testing.T) {
+	ctx := context.Background()
+	rec := &recordingAuditor{}
+	s := newPGServer(t).WithAudit(rec)
+	seedTokenUser(ctx, t, s, "u-ada")
+	seedTokenUser(ctx, t, s, "u-bob")
+
+	mint := func(user, kind string) string {
+		t.Helper()
+		resp, err := s.MintUserToken(ctx, &identityv1.MintUserTokenRequest{UserId: user, Label: "agent", ClientKind: kind})
+		if err != nil {
+			t.Fatalf("MintUserToken: %v", err)
+		}
+		return resp.GetToken()
+	}
+	mcp := []string{mint("u-ada", "mcp"), mint("u-ada", "mcp"), mint("u-bob", "mcp")}
+	cli := []string{mint("u-ada", "cli"), mint("u-bob", "cli")}
+	revokedEarlier := mint("u-bob", "mcp")
+	if _, err := s.db.Exec(ctx, `UPDATE user_tokens SET revoked_at = now() WHERE token_hash=$1`, hashToken(revokedEarlier)); err != nil {
+		t.Fatalf("revoke one beforehand: %v", err)
+	}
+	rec.take()
+
+	res, err := s.RevokeTokensByClientKind(ctx, &identityv1.RevokeTokensByClientKindRequest{Kind: "mcp"})
+	if err != nil {
+		t.Fatalf("RevokeTokensByClientKind: %v", err)
+	}
+	if res.GetRevoked() != 3 {
+		t.Fatalf("revoked = %d, want 3", res.GetRevoked())
+	}
+	for _, tok := range mcp {
+		if verifyUserToken(ctx, t, s, tok).GetValid() {
+			t.Fatal("an mcp token still verifies after RevokeTokensByClientKind(mcp)")
+		}
+	}
+	for _, tok := range cli {
+		if !verifyUserToken(ctx, t, s, tok).GetValid() {
+			t.Fatal("a cli token stopped verifying after RevokeTokensByClientKind(mcp)")
+		}
+	}
+	ev := rec.only(t)
+	wantEvent(t, ev, audit.ActionUserTokenRevokeByKind, "", "mcp", map[string]string{"client_kind": "mcp", "revoked": "3"})
+	assertNoSecretIn(t, []audit.Event{ev}, append(mcp, cli...)...)
+
+	again, err := s.RevokeTokensByClientKind(ctx, &identityv1.RevokeTokensByClientKindRequest{Kind: "mcp"})
+	if err != nil || again.GetRevoked() != 0 {
+		t.Fatalf("second run = %v, %v; want 0 revoked", again, err)
+	}
+	rec.take()
+
+	for _, bad := range []string{"", "browser"} {
+		if _, err := s.RevokeTokensByClientKind(ctx, &identityv1.RevokeTokensByClientKindRequest{Kind: bad}); status.Code(err) != codes.InvalidArgument {
+			t.Fatalf("kind %q: err = %v, want InvalidArgument", bad, err)
+		}
+	}
+	rec.none(t)
 }

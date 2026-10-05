@@ -37,7 +37,7 @@ As a callee:
 | `WORKLOAD_OIDC_CA_FILE` | system roots | Extra PEM CA bundle for discovery and the JWKS fetch. |
 | `WORKLOAD_OIDC_BEARER_FILE` | (unset) | Bearer token sent on discovery and the JWKS fetch. |
 | `WORKLOAD_AUDIENCE` | `sneakers` | The token's `aud` must contain it. |
-| `WORKLOAD_ALLOWED_SERVICEACCOUNTS` | (required) | Comma list of `<namespace>/<serviceaccount>`: for identity, `<ns>/sneakers-gateway,<ns>/sneakers-notify`. |
+| `WORKLOAD_ALLOWED_SERVICEACCOUNTS` | (required) | Comma list of `<namespace>/<serviceaccount>`: for identity, `<ns>/sneakers-gateway,<ns>/sneakers-notify`, plus `<ns>/sneakers-appliance` where the appliance's platform controller calls `RevokeTokensByClientKind`. |
 | `WORKLOAD_AUTH` | (unset) | `disabled` turns the check off, for local development only: every caller that reaches the port is trusted, and a warning is logged at start and every 5 minutes. No other value is accepted. |
 
 Without `WORKLOAD_OIDC_ISSUER` the service refuses to start, unless `WORKLOAD_AUTH=disabled`;

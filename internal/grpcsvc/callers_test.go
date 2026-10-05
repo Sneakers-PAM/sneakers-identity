@@ -22,8 +22,10 @@ import (
 )
 
 // TestCallerPolicyPerMethod pins the allow-list of every identity method: the
-// gateway may call each one on behalf of the signed-in user, notify may call
-// its four directory reads as itself, and nobody else may call anything.
+// gateway may call each one on behalf of the signed-in user, except
+// RevokeTokensByClientKind, which only the appliance may call, as itself;
+// notify may call its four directory reads as itself, and nobody else may
+// call anything.
 func TestCallerPolicyPerMethod(t *testing.T) {
 	gw := workloadauth.OnBehalf
 	self := workloadauth.Self
@@ -39,6 +41,9 @@ func TestCallerPolicyPerMethod(t *testing.T) {
 	for _, md := range desc.Methods {
 		full := "/" + desc.ServiceName + "/" + md.MethodName
 		want := map[string]workloadauth.Access{CallerGateway: gw}
+		if md.MethodName == "RevokeTokensByClientKind" {
+			want = map[string]workloadauth.Access{CallerAppliance: self}
+		}
 		if notify[md.MethodName] {
 			want[CallerNotify] = self
 		}
@@ -59,7 +64,7 @@ type fakeVerifier struct{}
 
 func (fakeVerifier) Verify(token string) (workloadauth.Caller, error) {
 	switch token {
-	case "gateway", "notify", "mcp":
+	case "gateway", "notify", "mcp", "appliance":
 		return workloadauth.Caller{Name: token, ServiceAccount: "sneakers/sneakers-" + token}, nil
 	}
 	return workloadauth.Caller{}, errors.New("rejected")
@@ -122,4 +127,51 @@ func TestWorkloadAuthOnTheServer(t *testing.T) {
 		t.Fatalf("gateway: %v, want the handler's Unimplemented", err)
 	}
 	rec.none(t)
+}
+
+// TestRevokeTokensByClientKindIsApplianceOnly runs the allow-list through the
+// interceptors: only the appliance reaches the handler, and it reaches no
+// other method. An empty kind fails in the handler before any database call.
+func TestRevokeTokensByClientKindIsApplianceOnly(t *testing.T) {
+	rec := &recordingAuditor{}
+	s := New(nil).WithAudit(rec)
+	lis := bufconn.Listen(1 << 20)
+	gs := grpc.NewServer(
+		grpc.ChainUnaryInterceptor(workloadauth.UnaryServerInterceptor(fakeVerifier{}, CallerPolicy(), nil, workloadauth.WithDenyHook(s.AuditDenial))),
+	)
+	s.RegisterOn(gs)
+	go func() { _ = gs.Serve(lis) }()
+	t.Cleanup(gs.Stop)
+	conn, err := grpc.NewClient("passthrough:///bufnet",
+		grpc.WithContextDialer(func(ctx context.Context, _ string) (net.Conn, error) { return lis.DialContext(ctx) }),
+		grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = conn.Close() })
+	c := identityv1.NewIdentityServiceClient(conn)
+	as := func(caller string) context.Context {
+		return metadata.AppendToOutgoingContext(context.Background(), "authorization", "Bearer "+caller)
+	}
+	revoke := func(ctx context.Context) error {
+		_, err := c.RevokeTokensByClientKind(ctx, &identityv1.RevokeTokensByClientKindRequest{})
+		return err
+	}
+
+	for _, caller := range []string{"gateway", "notify", "mcp"} {
+		if err := revoke(as(caller)); status.Code(err) != codes.PermissionDenied {
+			t.Fatalf("%s: %v, want PermissionDenied", caller, err)
+		}
+		wantEvent(t, rec.only(t), audit.ActionWorkloadCallRefused, "", identityv1.IdentityService_RevokeTokensByClientKind_FullMethodName,
+			map[string]string{"caller": caller, "code": "PermissionDenied"})
+	}
+	if err := revoke(as("appliance")); status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("appliance: %v, want the handler's InvalidArgument", err)
+	}
+	rec.none(t)
+	//nolint:staticcheck // SA1019: the retired RPC is the one call that needs no database.
+	if _, err := c.SetUserAdGroups(as("appliance"), &identityv1.SetUserAdGroupsRequest{}); status.Code(err) != codes.PermissionDenied {
+		t.Fatalf("appliance on another method: %v, want PermissionDenied", err)
+	}
+	rec.take()
 }
