@@ -44,6 +44,9 @@ holds them.
 - Generated code: `scripts/proto-generate.sh` (fetches the pinned callee protos into the
   git-ignored `.protos/`, then runs `buf generate`) with the plugin versions pinned in
   `.github/workflows/job-go-lang-ci.yaml`.
+- Vulnerabilities: `task vuln` runs govulncheck as CI does (`scripts/govulncheck.sh`): any called
+  finding fails unless its ID is in `govulncheck-allow.txt`, which says why and when each entry
+  goes. `scripts/govulncheck_test.sh` checks the filter itself.
 - License headers: `task license` (golic, the Apache-2.0 SPDX header in `.golic.yaml`).
 
 ## Logging
