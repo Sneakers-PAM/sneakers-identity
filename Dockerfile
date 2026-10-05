@@ -7,7 +7,7 @@ WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-RUN CGO_ENABLED=0 go build -ldflags "-X github.com/Sneakers-PAM/sneakers-identity/internal/buildinfo.Version=${VERSION} -X github.com/Sneakers-PAM/sneakers-identity/internal/buildinfo.Commit=${COMMIT}" -o /out/identity ./cmd/identity
+RUN CGO_ENABLED=0 go build -ldflags "-X github.com/Bugs5382/go-buildinfo.Version=${VERSION} -X github.com/Bugs5382/go-buildinfo.Commit=${COMMIT}" -o /out/identity ./cmd/identity
 RUN CGO_ENABLED=0 go build -o /out/seed ./cmd/seed
 
 # Demo-data image for dev and test environments only (`docker build --target

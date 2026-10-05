@@ -15,9 +15,8 @@ import (
 	"testing"
 	"time"
 
-	log "github.com/Bugs5382/go-log"
+	"github.com/Bugs5382/go-buildinfo/health"
 	postgres "github.com/Bugs5382/go-postgres"
-	"github.com/Sneakers-PAM/sneakers-identity/internal/health"
 	"github.com/Sneakers-PAM/sneakers-identity/internal/kratos"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 )
@@ -115,23 +114,22 @@ func TestHealth_PostgresGoesAwayAndComesBack(t *testing.T) {
 	}))
 	t.Cleanup(kratosSrv.Close)
 
-	clk := &testClock{t: time.Now()}
-	checker := health.New(log.Nop(), []health.Dep{
-		{Name: "postgres", Required: true, Check: db.Ping},
-		{Name: "kratos", Required: true, Check: kratos.NewAdmin(kratosSrv.URL).Ready},
-	}, health.WithClock(clk.now))
+	checker := newTestChecker(t,
+		health.Dependency{Name: "postgres", Required: true, Check: db.Ping, Version: PostgresVersion(db.Querier())},
+		health.Dependency{Name: "kratos", Required: true, Check: kratos.NewAdmin(kratosSrv.URL).Ready},
+	)
 	hc := startWithHealth(t, checker)
 
 	if st, _, err := check(t, hc, ""); err != nil || st != healthpb.HealthCheckResponse_SERVING {
 		t.Fatalf("start: %v %v", st, err)
 	}
 	proxy.Cut()
-	clk.add(health.CacheTTL)
+	time.Sleep(testTTL)
 	st, md, err := check(t, hc, "")
 	if err != nil || st != healthpb.HealthCheckResponse_NOT_SERVING {
 		t.Fatalf("postgres gone: %v %v, want NOT_SERVING", st, err)
 	}
-	if r := healthHeader(t, md); r.Dependencies[0].State != health.Down || r.Dependencies[1].State != health.OK {
+	if r := healthHeader(t, md); r.Dependencies[0].State != health.StateDown || r.Dependencies[1].State != health.StateOK {
 		t.Fatalf("header: %+v", r)
 	}
 	if st, _, err := check(t, hc, LivenessService); err != nil || st != healthpb.HealthCheckResponse_SERVING {
@@ -141,12 +139,11 @@ func TestHealth_PostgresGoesAwayAndComesBack(t *testing.T) {
 	proxy.Resume()
 	deadline := time.Now().Add(15 * time.Second)
 	for {
-		clk.add(health.CacheTTL)
 		st, _, err = check(t, hc, "")
 		if (err == nil && st == healthpb.HealthCheckResponse_SERVING) || time.Now().After(deadline) {
 			break
 		}
-		time.Sleep(200 * time.Millisecond)
+		time.Sleep(testTTL)
 	}
 	if err != nil || st != healthpb.HealthCheckResponse_SERVING {
 		t.Fatalf("recovered: %v %v", st, err)

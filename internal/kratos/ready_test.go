@@ -10,7 +10,7 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/Sneakers-PAM/sneakers-identity/internal/health"
+	"github.com/Bugs5382/go-buildinfo/health"
 )
 
 func TestAdmin_Ready(t *testing.T) {
@@ -28,11 +28,25 @@ func TestAdmin_Ready(t *testing.T) {
 		t.Fatalf("ready: %v", err)
 	}
 	code.Store(http.StatusServiceUnavailable)
-	if err := a.Ready(context.Background()); health.Classify(err) != "error" {
+	if err := a.Ready(context.Background()); classOf(t, a) != "error" {
 		t.Fatalf("503: %v", err)
 	}
-	srv.Close()
-	if err := a.Ready(context.Background()); err == nil || health.Classify(err) == "error" {
-		t.Fatalf("closed: %v (class %q), want a network class", err, health.Classify(err))
+	code.Store(http.StatusForbidden)
+	if err := a.Ready(context.Background()); classOf(t, a) != "unauthenticated" {
+		t.Fatalf("403: %v", err)
 	}
+	srv.Close()
+	if err := a.Ready(context.Background()); err == nil || classOf(t, a) == "error" {
+		t.Fatalf("closed: %v (class %q), want a network class", err, classOf(t, a))
+	}
+}
+
+// classOf is the error class a readiness report gives a failing Ready.
+func classOf(t *testing.T, a *Admin) string {
+	t.Helper()
+	c := health.New()
+	if err := c.Register(health.Dependency{Name: "kratos", Required: true, Check: a.Ready}); err != nil {
+		t.Fatal(err)
+	}
+	return c.Report(context.Background()).Dependencies[0].Error
 }

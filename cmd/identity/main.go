@@ -10,6 +10,7 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/Bugs5382/go-buildinfo/health"
 	log "github.com/Bugs5382/go-log"
 	otel "github.com/Bugs5382/go-otel"
 	postgres "github.com/Bugs5382/go-postgres"
@@ -19,7 +20,6 @@ import (
 	"github.com/Sneakers-PAM/sneakers-identity/internal/config"
 	"github.com/Sneakers-PAM/sneakers-identity/internal/email"
 	"github.com/Sneakers-PAM/sneakers-identity/internal/grpcsvc"
-	"github.com/Sneakers-PAM/sneakers-identity/internal/health"
 	"github.com/Sneakers-PAM/sneakers-identity/internal/kratos"
 	"github.com/Sneakers-PAM/sneakers-identity/internal/secrets"
 	"github.com/Sneakers-PAM/sneakers-identity/internal/server"
@@ -81,9 +81,6 @@ func main() { //nolint:gocognit,gocyclo // wiring/bootstrap complexity
 		logger.Fatal().Err(err).Msg("db connect")
 	}
 	defer db.Close()
-	if err := server.RecordPostgresVersion(ctx, db.Querier()); err != nil {
-		logger.Warn().Err(err).Msg("postgres version unknown; the health check won't report it")
-	}
 
 	// Demo directory seeding lives in the dev/qa-only `cmd/seed` tool (go-seed),
 	// not in the service.
@@ -156,8 +153,8 @@ func main() { //nolint:gocognit,gocyclo // wiring/bootstrap complexity
 	// Readiness: Postgres holds the directory and Kratos the credentials, so
 	// identity can't serve without either. Audit records are best effort, so
 	// an unreachable audit service only degrades it.
-	deps := []health.Dep{
-		{Name: "postgres", Required: true, Check: db.Ping},
+	deps := []health.Dependency{
+		{Name: "postgres", Required: true, Check: db.Ping, Version: server.PostgresVersion(db.Querier())},
 		{Name: "kratos", Required: true, Check: kratosAdmin.Ready},
 	}
 
@@ -186,7 +183,7 @@ func main() { //nolint:gocognit,gocyclo // wiring/bootstrap complexity
 		}
 		defer func() { _ = auditConn.Close() }()
 		srv = srv.WithAudit(audit.NewClient(auditv1.NewAuditServiceClient(auditConn)))
-		deps = append(deps, health.Dep{Name: "audit", Check: health.GRPCPeer(healthpb.NewHealthClient(auditConn))})
+		deps = append(deps, health.Dependency{Name: "audit", Check: server.GRPCPeer(healthpb.NewHealthClient(auditConn))})
 		logger.Info().Str("audit_addr", cfg.AuditAddr).Msg("audit: recording identity events")
 	} else {
 		logger.Warn().Msg("audit: disabled (AUDIT_ADDR unset); no identity events are recorded")
@@ -216,7 +213,10 @@ func main() { //nolint:gocognit,gocyclo // wiring/bootstrap complexity
 		go workloadauth.WarnDisabled(ctx, svcLog, workloadauth.DisabledWarnInterval)
 	}
 
-	checker := health.New(svcLog, deps)
+	checker, err := server.NewChecker(svcLog, deps)
+	if err != nil {
+		logger.Fatal().Err(err).Msg("health checker")
+	}
 	if err := server.RunWithHealth(ctx, cfg.GRPCPort, svcLog, checker, srv.RegisterOn, serverOpts...); err != nil {
 		logger.Fatal().Err(err).Msg("server exited")
 	}
