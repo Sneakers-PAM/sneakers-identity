@@ -31,8 +31,9 @@ grpcurl -plaintext localhost:9090 grpc.health.v1.Health/Check
 ```
 
 To see which build is running, ask for the response headers (`grpcurl -v`): the answer carries
-`sneakers-version` and `sneakers-commit`. The image build stamps them from its `VERSION` and
-`COMMIT` build arguments:
+`sneakers-version`, `sneakers-commit` and, once the database answered, `sneakers-dep-postgres`
+(a `postgres version unknown` warning at start means it didn't). The image build stamps the
+version and commit from its `VERSION` and `COMMIT` build arguments:
 
 ```bash
 docker build --build-arg VERSION=v0.1.0 --build-arg COMMIT="$(git rev-parse HEAD)" .

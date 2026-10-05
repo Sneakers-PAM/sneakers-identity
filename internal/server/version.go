@@ -20,13 +20,16 @@ const (
 
 const healthCheckMethod = "/grpc.health.v1.Health/Check"
 
-// VersionUnaryInterceptor adds the build's version and commit to the response
-// headers of every health check. Other calls are untouched.
+// VersionUnaryInterceptor adds the build's version and commit, and each
+// recorded dependency version, to the response headers of every health check.
+// Other calls are untouched.
 func VersionUnaryInterceptor() grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
 		if info.FullMethod == healthCheckMethod {
 			v, c := buildinfo.Info()
-			_ = grpc.SetHeader(ctx, metadata.Pairs(HeaderVersion, v, HeaderCommit, c))
+			md := metadata.Pairs(HeaderVersion, v, HeaderCommit, c)
+			addDependencyHeaders(md)
+			_ = grpc.SetHeader(ctx, md)
 		}
 		return handler(ctx, req)
 	}

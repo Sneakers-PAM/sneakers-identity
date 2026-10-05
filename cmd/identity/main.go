@@ -79,6 +79,9 @@ func main() { //nolint:gocognit,gocyclo // wiring/bootstrap complexity
 		logger.Fatal().Err(err).Msg("db connect")
 	}
 	defer db.Close()
+	if err := server.RecordPostgresVersion(ctx, db.Querier()); err != nil {
+		logger.Warn().Err(err).Msg("postgres version unknown; the health check won't report it")
+	}
 
 	// Demo directory seeding lives in the dev/qa-only `cmd/seed` tool (go-seed),
 	// not in the service.
