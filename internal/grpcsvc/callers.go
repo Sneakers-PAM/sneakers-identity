@@ -13,8 +13,9 @@ import (
 
 // Caller names, from the service accounts sneakers-<name>.
 const (
-	CallerGateway = "gateway"
-	CallerNotify  = "notify"
+	CallerGateway   = "gateway"
+	CallerNotify    = "notify"
+	CallerAppliance = "appliance"
 )
 
 // notifyMethods are the directory reads notify makes as itself to fan an
@@ -26,14 +27,24 @@ var notifyMethods = []string{
 	identityv1.IdentityService_ResolveUserLabels_FullMethodName,
 }
 
+// applianceMethods are the calls the appliance's platform controller makes as
+// itself. The gateway never gets them: the MCP switch is the appliance's.
+var applianceMethods = []string{
+	identityv1.IdentityService_RevokeTokensByClientKind_FullMethodName,
+}
+
 // CallerPolicy is identity's per-method allow-list. The gateway calls every
-// method on behalf of the signed-in user; notify calls its directory reads as
-// itself. Anything else is refused.
+// method on behalf of the signed-in user, except the appliance's; notify
+// calls its directory reads as itself; the appliance calls its own methods
+// as itself. Anything else is refused.
 func CallerPolicy() workloadauth.Policy {
 	p := workloadauth.Policy{}
 	desc := identityv1.IdentityService_ServiceDesc
 	for _, md := range desc.Methods {
 		p["/"+desc.ServiceName+"/"+md.MethodName] = map[string]workloadauth.Access{CallerGateway: workloadauth.OnBehalf}
+	}
+	for _, m := range applianceMethods {
+		p[m] = map[string]workloadauth.Access{CallerAppliance: workloadauth.Self}
 	}
 	for _, m := range notifyMethods {
 		p[m][CallerNotify] = workloadauth.Self

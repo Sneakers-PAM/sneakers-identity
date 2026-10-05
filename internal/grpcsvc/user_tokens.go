@@ -184,6 +184,31 @@ func (s *Server) VerifyUserToken(ctx context.Context, req *identityv1.VerifyUser
 	return &identityv1.VerifyUserTokenResponse{Valid: true, TokenId: tokenID, User: u, GroupNames: groups, GroupIds: groupIDs, ClientKind: kind}, nil
 }
 
+// RevokeTokensByClientKind revokes every live personal token of one kind and
+// returns how many it revoked. The caller policy limits it to the appliance.
+func (s *Server) RevokeTokensByClientKind(ctx context.Context, req *identityv1.RevokeTokensByClientKindRequest) (*identityv1.RevokeTokensByClientKindResponse, error) {
+	kind := strings.TrimSpace(req.GetKind())
+	if kind != ClientKindCLI && kind != ClientKindMCP {
+		return nil, status.Error(codes.InvalidArgument, `kind must be "cli" or "mcp"`)
+	}
+	lg := s.lg(ctx)
+	lg.Debug("revoking user tokens by client kind", log.F("client_kind", kind))
+	tag, err := s.db.Exec(ctx,
+		`UPDATE user_tokens SET revoked_at = now()
+		  WHERE client_kind=$1 AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at > now())`, kind)
+	if err != nil {
+		lg.Error(err, "revoke user tokens by client kind failed", log.F("client_kind", kind))
+		return nil, status.Errorf(codes.Internal, "revoke user tokens by client kind: %v", err)
+	}
+	revoked := tag.RowsAffected()
+	lg.Info("user tokens revoked by client kind", log.F("client_kind", kind), log.F("revoked", revoked))
+	s.record(ctx, audit.Event{
+		Action: audit.ActionUserTokenRevokeByKind, Subject: kind,
+		Attributes: map[string]string{"client_kind": kind, "revoked": strconv.FormatInt(revoked, 10)},
+	})
+	return &identityv1.RevokeTokensByClientKindResponse{Revoked: revoked}, nil
+}
+
 func (s *Server) SetUserDisabled(ctx context.Context, req *identityv1.SetUserDisabledRequest) (*identityv1.SetUserDisabledResponse, error) {
 	u, err := scanUser(s.db.QueryRow(ctx,
 		`UPDATE users SET disabled_at = CASE WHEN $2 THEN COALESCE(disabled_at, now()) END
