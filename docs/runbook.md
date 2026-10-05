@@ -39,6 +39,24 @@ version and commit from its `VERSION` and `COMMIT` build arguments:
 docker build --build-arg VERSION=v0.1.0 --build-arg COMMIT="$(git rev-parse HEAD)" .
 ```
 
+### Readiness and liveness
+
+Readiness (service `""`) fails while a required dependency is down, so traffic stops reaching a
+pod that can't serve it; liveness (service `liveness`) never looks at a dependency, so an outage
+doesn't restart every pod. The kubelet's gRPC liveness probe has to ask for service `liveness`;
+that is set in the sneakers-release chart.
+
+| Dependency | Required | Check | Why |
+|---|---|---|---|
+| `postgres` | yes | a ping on the pool | It holds the directory: users, groups, roles, factors and tokens. |
+| `kratos` | yes | `GET /health/ready` on `KRATOS_ADMIN_URL` | It holds the credentials; sign-in and user provisioning go through it. |
+| `audit` | no | its gRPC health check | Audit records are best effort: an event that can't be written is logged and the call still succeeds, so an unreachable audit service only makes identity `degraded`. Present only when `AUDIT_ADDR` is set. |
+
+Read the report with `grpcurl -v -plaintext localhost:9090 grpc.health.v1.Health/Check` (the
+`sneakers-health` header). Each change of a dependency's state is logged once: `health:
+dependency down` or `degraded` at warn, `health: dependency recovered` at info, with the
+dependency's name and error class.
+
 ## First-run setup
 
 A new installation has no administrator. `GetSetupState` reports `needs_setup: true` until

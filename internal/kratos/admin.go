@@ -16,6 +16,8 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/Sneakers-PAM/sneakers-identity/internal/health"
 )
 
 var (
@@ -176,6 +178,19 @@ func (a *Admin) DeleteIdentity(ctx context.Context, id string) error {
 	}
 	if code != http.StatusNoContent && code != http.StatusOK && code != http.StatusNotFound {
 		return statusErr(http.MethodDelete, "/admin/identities/{id}", code)
+	}
+	return nil
+}
+
+// Ready asks Kratos's /health/ready, for identity's readiness. A status other
+// than 2xx is a health.HTTPStatusError.
+func (a *Admin) Ready(ctx context.Context) error {
+	code, err := a.do(ctx, http.MethodGet, "/health/ready", nil, nil)
+	if err != nil {
+		return err
+	}
+	if code < 200 || code > 299 {
+		return &health.HTTPStatusError{Code: code}
 	}
 	return nil
 }
