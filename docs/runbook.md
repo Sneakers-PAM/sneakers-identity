@@ -30,6 +30,15 @@ Use the standard gRPC health check:
 grpcurl -plaintext localhost:9090 grpc.health.v1.Health/Check
 ```
 
+To see which build is running, ask for the response headers (`grpcurl -v`): the answer carries
+`sneakers-version`, `sneakers-commit` and, once the database answered, `sneakers-dep-postgres`
+(a `postgres version unknown` warning at start means it didn't). The image build stamps the
+version and commit from its `VERSION` and `COMMIT` build arguments:
+
+```bash
+docker build --build-arg VERSION=v0.1.0 --build-arg COMMIT="$(git rev-parse HEAD)" .
+```
+
 ## First-run setup
 
 A new installation has no administrator. `GetSetupState` reports `needs_setup: true` until
