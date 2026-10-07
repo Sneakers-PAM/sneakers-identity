@@ -21,9 +21,8 @@ holds them.
 - `internal/audit/` - the events identity records and the audit-service client.
 - `internal/kratos/` - the Ory Kratos admin client; `internal/email/` - the SMTP
   sender; `internal/secrets/` - the at-rest cipher for TOTP secrets.
-- `internal/workloadauth/` - service-to-service authentication, a byte-for-byte copy of
-  sneakers-vault's package at `SNEAKERS_VAULT_REF`. Never edit it here: change it in the vault,
-  then copy it and bump the ref (`scripts/workloadauth-check.sh` fails CI otherwise). The
+- Service-to-service authentication comes from `github.com/Bugs5382/go-workload-identity`;
+  `internal/server/workloadauth.go` sets the Sneakers audience and caller-name prefix. The
   allow-list is `internal/grpcsvc/callers.go`; a new RPC gets the gateway by default.
 - `internal/config/`, `internal/server/` - the env loader and the gRPC server bootstrap, with the
   health service and readiness checks from `github.com/Bugs5382/go-buildinfo`.
@@ -84,7 +83,4 @@ Follow the logging rules in `CLAUDE.md`. In short:
   use a git-ignored `go.work` beside `go.mod` (`go work init . ../go-<pkg>`, which writes
   `use . ../go-<pkg>`); `go.work` and `go.work.sum` are in `.gitignore`. For local callee protos,
   point `SNEAKERS_AUDIT_PROTO_DIR` at a local `proto/` directory when running
-  `scripts/proto-generate.sh`, rather than editing a pin in `proto-refs.env`. `SNEAKERS_VAULT_REF`
-  pins no protos: it is the sneakers-vault commit `internal/workloadauth/` is copied from, and
-  `SNEAKERS_VAULT_DIR` points `scripts/workloadauth-check.sh` at a local sneakers-vault checkout
-  instead.
+  `scripts/proto-generate.sh`, rather than editing a pin in `proto-refs.env`.

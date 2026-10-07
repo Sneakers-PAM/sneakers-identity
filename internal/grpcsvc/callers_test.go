@@ -10,9 +10,9 @@ import (
 	"net"
 	"testing"
 
+	workloadauth "github.com/Bugs5382/go-workload-identity"
 	identityv1 "github.com/Sneakers-PAM/sneakers-identity/gen/go/sneakers/identity/v1"
 	"github.com/Sneakers-PAM/sneakers-identity/internal/audit"
-	"github.com/Sneakers-PAM/sneakers-identity/internal/workloadauth"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
@@ -59,7 +59,7 @@ func TestCallerPolicyPerMethod(t *testing.T) {
 }
 
 // fakeVerifier accepts any token naming one of its callers; the token is the
-// caller name. The real verifier is covered in internal/workloadauth.
+// caller name. The real verifier is covered in go-workload-identity.
 type fakeVerifier struct{}
 
 func (fakeVerifier) Verify(token string) (workloadauth.Caller, error) {

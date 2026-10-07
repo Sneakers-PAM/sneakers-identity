@@ -6,9 +6,9 @@ package grpcsvc
 import (
 	"context"
 
+	workloadauth "github.com/Bugs5382/go-workload-identity"
 	identityv1 "github.com/Sneakers-PAM/sneakers-identity/gen/go/sneakers/identity/v1"
 	"github.com/Sneakers-PAM/sneakers-identity/internal/audit"
-	"github.com/Sneakers-PAM/sneakers-identity/internal/workloadauth"
 )
 
 // Caller names, from the service accounts sneakers-<name>.
