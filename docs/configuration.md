@@ -52,6 +52,11 @@ As a caller (to the audit service):
 |---|---|---|
 | `WORKLOAD_TOKEN_FILE` | (unset) | Path of the projected ServiceAccount token (audience `sneakers`), normally `/var/run/secrets/sneakers/token`. Sent on every audit call and re-read each time, so a rotated token is picked up. A set path that can't be read stops the start. Unset sends no token, which only a callee with authentication off accepts. |
 
+No caller can be checked before the issuer's key set has loaded, so readiness waits for it too:
+`/readyz` and the gRPC health check answer `NOT_SERVING`, with `workload-identity` reported down
+in the readiness body (`server.WorkloadIdentity`, checking `Verifier.Ready`), until then. It's
+left out of the readiness body when `WORKLOAD_AUTH=disabled`. Liveness is unaffected.
+
 ## Credential directory
 
 Sign-in uses Ory: Ory Kratos holds the passwords, never identity. Identity provisions Kratos

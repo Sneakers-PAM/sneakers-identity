@@ -152,3 +152,27 @@ func TestHealth_UnknownServiceAndWatch(t *testing.T) {
 		t.Fatalf("no checker: %v %v", st, err)
 	}
 }
+
+func TestHealth_ReadinessWaitsForTheWorkloadKeySet(t *testing.T) {
+	v := &fakeReadinessVerifier{err: errors.New("workloadidentity: verifier unavailable")}
+	checker := newTestChecker(t, WorkloadIdentity(v))
+	hc := startWithHealth(t, checker)
+
+	st, md, err := check(t, hc, "")
+	if err != nil || st != healthpb.HealthCheckResponse_NOT_SERVING {
+		t.Fatalf("readiness before the key set loads: %v %v", st, err)
+	}
+	if r := healthHeader(t, md); r.Dependencies[0].Name != "workload-identity" || r.Dependencies[0].State != health.StateDown {
+		t.Fatalf("header: %+v", r)
+	}
+
+	v.err = nil
+	time.Sleep(testTTL)
+	st, md, err = check(t, hc, "")
+	if err != nil || st != healthpb.HealthCheckResponse_SERVING {
+		t.Fatalf("readiness once the key set loads: %v %v", st, err)
+	}
+	if r := healthHeader(t, md); r.Dependencies[0].Name != "workload-identity" || r.Dependencies[0].State != health.StateOK {
+		t.Fatalf("header: %+v", r)
+	}
+}
