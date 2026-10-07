@@ -208,6 +208,9 @@ func main() { //nolint:gocognit,gocyclo // wiring/bootstrap complexity
 		serverOpts = append(serverOpts,
 			grpc.ChainUnaryInterceptor(workloadauth.UnaryServerInterceptor(verifier, policy, svcLog, workloadauth.WithDenyHook(srv.AuditDenial))),
 			grpc.ChainStreamInterceptor(workloadauth.StreamServerInterceptor(verifier, policy, svcLog, workloadauth.WithDenyHook(srv.AuditDenial))))
+		// No caller can be checked before the issuer's key set has loaded, so
+		// readiness waits for it too (see server.WorkloadIdentity).
+		deps = append(deps, server.WorkloadIdentity(verifier))
 		logger.Info().Str("issuer", waCfg.Issuer).Strs("allowed_service_accounts", waCfg.AllowedServiceAccounts).Msg("workload auth: on")
 	} else {
 		go workloadauth.WarnDisabled(ctx, svcLog, workloadauth.DisabledWarnInterval)
