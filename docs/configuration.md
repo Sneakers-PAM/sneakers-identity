@@ -24,9 +24,12 @@ off and their RPCs answer `Unavailable`; the service still starts.
 ## Service-to-service authentication
 
 Identity checks every caller's workload identity and presents its own when it calls the audit
-service. The shared code is `internal/workloadauth`, a byte-for-byte copy of the package in
-sneakers-vault at `SNEAKERS_VAULT_REF` (`proto-refs.env`); CI checks the copy with
-`scripts/workloadauth-check.sh`.
+service. The code is the owner's helper package
+[`github.com/Bugs5382/go-workload-identity`](https://github.com/Bugs5382/go-workload-identity)
+(v1.0.0), which every Sneakers service imports in place of its old private copy.
+`internal/server/workloadauth.go` sets the Sneakers values the package has no default for: the
+audience `sneakers` when `WORKLOAD_AUDIENCE` is unset, and the caller-name prefix `sneakers-`
+(`WORKLOAD_SERVICEACCOUNT_PREFIX` is not read).
 
 As a callee:
 

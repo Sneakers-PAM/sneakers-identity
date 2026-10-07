@@ -52,7 +52,6 @@ task test     # go test ./...
 task lint     # tests, gofmt check, golangci-lint and yamllint
 task license  # check the Apache-2.0 headers (golic)
 scripts/proto-generate.sh  # regenerate gen/, with the audit client pinned in proto-refs.env
-scripts/workloadauth-check.sh  # internal/workloadauth must match the vault's copy
 ```
 
 ## 📚 Where to look

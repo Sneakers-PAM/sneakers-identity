@@ -15,6 +15,7 @@ import (
 	otel "github.com/Bugs5382/go-otel"
 	postgres "github.com/Bugs5382/go-postgres"
 	otelpg "github.com/Bugs5382/go-postgres/otel"
+	workloadauth "github.com/Bugs5382/go-workload-identity"
 	auditv1 "github.com/Sneakers-PAM/sneakers-identity/gen/go/thirdparty/audit/v1"
 	"github.com/Sneakers-PAM/sneakers-identity/internal/audit"
 	"github.com/Sneakers-PAM/sneakers-identity/internal/config"
@@ -23,7 +24,6 @@ import (
 	"github.com/Sneakers-PAM/sneakers-identity/internal/kratos"
 	"github.com/Sneakers-PAM/sneakers-identity/internal/secrets"
 	"github.com/Sneakers-PAM/sneakers-identity/internal/server"
-	"github.com/Sneakers-PAM/sneakers-identity/internal/workloadauth"
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
@@ -194,7 +194,7 @@ func main() { //nolint:gocognit,gocyclo // wiring/bootstrap complexity
 	// Callers are authenticated by their workload identity and checked against
 	// grpcsvc.CallerPolicy: the gateway on every method, notify on its reads.
 	var serverOpts []grpc.ServerOption
-	waCfg, waOn, err := workloadauth.ServerConfigFromEnv(os.Getenv)
+	waCfg, waOn, err := server.WorkloadConfigFromEnv(os.Getenv)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("workload auth")
 	}
