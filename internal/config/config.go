@@ -18,9 +18,11 @@ type Config struct {
 
 func Load() (Config, error) {
 	c := Config{
-		DatabaseDSN:  os.Getenv("DATABASE_DSN"),
-		GRPCPort:     getOr("GRPC_PORT", "9090"),
-		OTLPEndpoint: getOr("OTEL_EXPORTER_OTLP_ENDPOINT", "localhost:4317"),
+		DatabaseDSN: os.Getenv("DATABASE_DSN"),
+		GRPCPort:    getOr("GRPC_PORT", "9090"),
+		// Empty means no collector: otel.Init runs without an exporter instead
+		// of retrying a default localhost address that is rarely there.
+		OTLPEndpoint: getOr("OTEL_EXPORTER_OTLP_ENDPOINT", ""),
 		AuditAddr:    os.Getenv("AUDIT_ADDR"),
 	}
 	if c.DatabaseDSN == "" {
