@@ -50,6 +50,51 @@ message GetGroupResponse { Group group = 1; }
 message CreateGroupRequest  { string name = 1; string acting_user_id = 2; }
 message CreateGroupResponse { Group group = 1; }
 
+// Orphan groups are directory groups with no members. A site admin lists them
+// and prunes the ones nothing needs. Identity checks its own references: the
+// service-account bounds (oidc_allowed_groups) and the scopes of live API
+// tokens. A reference names a group by its ID, or by its exact name or slug
+// when that isn't another group's ID. Vault RACI rules name groups too and
+// identity can't see them: a RACI rule naming a pruned group matches nothing
+// afterwards (fail closed). Every response carries that warning.
+message OrphanGroupServiceAccountRef { string id = 1; string name = 2; }
+message OrphanGroupTokenRef { string id = 1; string service_account_id = 2; }
+message OrphanGroup {
+  string id = 1;
+  string name = 2;
+  repeated OrphanGroupServiceAccountRef service_accounts = 3; // bounds that name the group
+  repeated OrphanGroupTokenRef api_tokens = 4;                // live tokens whose scope names it
+}
+
+// ListOrphanGroups needs acting_user_id to be an enabled site admin or root.
+message ListOrphanGroupsRequest { string acting_user_id = 1; }
+message ListOrphanGroupsResponse {
+  repeated OrphanGroup groups = 1;
+  string warning = 2;
+}
+
+// PruneOrphanGroups deletes the named groups in one transaction, all or
+// nothing, after the same site-admin check. It refuses with
+// FAILED_PRECONDITION, changing nothing, if any id is unknown, still has a
+// member at call time, or (without force) is still referenced by a
+// service-account bound or a live token. With force those references are
+// removed in the same transaction, and the response lists every change.
+message PruneOrphanGroupsRequest {
+  repeated string ids = 1;
+  bool force = 2;
+  string acting_user_id = 3;
+}
+message PrunedGroup {
+  string id = 1;
+  string name = 2;
+  repeated OrphanGroupServiceAccountRef service_accounts_updated = 3;
+  repeated OrphanGroupTokenRef api_tokens_updated = 4;
+}
+message PruneOrphanGroupsResponse {
+  repeated PrunedGroup pruned = 1;
+  string warning = 2;
+}
+
 // Typeahead search over users (name/email substring, case-insensitive);
 // limit <= 0 means server-default page size.
 message SearchUsersRequest { string query = 1; int32 limit = 2; }
@@ -533,6 +578,9 @@ service IdentityService {
   rpc GetGroup(GetGroupRequest) returns (GetGroupResponse);
   // Admin-gated: create a new directory group.
   rpc CreateGroup(CreateGroupRequest) returns (CreateGroupResponse);
+  // Site admin: list groups with no members, and prune them.
+  rpc ListOrphanGroups(ListOrphanGroupsRequest) returns (ListOrphanGroupsResponse);
+  rpc PruneOrphanGroups(PruneOrphanGroupsRequest) returns (PruneOrphanGroupsResponse);
   rpc SearchUsers(SearchUsersRequest) returns (SearchUsersResponse);
   rpc ResolveUserLabels(ResolveUserLabelsRequest) returns (ResolveUserLabelsResponse);
 

@@ -27,6 +27,8 @@ const (
 	IdentityService_ListGroups_FullMethodName                    = "/sneakers.identity.v1.IdentityService/ListGroups"
 	IdentityService_GetGroup_FullMethodName                      = "/sneakers.identity.v1.IdentityService/GetGroup"
 	IdentityService_CreateGroup_FullMethodName                   = "/sneakers.identity.v1.IdentityService/CreateGroup"
+	IdentityService_ListOrphanGroups_FullMethodName              = "/sneakers.identity.v1.IdentityService/ListOrphanGroups"
+	IdentityService_PruneOrphanGroups_FullMethodName             = "/sneakers.identity.v1.IdentityService/PruneOrphanGroups"
 	IdentityService_SearchUsers_FullMethodName                   = "/sneakers.identity.v1.IdentityService/SearchUsers"
 	IdentityService_ResolveUserLabels_FullMethodName             = "/sneakers.identity.v1.IdentityService/ResolveUserLabels"
 	IdentityService_PreCreateLocalUser_FullMethodName            = "/sneakers.identity.v1.IdentityService/PreCreateLocalUser"
@@ -94,6 +96,9 @@ type IdentityServiceClient interface {
 	GetGroup(ctx context.Context, in *GetGroupRequest, opts ...grpc.CallOption) (*GetGroupResponse, error)
 	// Admin-gated: create a new directory group.
 	CreateGroup(ctx context.Context, in *CreateGroupRequest, opts ...grpc.CallOption) (*CreateGroupResponse, error)
+	// Site admin: list groups with no members, and prune them.
+	ListOrphanGroups(ctx context.Context, in *ListOrphanGroupsRequest, opts ...grpc.CallOption) (*ListOrphanGroupsResponse, error)
+	PruneOrphanGroups(ctx context.Context, in *PruneOrphanGroupsRequest, opts ...grpc.CallOption) (*PruneOrphanGroupsResponse, error)
 	SearchUsers(ctx context.Context, in *SearchUsersRequest, opts ...grpc.CallOption) (*SearchUsersResponse, error)
 	ResolveUserLabels(ctx context.Context, in *ResolveUserLabelsRequest, opts ...grpc.CallOption) (*ResolveUserLabelsResponse, error)
 	// Provisioning for real logins.
@@ -243,6 +248,26 @@ func (c *identityServiceClient) CreateGroup(ctx context.Context, in *CreateGroup
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(CreateGroupResponse)
 	err := c.cc.Invoke(ctx, IdentityService_CreateGroup_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *identityServiceClient) ListOrphanGroups(ctx context.Context, in *ListOrphanGroupsRequest, opts ...grpc.CallOption) (*ListOrphanGroupsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListOrphanGroupsResponse)
+	err := c.cc.Invoke(ctx, IdentityService_ListOrphanGroups_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *identityServiceClient) PruneOrphanGroups(ctx context.Context, in *PruneOrphanGroupsRequest, opts ...grpc.CallOption) (*PruneOrphanGroupsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PruneOrphanGroupsResponse)
+	err := c.cc.Invoke(ctx, IdentityService_PruneOrphanGroups_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -812,6 +837,9 @@ type IdentityServiceServer interface {
 	GetGroup(context.Context, *GetGroupRequest) (*GetGroupResponse, error)
 	// Admin-gated: create a new directory group.
 	CreateGroup(context.Context, *CreateGroupRequest) (*CreateGroupResponse, error)
+	// Site admin: list groups with no members, and prune them.
+	ListOrphanGroups(context.Context, *ListOrphanGroupsRequest) (*ListOrphanGroupsResponse, error)
+	PruneOrphanGroups(context.Context, *PruneOrphanGroupsRequest) (*PruneOrphanGroupsResponse, error)
 	SearchUsers(context.Context, *SearchUsersRequest) (*SearchUsersResponse, error)
 	ResolveUserLabels(context.Context, *ResolveUserLabelsRequest) (*ResolveUserLabelsResponse, error)
 	// Provisioning for real logins.
@@ -931,6 +959,12 @@ func (UnimplementedIdentityServiceServer) GetGroup(context.Context, *GetGroupReq
 }
 func (UnimplementedIdentityServiceServer) CreateGroup(context.Context, *CreateGroupRequest) (*CreateGroupResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method CreateGroup not implemented")
+}
+func (UnimplementedIdentityServiceServer) ListOrphanGroups(context.Context, *ListOrphanGroupsRequest) (*ListOrphanGroupsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListOrphanGroups not implemented")
+}
+func (UnimplementedIdentityServiceServer) PruneOrphanGroups(context.Context, *PruneOrphanGroupsRequest) (*PruneOrphanGroupsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method PruneOrphanGroups not implemented")
 }
 func (UnimplementedIdentityServiceServer) SearchUsers(context.Context, *SearchUsersRequest) (*SearchUsersResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method SearchUsers not implemented")
@@ -1204,6 +1238,42 @@ func _IdentityService_CreateGroup_Handler(srv interface{}, ctx context.Context, 
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(IdentityServiceServer).CreateGroup(ctx, req.(*CreateGroupRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IdentityService_ListOrphanGroups_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListOrphanGroupsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IdentityServiceServer).ListOrphanGroups(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IdentityService_ListOrphanGroups_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IdentityServiceServer).ListOrphanGroups(ctx, req.(*ListOrphanGroupsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IdentityService_PruneOrphanGroups_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PruneOrphanGroupsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IdentityServiceServer).PruneOrphanGroups(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IdentityService_PruneOrphanGroups_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IdentityServiceServer).PruneOrphanGroups(ctx, req.(*PruneOrphanGroupsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -2224,6 +2294,14 @@ var IdentityService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CreateGroup",
 			Handler:    _IdentityService_CreateGroup_Handler,
+		},
+		{
+			MethodName: "ListOrphanGroups",
+			Handler:    _IdentityService_ListOrphanGroups_Handler,
+		},
+		{
+			MethodName: "PruneOrphanGroups",
+			Handler:    _IdentityService_PruneOrphanGroups_Handler,
 		},
 		{
 			MethodName: "SearchUsers",
