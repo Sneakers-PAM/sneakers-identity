@@ -6,6 +6,7 @@ package server
 import (
 	"context"
 	"errors"
+	"sync"
 	"testing"
 
 	workloadauth "github.com/Bugs5382/go-workload-identity"
@@ -13,9 +14,15 @@ import (
 
 // fakeReadinessVerifier is a fake behind the ReadinessVerifier interface, not
 // a mock of go-workload-identity's own Verifier.
-type fakeReadinessVerifier struct{ err error }
+// Its answer can change while the background refresh reads it.
+type fakeReadinessVerifier struct {
+	mu  sync.Mutex
+	err error
+}
 
-func (f *fakeReadinessVerifier) Ready() error { return f.err }
+func (f *fakeReadinessVerifier) set(err error) { f.mu.Lock(); f.err = err; f.mu.Unlock() }
+
+func (f *fakeReadinessVerifier) Ready() error { f.mu.Lock(); defer f.mu.Unlock(); return f.err }
 
 func TestWorkloadIdentity_NotReadyUntilKeySetLoads(t *testing.T) {
 	dep := WorkloadIdentity(&fakeReadinessVerifier{err: workloadauth.ErrUnavailable})

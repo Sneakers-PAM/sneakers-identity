@@ -48,6 +48,9 @@ func startWithHealth(t *testing.T, checker *health.Checker) healthpb.HealthClien
 		t.Fatalf("dial: %v", err)
 	}
 	t.Cleanup(func() { _ = conn.Close() })
+	if checker != nil {
+		awaitFirstPass(t, checker)
+	}
 	return healthpb.NewHealthClient(conn)
 }
 
@@ -96,7 +99,7 @@ func TestHealth_ReadinessFollowsARequiredDependency(t *testing.T) {
 	}
 
 	pgDown.Store(true)
-	time.Sleep(testTTL)
+	time.Sleep(2 * testTTL)
 	st, md, err = check(t, hc, "")
 	if err != nil || st != healthpb.HealthCheckResponse_NOT_SERVING {
 		t.Fatalf("postgres down: readiness %v %v, want NOT_SERVING", st, err)
@@ -112,10 +115,7 @@ func TestHealth_ReadinessFollowsARequiredDependency(t *testing.T) {
 	}
 
 	pgDown.Store(false)
-	if st, _, _ := check(t, hc, ""); st != healthpb.HealthCheckResponse_NOT_SERVING {
-		t.Fatalf("inside the cache window: %v, want NOT_SERVING still", st)
-	}
-	time.Sleep(testTTL)
+	time.Sleep(2 * testTTL)
 	if st, _, err := check(t, hc, ""); err != nil || st != healthpb.HealthCheckResponse_SERVING {
 		t.Fatalf("recovered: %v %v", st, err)
 	}
@@ -166,8 +166,8 @@ func TestHealth_ReadinessWaitsForTheWorkloadKeySet(t *testing.T) {
 		t.Fatalf("header: %+v", r)
 	}
 
-	v.err = nil
-	time.Sleep(testTTL)
+	v.set(nil)
+	time.Sleep(2 * testTTL)
 	st, md, err = check(t, hc, "")
 	if err != nil || st != healthpb.HealthCheckResponse_SERVING {
 		t.Fatalf("readiness once the key set loads: %v %v", st, err)

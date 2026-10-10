@@ -46,6 +46,12 @@ pod that can't serve it; liveness (service `liveness`) never looks at a dependen
 doesn't restart every pod. The kubelet's gRPC liveness probe has to ask for service `liveness`;
 that is set in the sneakers-release chart.
 
+At startup identity waits for PostgreSQL rather than exiting: while it (or its DNS name) isn't
+reachable, the migrations and the connection are retried with backoff (500 ms doubling to 15 s,
+with jitter), one `dependency not reachable yet; retrying` warning per attempt, and the health check
+already answers (liveness `SERVING`, readiness `NOT_SERVING`). Only an error that retrying can't
+fix, such as bad credentials or a failing migration, stops the boot.
+
 | Dependency | Required | Check | Why |
 |---|---|---|---|
 | `postgres` | yes | a ping on the pool | It holds the directory: users, groups, roles, factors and tokens. |
