@@ -13,8 +13,6 @@ import (
 	"github.com/Bugs5382/go-buildinfo/health"
 	log "github.com/Bugs5382/go-log"
 	otel "github.com/Bugs5382/go-otel"
-	postgres "github.com/Bugs5382/go-postgres"
-	otelpg "github.com/Bugs5382/go-postgres/otel"
 	workloadauth "github.com/Bugs5382/go-workload-identity"
 	auditv1 "github.com/Sneakers-PAM/sneakers-identity/gen/go/thirdparty/audit/v1"
 	"github.com/Sneakers-PAM/sneakers-identity/internal/audit"
@@ -61,6 +59,16 @@ func main() { //nolint:gocognit,gocyclo // wiring/bootstrap complexity
 		}
 	}()
 
+	svcLog := log.NewLogger(serviceName)
+	// The port answers health from here on, while the boot waits for
+	// Postgres and runs the migrations: liveness SERVING, so the startup probe
+	// passes on a slow boot, and readiness NOT_SERVING with postgres listed
+	// down until it is reached.
+	boot, err := server.StartBootHealth(cfg.GRPCPort, svcLog, "postgres")
+	if err != nil {
+		logger.Fatal().Err(err).Msg("boot health")
+	}
+
 	migrationsDir := os.Getenv("MIGRATIONS_DIR")
 	if migrationsDir == "" {
 		migrationsDir = "migrations"
@@ -73,12 +81,14 @@ func main() { //nolint:gocognit,gocyclo // wiring/bootstrap complexity
 	if migrateDSN == "" {
 		migrateDSN = cfg.DatabaseDSN
 	}
-	if err := postgres.Migrate(migrateDSN, migrationsDir); err != nil {
-		logger.Fatal().Err(err).Msg("migrate")
-	}
-	db, err := postgres.New(ctx, cfg.DatabaseDSN, otelpg.WithTracing())
+	db, err := openPostgres(ctx, boot, migrateDSN, migrationsDir, cfg.DatabaseDSN)
 	if err != nil {
-		logger.Fatal().Err(err).Msg("db connect")
+		if ctx.Err() != nil {
+			boot.Stop()
+			logger.Info().Msg("stopped while waiting for postgres")
+			return
+		}
+		logger.Fatal().Err(err).Msg("postgres")
 	}
 	defer db.Close()
 
@@ -150,7 +160,6 @@ func main() { //nolint:gocognit,gocyclo // wiring/bootstrap complexity
 		logger.Warn().Msg("webauthn: disabled (WEBAUTHN_RP_ID unset/'-')")
 	}
 
-	svcLog := log.NewLogger(serviceName)
 	// Ory Kratos holds the credentials: users are provisioned as Kratos
 	// identities and their row stores the identity id as the login subject.
 	adminURL := getOr("KRATOS_ADMIN_URL", "http://sneakers-kratos:4434")
@@ -229,6 +238,7 @@ func main() { //nolint:gocognit,gocyclo // wiring/bootstrap complexity
 	if err != nil {
 		logger.Fatal().Err(err).Msg("health checker")
 	}
+	boot.Stop()
 	if err := server.RunWithHealth(ctx, cfg.GRPCPort, svcLog, checker, srv.RegisterOn, serverOpts...); err != nil {
 		logger.Fatal().Err(err).Msg("server exited")
 	}

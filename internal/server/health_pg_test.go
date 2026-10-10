@@ -124,7 +124,7 @@ func TestHealth_PostgresGoesAwayAndComesBack(t *testing.T) {
 		t.Fatalf("start: %v %v", st, err)
 	}
 	proxy.Cut()
-	time.Sleep(testTTL)
+	time.Sleep(2 * testTTL)
 	st, md, err := check(t, hc, "")
 	if err != nil || st != healthpb.HealthCheckResponse_NOT_SERVING {
 		t.Fatalf("postgres gone: %v %v, want NOT_SERVING", st, err)

@@ -20,9 +20,14 @@ two names:
   dependencies.
 
 Any other name gets `NotFound`. `Watch` streams the serving status of either name as it changes.
-Each dependency is checked with a 1-second timeout and the result is reused for 5 seconds, so
-probes don't load the dependencies; readiness recovers on its own once the dependency is back and
-that window has passed.
+The dependencies are checked in the background every 5 seconds, each with a 1-second timeout, and
+a health check only reads the last result, so a probe never waits on a dependency and probes don't
+load them; readiness recovers on its own at the next pass after the dependency is back. Right after
+the start, before the first pass, each dependency is `down` with the class `pending`.
+
+The health check answers from the start of the boot, before the migrations: while identity is still
+reaching PostgreSQL, `liveness` is `SERVING` and readiness `NOT_SERVING`, with `postgres` reported
+`down` in `sneakers-health`. The full server takes the port over once PostgreSQL answers.
 
 Every health check's answer carries the build in its response headers: `sneakers-version` (the
 image tag, `dev` when unstamped) and `sneakers-commit` (the source commit, `unknown` when neither
