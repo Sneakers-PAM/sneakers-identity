@@ -88,8 +88,14 @@ the gateway sends through `SendTransactionalEmail`.
 | `SMTP_PORT` | `1025` | SMTP port. |
 | `SMTP_FROM` | `no-reply@example.org` | Sender address. Set your own. |
 | `SMTP_USER`, `SMTP_PASS` | (unset) | SMTP AUTH credentials; AUTH is used only when `SMTP_USER` is set. |
-| `SMTP_TLS` | `false` | Upgrade the connection with STARTTLS. |
-| `SMTP_TLS_INSECURE` | `false` | Skip certificate verification on STARTTLS, for a trusted relay whose certificate has no SANs. The connection stays encrypted. |
+| `SMTP_TLS_MODE` | (unset) | How the connection is protected: `none` (plain, the credentials too), `starttls` (upgraded with STARTTLS before AUTH; a relay that doesn't offer it is refused) or `tls` (TLS from the first byte, usually port 465). Unset, `SMTP_TLS` decides. Any other value stops the service at start. |
+| `SMTP_TLS` | `false` | Used only while `SMTP_TLS_MODE` is unset: `true` means `starttls`, anything else `none`. |
+| `SMTP_TLS_INSECURE` | `false` | Skip the relay's certificate verification (`starttls` and `tls`), for a trusted relay whose certificate has no SANs. The connection stays encrypted. |
+| `SMTP_CA_PEM` | (unset) | One or more PEM certificates trusted for the relay, on top of the system roots. A value with no certificate in it stops the service at start. |
+
+AUTH uses PLAIN, or LOGIN when the relay offers only that. With `SMTP_TLS_MODE=none`, or with
+`SMTP_TLS_INSECURE=true`, mail and the relay password are sent unencrypted or to a relay that
+isn't verified; the service logs a warning at start.
 | `OTP_DEV_ECHO` | (unset) | `1` or `true` logs every minted code. Development only; never set it in production. |
 
 ## Tools
@@ -108,7 +114,7 @@ WEBAUTHN_RP_ID=sneakers.example.org
 WEBAUTHN_RP_ORIGINS=https://sneakers.example.org
 SMTP_HOST=smtp.example.org
 SMTP_PORT=587
-SMTP_TLS=true
+SMTP_TLS_MODE=starttls
 SMTP_FROM=no-reply@example.org
 AUDIT_ADDR=sneakers-audit:9194
 WORKLOAD_TOKEN_FILE=/var/run/secrets/sneakers/token
