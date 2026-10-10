@@ -105,8 +105,17 @@ func main() { //nolint:gocognit,gocyclo // wiring/bootstrap complexity
 	// a dev-only ergonomic and must never be enabled in prod.
 	var sender email.Sender
 	if os.Getenv("SMTP_HOST") != "" {
-		sender = email.New(email.LoadConfig())
-		logger.Info().Msg("mfa: email OTP relay configured (SMTP_HOST)")
+		cfg := email.LoadConfig()
+		if err := cfg.Check(); err != nil {
+			logger.Fatal().Err(err).Msg("smtp relay")
+		}
+		sender = email.New(cfg)
+		logger.Info().Str("tls_mode", cfg.TLSMode).Bool("verify", !cfg.TLSInsecure).Bool("custom_ca", cfg.CAPEM != "").Bool("auth", cfg.User != "").
+			Msg("mfa: email OTP relay configured (SMTP_HOST)")
+		if !cfg.Encrypted() || cfg.TLSInsecure {
+			logger.Warn().Str("tls_mode", cfg.TLSMode).Bool("verify", !cfg.TLSInsecure).
+				Msg("smtp: mail, and the relay password when one is set, go to the relay unencrypted or to an unverified relay")
+		}
 	} else {
 		logger.Warn().Msg("mfa: email OTP relay not configured (SMTP_HOST unset) — codes are dev-echoed only when OTP_DEV_ECHO=1")
 	}
