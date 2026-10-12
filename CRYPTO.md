@@ -1,9 +1,13 @@
 # Export classification
 
-Sneakers-PAM uses only standard, publicly documented cryptographic algorithms and protocols: TLS
-1.2/1.3; SSH and SSH certificates (Ed25519, RSA, ECDSA); AES-256-GCM and AES-XTS; TPM 2.0 sealing;
-age (X25519, ChaCha20-Poly1305, HKDF, scrypt); Ed25519, ECDSA and RSA signatures; Argon2id, HKDF,
-HMAC and SHA-256; and TOTP (RFC 6238). None of it is non-standard or proprietary cryptography.
+This repository uses only standard, publicly documented cryptographic algorithms and protocols:
+TOTP (RFC 6238) via pquerna/otp for second-factor enrollment and verification; WebAuthn/FIDO2
+passkey registration and assertion verification (ECDSA, RSA and Ed25519 signatures per the
+WebAuthn spec) via go-webauthn; AES-256-GCM to encrypt stored secrets; TLS and X.509 certificate
+verification for SMTP STARTTLS when sending email one-time-passcodes; SHA-256 and crypto/rand for
+one-time-passcode hashing and digit generation; and RS256/ES256 JWT verification of Kubernetes
+projected ServiceAccount tokens (go-workload-identity) for service-to-service calls. None of it is
+non-standard or proprietary cryptography.
 
 This repository's source code is public, so under the US Export Administration Regulations (15
 CFR 742.15(b)) it is not subject to the EAR: no classification, licence or notification applies to
