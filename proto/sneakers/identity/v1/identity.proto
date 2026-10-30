@@ -481,6 +481,12 @@ message ListUserTokensResponse { repeated UserToken tokens = 1; }
 message RevokeUserTokenRequest  { string id = 1; string user_id = 2; string acting_user_id = 3; }
 message RevokeUserTokenResponse { UserToken meta = 1; }
 
+// Deletes a token that is already revoked. user_id must own it. A token that
+// isn't revoked, even an expired one, is FailedPrecondition and stays in
+// place; an unknown id or another user's token is NotFound.
+message DeleteUserTokenRequest  { string id = 1; string user_id = 2; string acting_user_id = 3; }
+message DeleteUserTokenResponse {}
+
 // valid=false does not say why (unknown, revoked, expired or disabled user).
 // group_names are the owner's CURRENT directory groups, resolved on this call.
 message VerifyUserTokenRequest  { string token = 1; }
@@ -675,6 +681,7 @@ service IdentityService {
   rpc MintUserToken(MintUserTokenRequest) returns (MintUserTokenResponse);
   rpc ListUserTokens(ListUserTokensRequest) returns (ListUserTokensResponse);
   rpc RevokeUserToken(RevokeUserTokenRequest) returns (RevokeUserTokenResponse);
+  rpc DeleteUserToken(DeleteUserTokenRequest) returns (DeleteUserTokenResponse);
   rpc VerifyUserToken(VerifyUserTokenRequest) returns (VerifyUserTokenResponse);
   // Revokes every live personal token of one client kind. Only the
   // appliance may call it, as itself: turning the MCP off revokes every

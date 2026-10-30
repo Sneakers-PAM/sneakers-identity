@@ -78,6 +78,7 @@ const (
 	IdentityService_MintUserToken_FullMethodName                 = "/sneakers.identity.v1.IdentityService/MintUserToken"
 	IdentityService_ListUserTokens_FullMethodName                = "/sneakers.identity.v1.IdentityService/ListUserTokens"
 	IdentityService_RevokeUserToken_FullMethodName               = "/sneakers.identity.v1.IdentityService/RevokeUserToken"
+	IdentityService_DeleteUserToken_FullMethodName               = "/sneakers.identity.v1.IdentityService/DeleteUserToken"
 	IdentityService_VerifyUserToken_FullMethodName               = "/sneakers.identity.v1.IdentityService/VerifyUserToken"
 	IdentityService_RevokeTokensByClientKind_FullMethodName      = "/sneakers.identity.v1.IdentityService/RevokeTokensByClientKind"
 	IdentityService_SetUserDisabled_FullMethodName               = "/sneakers.identity.v1.IdentityService/SetUserDisabled"
@@ -182,6 +183,7 @@ type IdentityServiceClient interface {
 	MintUserToken(ctx context.Context, in *MintUserTokenRequest, opts ...grpc.CallOption) (*MintUserTokenResponse, error)
 	ListUserTokens(ctx context.Context, in *ListUserTokensRequest, opts ...grpc.CallOption) (*ListUserTokensResponse, error)
 	RevokeUserToken(ctx context.Context, in *RevokeUserTokenRequest, opts ...grpc.CallOption) (*RevokeUserTokenResponse, error)
+	DeleteUserToken(ctx context.Context, in *DeleteUserTokenRequest, opts ...grpc.CallOption) (*DeleteUserTokenResponse, error)
 	VerifyUserToken(ctx context.Context, in *VerifyUserTokenRequest, opts ...grpc.CallOption) (*VerifyUserTokenResponse, error)
 	// Revokes every live personal token of one client kind. Only the
 	// appliance may call it, as itself: turning the MCP off revokes every
@@ -767,6 +769,16 @@ func (c *identityServiceClient) RevokeUserToken(ctx context.Context, in *RevokeU
 	return out, nil
 }
 
+func (c *identityServiceClient) DeleteUserToken(ctx context.Context, in *DeleteUserTokenRequest, opts ...grpc.CallOption) (*DeleteUserTokenResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteUserTokenResponse)
+	err := c.cc.Invoke(ctx, IdentityService_DeleteUserToken_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *identityServiceClient) VerifyUserToken(ctx context.Context, in *VerifyUserTokenRequest, opts ...grpc.CallOption) (*VerifyUserTokenResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(VerifyUserTokenResponse)
@@ -923,6 +935,7 @@ type IdentityServiceServer interface {
 	MintUserToken(context.Context, *MintUserTokenRequest) (*MintUserTokenResponse, error)
 	ListUserTokens(context.Context, *ListUserTokensRequest) (*ListUserTokensResponse, error)
 	RevokeUserToken(context.Context, *RevokeUserTokenRequest) (*RevokeUserTokenResponse, error)
+	DeleteUserToken(context.Context, *DeleteUserTokenRequest) (*DeleteUserTokenResponse, error)
 	VerifyUserToken(context.Context, *VerifyUserTokenRequest) (*VerifyUserTokenResponse, error)
 	// Revokes every live personal token of one client kind. Only the
 	// appliance may call it, as itself: turning the MCP off revokes every
@@ -1112,6 +1125,9 @@ func (UnimplementedIdentityServiceServer) ListUserTokens(context.Context, *ListU
 }
 func (UnimplementedIdentityServiceServer) RevokeUserToken(context.Context, *RevokeUserTokenRequest) (*RevokeUserTokenResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method RevokeUserToken not implemented")
+}
+func (UnimplementedIdentityServiceServer) DeleteUserToken(context.Context, *DeleteUserTokenRequest) (*DeleteUserTokenResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeleteUserToken not implemented")
 }
 func (UnimplementedIdentityServiceServer) VerifyUserToken(context.Context, *VerifyUserTokenRequest) (*VerifyUserTokenResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method VerifyUserToken not implemented")
@@ -2160,6 +2176,24 @@ func _IdentityService_RevokeUserToken_Handler(srv interface{}, ctx context.Conte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _IdentityService_DeleteUserToken_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteUserTokenRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IdentityServiceServer).DeleteUserToken(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IdentityService_DeleteUserToken_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IdentityServiceServer).DeleteUserToken(ctx, req.(*DeleteUserTokenRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _IdentityService_VerifyUserToken_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(VerifyUserTokenRequest)
 	if err := dec(in); err != nil {
@@ -2498,6 +2532,10 @@ var IdentityService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RevokeUserToken",
 			Handler:    _IdentityService_RevokeUserToken_Handler,
+		},
+		{
+			MethodName: "DeleteUserToken",
+			Handler:    _IdentityService_DeleteUserToken_Handler,
 		},
 		{
 			MethodName: "VerifyUserToken",

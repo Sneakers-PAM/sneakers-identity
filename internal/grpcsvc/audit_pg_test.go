@@ -419,6 +419,13 @@ func TestPGAuditUserTokens(t *testing.T) {
 		t.Fatalf("RevokeUserToken: %v", err)
 	}
 	wantEvent(t, rec.only(t), audit.ActionUserTokenRevoke, "u-ada", tokID, map[string]string{"user_id": "u-ada"})
+
+	if _, err := s.DeleteUserToken(ctx, &identityv1.DeleteUserTokenRequest{Id: tokID, UserId: "u-ada"}); err != nil {
+		t.Fatalf("DeleteUserToken: %v", err)
+	}
+	del := rec.only(t)
+	wantEvent(t, del, audit.ActionUserTokenDelete, "u-ada", tokID, map[string]string{"user_id": "u-ada"})
+	assertNoSecretIn(t, []audit.Event{del}, minted.GetToken())
 }
 
 // An audit service that is down never fails the change it records.
