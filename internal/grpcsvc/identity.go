@@ -217,7 +217,7 @@ func (s *Server) CreateGroup(ctx context.Context, req *identityv1.CreateGroupReq
 }
 
 // SearchUsers backs the search-as-you-type user picker: substring match on
-// name/email, case-insensitive, capped and ordered for predictable UI paging.
+// name, email or username, case-insensitive, capped and ordered for predictable UI paging.
 func (s *Server) SearchUsers(ctx context.Context, req *identityv1.SearchUsersRequest) (*identityv1.SearchUsersResponse, error) {
 	query := strings.TrimSpace(req.GetQuery())
 	if query == "" {
@@ -231,7 +231,7 @@ func (s *Server) SearchUsers(ctx context.Context, req *identityv1.SearchUsersReq
 		limit = 50
 	}
 	rows, err := s.db.Query(ctx,
-		`SELECT `+userCols+` FROM users WHERE name ILIKE '%'||$1||'%' OR email ILIKE '%'||$1||'%' ORDER BY name LIMIT $2`,
+		`SELECT `+userCols+` FROM users WHERE name ILIKE '%'||$1||'%' OR email ILIKE '%'||$1||'%' OR username ILIKE '%'||$1||'%' ORDER BY name LIMIT $2`,
 		query, limit)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "search users: %v", err)
