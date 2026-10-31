@@ -49,3 +49,35 @@ func TestPGResolveUserByEmail(t *testing.T) {
 		t.Fatalf("miss must not create a user row, found %d", count)
 	}
 }
+
+// TestPGSearchUsers covers the picker's search against a real Postgres, with a
+// user whose name, username and email all differ.
+func TestPGSearchUsers(t *testing.T) {
+	ctx := context.Background()
+	s := newPGServer(t)
+
+	if _, err := s.db.Exec(ctx,
+		`INSERT INTO users (id, name, email, roles, is_root, subject, username)
+		 VALUES ($1,$2,$3,$4,false,'',$5)`,
+		"usr-search-1", "Ada Lovelace", "countess@example.org", []string{"user"}, "alov99"); err != nil {
+		t.Fatalf("seed: %v", err)
+	}
+
+	for _, q := range []string{"ada", "LOVELACE", "ada love", "ALOV", "lov99", "countess@"} {
+		resp, err := s.SearchUsers(ctx, &identityv1.SearchUsersRequest{Query: q})
+		if err != nil {
+			t.Fatalf("SearchUsers(%q): %v", q, err)
+		}
+		if len(resp.GetUsers()) != 1 || resp.GetUsers()[0].GetId() != "usr-search-1" {
+			t.Fatalf("SearchUsers(%q) = %v, want the one user", q, resp.GetUsers())
+		}
+	}
+
+	resp, err := s.SearchUsers(ctx, &identityv1.SearchUsersRequest{Query: "nobody"})
+	if err != nil {
+		t.Fatalf("SearchUsers: %v", err)
+	}
+	if len(resp.GetUsers()) != 0 {
+		t.Fatalf("no match: got %v", resp.GetUsers())
+	}
+}
