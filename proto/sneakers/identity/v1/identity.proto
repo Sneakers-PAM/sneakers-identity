@@ -238,12 +238,15 @@ message UserAdGroupsResponse {
 
 // ResolveUserContext returns the user plus their EFFECTIVE group names (the
 // names of the directory groups they are a member of, managed in the Sneakers
-// admin UI) and roles, keyed by login subject. This is what the gateway
+// admin UI) and roles, keyed by login subject or, for a user with no login
+// subject (a pre-provisioned SSO user), by user id. This is what the gateway
 // uses to build the request ActorContext. AD/claim-derived groups are never
 // included.
 message ResolveUserContextRequest {
   reserved 1;
+  // Exactly one of subject and user_id must be set.
   string subject = 2;
+  string user_id = 3;
 }
 message ResolveUserContextResponse {
   User user = 1;

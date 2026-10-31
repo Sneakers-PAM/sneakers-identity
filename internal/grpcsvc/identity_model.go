@@ -476,16 +476,9 @@ func (s *Server) UserAdGroups(context.Context, *identityv1.UserAdGroupsRequest) 
 // gateway consumes to build the request ActorContext. Nothing is derived from
 // federation claims.
 func (s *Server) ResolveUserContext(ctx context.Context, req *identityv1.ResolveUserContextRequest) (*identityv1.ResolveUserContextResponse, error) {
-	sub := strings.TrimSpace(req.GetSubject())
-	if sub == "" {
-		return nil, status.Error(codes.InvalidArgument, "subject is required")
-	}
-	u, err := s.getUserBySubject(ctx, sub)
+	u, err := s.userForContext(ctx, req)
 	if err != nil {
-		if errors.Is(err, postgres.ErrNoRows) {
-			return nil, status.Error(codes.NotFound, "user not found")
-		}
-		return nil, status.Errorf(codes.Internal, "resolve user: %v", err)
+		return nil, err
 	}
 	groupNames, groupIDs, err := s.userGroups(ctx, u.GetId())
 	if err != nil {
@@ -500,6 +493,34 @@ func (s *Server) ResolveUserContext(ctx context.Context, req *identityv1.Resolve
 }
 
 // --- helpers ---
+
+// userForContext finds the user a ResolveUserContext request names: by login
+// subject, or by user id for a user who has none. An id is never tried as a
+// subject, so one key can't reach the other's user.
+func (s *Server) userForContext(ctx context.Context, req *identityv1.ResolveUserContextRequest) (*identityv1.User, error) {
+	sub, id := strings.TrimSpace(req.GetSubject()), strings.TrimSpace(req.GetUserId())
+	var (
+		u   *identityv1.User
+		err error
+	)
+	switch {
+	case sub != "" && id != "":
+		return nil, status.Error(codes.InvalidArgument, "set subject or user_id, not both")
+	case sub != "":
+		u, err = s.getUserBySubject(ctx, sub)
+	case id != "":
+		u, err = s.getUserByID(ctx, id)
+	default:
+		return nil, status.Error(codes.InvalidArgument, "subject or user_id is required")
+	}
+	if errors.Is(err, postgres.ErrNoRows) {
+		return nil, status.Error(codes.NotFound, "user not found")
+	}
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "resolve user: %v", err)
+	}
+	return u, nil
+}
 
 // userGroups returns the names and ids of the user's directory groups, pair
 // for pair, ordered by name.

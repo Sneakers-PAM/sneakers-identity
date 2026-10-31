@@ -60,7 +60,7 @@ admin RPCs before calling identity; the recovery role is the one rule identity a
 | `AddGroupMember`, `RemoveGroupMember`, `ListGroupMembers`, `ListUserGroups` | Memberships. They live only in identity. |
 | `ListOrphanGroups`, `PruneOrphanGroups` | Site admin only (`acting_user_id`). List the groups with no members, with the service accounts and live API tokens that still name them, and delete the ones nothing needs. See [Orphan groups](#orphan-groups). |
 | `SetUserRoles`, `UpdateUser`, `SetUserDisabled` | Change a user's roles, profile (name, email, username) or disabled state. A disabled user can't sign in, and their personal tokens stop verifying. |
-| `ResolveUserContext` | The user, their group names and roles, keyed by login subject, with the groups' ids in the same order (`group_ids`). The gateway builds each request's actor from it, so a rule can name a group by name or by id. |
+| `ResolveUserContext` | The user, their group names and roles, keyed by login subject or, for a user with no login subject (a pre-provisioned SSO user), by `user_id`: exactly one of the two, or `InvalidArgument`. With the groups' ids in the same order (`group_ids`). The gateway builds each request's actor from it, so a rule can name a group by name or by id. |
 | `SetUserAdGroups`, `ListUsersByAdGroups`, `UserAdGroups` | Retired. Kept for wire compatibility: the first returns `Unimplemented`, the others return empty results. |
 
 Groups live only in identity, managed in the Sneakers admin console. Group names are unique
