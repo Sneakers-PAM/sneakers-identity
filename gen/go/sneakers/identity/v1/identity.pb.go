@@ -3076,12 +3076,15 @@ func (x *UserAdGroupsResponse) GetNames() []string {
 
 // ResolveUserContext returns the user plus their EFFECTIVE group names (the
 // names of the directory groups they are a member of, managed in the Sneakers
-// admin UI) and roles, keyed by login subject. This is what the gateway
+// admin UI) and roles, keyed by login subject or, for a user with no login
+// subject (a pre-provisioned SSO user), by user id. This is what the gateway
 // uses to build the request ActorContext. AD/claim-derived groups are never
 // included.
 type ResolveUserContextRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Subject       string                 `protobuf:"bytes,2,opt,name=subject,proto3" json:"subject,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Exactly one of subject and user_id must be set.
+	Subject       string `protobuf:"bytes,2,opt,name=subject,proto3" json:"subject,omitempty"`
+	UserId        string `protobuf:"bytes,3,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3119,6 +3122,13 @@ func (*ResolveUserContextRequest) Descriptor() ([]byte, []int) {
 func (x *ResolveUserContextRequest) GetSubject() string {
 	if x != nil {
 		return x.Subject
+	}
+	return ""
+}
+
+func (x *ResolveUserContextRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
 	}
 	return ""
 }
@@ -7520,9 +7530,10 @@ const file_sneakers_identity_v1_identity_proto_rawDesc = "" +
 	"\x13UserAdGroupsRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId:\x02\x18\x01\"0\n" +
 	"\x14UserAdGroupsResponse\x12\x14\n" +
-	"\x05names\x18\x01 \x03(\tR\x05names:\x02\x18\x01\";\n" +
+	"\x05names\x18\x01 \x03(\tR\x05names:\x02\x18\x01\"T\n" +
 	"\x19ResolveUserContextRequest\x12\x18\n" +
-	"\asubject\x18\x02 \x01(\tR\asubjectJ\x04\b\x01\x10\x02\"\xa0\x01\n" +
+	"\asubject\x18\x02 \x01(\tR\asubject\x12\x17\n" +
+	"\auser_id\x18\x03 \x01(\tR\x06userIdJ\x04\b\x01\x10\x02\"\xa0\x01\n" +
 	"\x1aResolveUserContextResponse\x12.\n" +
 	"\x04user\x18\x01 \x01(\v2\x1a.sneakers.identity.v1.UserR\x04user\x12\x1f\n" +
 	"\vgroup_names\x18\x02 \x03(\tR\n" +
