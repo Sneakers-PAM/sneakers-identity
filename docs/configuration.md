@@ -11,7 +11,7 @@ off and their RPCs answer `Unavailable`; the service still starts.
 | `MIGRATE_DSN` | `DATABASE_DSN` | Connection string for running migrations. Set it when the runtime DSN goes through a transaction-pooling proxy: migrations need a direct session (advisory locks, prepared statements). |
 | `MIGRATIONS_DIR` | `migrations` | Directory holding the migration files. The container image sets `/migrations`. |
 | `GRPC_PORT` | `9090` | TCP port the gRPC server listens on (all interfaces). |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | (none) | OTLP gRPC endpoint for traces and metrics (plaintext). Unset or empty runs without a collector: no export, no error log. |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | (none) | OTLP gRPC collector for traces and metrics, as a URL: `http://collector:4317` for plaintext, `https://collector:4317` for TLS. A bare `host:port` still connects as plaintext, but the OpenTelemetry SDK, which reads this variable too, logs `parse url` errors at start. Any other scheme stops the service at start. Unset or empty runs without a collector: no export, no error log. |
 | `LOG_LEVEL` | `info` | `trace`, `debug`, `info`, `warn`, `error`, `fatal`, `panic` or `disabled`. |
 | `LOG_FORMAT` | `json` | `json`, `console` (or `pretty`), or `both` (JSON on stdout, console on stderr). |
 
@@ -123,6 +123,6 @@ WORKLOAD_OIDC_CA_FILE=/var/run/secrets/tokens/ca.crt
 WORKLOAD_OIDC_BEARER_FILE=/var/run/secrets/tokens/token
 WORKLOAD_AUDIENCE=sneakers
 WORKLOAD_ALLOWED_SERVICEACCOUNTS=sneakers/sneakers-gateway,sneakers/sneakers-notify
-OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector.example.org:4317
+OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector.example.org:4317
 LOG_LEVEL=info
 ```
