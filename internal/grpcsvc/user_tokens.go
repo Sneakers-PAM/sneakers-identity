@@ -153,6 +153,39 @@ func (s *Server) RevokeUserToken(ctx context.Context, req *identityv1.RevokeUser
 	return &identityv1.RevokeUserTokenResponse{Meta: meta}, nil
 }
 
+// DeleteUserToken removes a token its owner has already revoked. The revoked
+// and owner checks live in the DELETE itself, so no concurrent change can slip
+// between a check and the removal; the read after it only picks the error.
+func (s *Server) DeleteUserToken(ctx context.Context, req *identityv1.DeleteUserTokenRequest) (*identityv1.DeleteUserTokenResponse, error) {
+	id, userID := req.GetId(), req.GetUserId()
+	lg := s.lg(ctx)
+	lg.Debug("deleting user token", log.F("token_id", id), log.F("user_id", userID))
+	tag, err := s.db.Exec(ctx, `DELETE FROM user_tokens WHERE id=$1 AND user_id=$2 AND revoked_at IS NOT NULL`, id, userID)
+	if err != nil {
+		lg.Error(err, "delete user token failed", log.F("token_id", id), log.F("user_id", userID))
+		return nil, status.Errorf(codes.Internal, "delete user token: %v", err)
+	}
+	if tag.RowsAffected() == 0 {
+		var exists bool
+		if err := s.db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM user_tokens WHERE id=$1 AND user_id=$2)`, id, userID).Scan(&exists); err != nil {
+			lg.Error(err, "delete user token failed", log.F("token_id", id), log.F("user_id", userID))
+			return nil, status.Errorf(codes.Internal, "delete user token: %v", err)
+		}
+		if !exists {
+			lg.Debug("user token delete refused: not found", log.F("token_id", id), log.F("user_id", userID))
+			return nil, status.Error(codes.NotFound, "token not found")
+		}
+		lg.Debug("user token delete refused: not revoked", log.F("token_id", id), log.F("user_id", userID))
+		return nil, status.Error(codes.FailedPrecondition, "token is not revoked")
+	}
+	lg.Info("user token deleted", log.F("token_id", id), log.F("user_id", userID))
+	s.record(ctx, audit.Event{
+		Action: audit.ActionUserTokenDelete, ActorUserID: actorOr(req.GetActingUserId(), userID), Subject: id,
+		Attributes: map[string]string{"user_id": userID},
+	})
+	return &identityv1.DeleteUserTokenResponse{}, nil
+}
+
 // VerifyUserToken answers valid=false identically for every failure so a
 // caller can't probe which tokens exist or why one stopped working.
 func (s *Server) VerifyUserToken(ctx context.Context, req *identityv1.VerifyUserTokenRequest) (*identityv1.VerifyUserTokenResponse, error) {

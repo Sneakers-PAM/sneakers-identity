@@ -7,6 +7,7 @@ import (
 	"context"
 	"slices"
 	"strings"
+	"sync"
 	"testing"
 
 	identityv1 "github.com/Sneakers-PAM/sneakers-identity/gen/go/sneakers/identity/v1"
@@ -143,6 +144,147 @@ func TestPGUserTokenRevokeIsOwnerChecked(t *testing.T) {
 	if verifyUserToken(ctx, t, s, minted.GetToken()).GetValid() {
 		t.Fatal("revoked token still verifies")
 	}
+}
+
+func userTokenCount(ctx context.Context, t *testing.T, s *Server, id string) int {
+	t.Helper()
+	var n int
+	if err := s.db.QueryRow(ctx, `SELECT count(*) FROM user_tokens WHERE id=$1`, id).Scan(&n); err != nil {
+		t.Fatalf("count token %s: %v", id, err)
+	}
+	return n
+}
+
+func TestPGUserTokenDeleteRemovesOnlyTheRevokedToken(t *testing.T) {
+	ctx := context.Background()
+	rec := &recordingAuditor{}
+	s := newPGServer(t).WithAudit(rec)
+	seedTokenUser(ctx, t, s, "u-ada")
+	seedTokenUser(ctx, t, s, "u-admin")
+	gone := mintUserToken(ctx, t, s, "u-ada")
+	kept := mintUserToken(ctx, t, s, "u-ada")
+	id := gone.GetMeta().GetId()
+	if _, err := s.RevokeUserToken(ctx, &identityv1.RevokeUserTokenRequest{Id: id, UserId: "u-ada"}); err != nil {
+		t.Fatalf("RevokeUserToken: %v", err)
+	}
+	rec.take()
+
+	if _, err := s.DeleteUserToken(ctx, &identityv1.DeleteUserTokenRequest{Id: id, UserId: "u-ada", ActingUserId: "u-admin"}); err != nil {
+		t.Fatalf("DeleteUserToken: %v", err)
+	}
+	wantEvent(t, rec.only(t), audit.ActionUserTokenDelete, "u-admin", id, map[string]string{"user_id": "u-ada"})
+
+	list, err := s.ListUserTokens(ctx, &identityv1.ListUserTokensRequest{UserId: "u-ada"})
+	if err != nil {
+		t.Fatalf("ListUserTokens: %v", err)
+	}
+	if len(list.GetTokens()) != 1 || list.GetTokens()[0].GetId() != kept.GetMeta().GetId() {
+		t.Fatalf("tokens after delete = %v, want only %s", list.GetTokens(), kept.GetMeta().GetId())
+	}
+	if verifyUserToken(ctx, t, s, gone.GetToken()).GetValid() {
+		t.Fatal("a deleted token still verifies")
+	}
+
+	_, err = s.DeleteUserToken(ctx, &identityv1.DeleteUserTokenRequest{Id: id, UserId: "u-ada"})
+	if status.Code(err) != codes.NotFound {
+		t.Fatalf("second delete: want NotFound, got %v", err)
+	}
+	rec.none(t)
+}
+
+func TestPGUserTokenDeleteRefusesATokenThatIsNotRevoked(t *testing.T) {
+	ctx := context.Background()
+	rec := &recordingAuditor{}
+	s := newPGServer(t).WithAudit(rec)
+	seedTokenUser(ctx, t, s, "u-ada")
+	active := mintUserToken(ctx, t, s, "u-ada")
+	expired := mintUserToken(ctx, t, s, "u-ada")
+	if _, err := s.db.Exec(ctx, `UPDATE user_tokens SET expires_at = now() - interval '1 minute' WHERE id=$1`, expired.GetMeta().GetId()); err != nil {
+		t.Fatal(err)
+	}
+	rec.take()
+
+	for name, id := range map[string]string{"active": active.GetMeta().GetId(), "expired": expired.GetMeta().GetId()} {
+		_, err := s.DeleteUserToken(ctx, &identityv1.DeleteUserTokenRequest{Id: id, UserId: "u-ada"})
+		if status.Code(err) != codes.FailedPrecondition {
+			t.Fatalf("%s token: want FailedPrecondition, got %v", name, err)
+		}
+		if userTokenCount(ctx, t, s, id) != 1 {
+			t.Fatalf("%s token: the refused delete removed the row", name)
+		}
+	}
+	if !verifyUserToken(ctx, t, s, active.GetToken()).GetValid() {
+		t.Fatal("a refused delete must leave the active token valid")
+	}
+	rec.none(t)
+}
+
+// Another user's token answers like an unknown id, revoked or not, so the
+// RPC doesn't reveal that the id exists.
+func TestPGUserTokenDeleteIsOwnerChecked(t *testing.T) {
+	ctx := context.Background()
+	rec := &recordingAuditor{}
+	s := newPGServer(t).WithAudit(rec)
+	seedTokenUser(ctx, t, s, "u-ada")
+	seedTokenUser(ctx, t, s, "u-bob")
+	active := mintUserToken(ctx, t, s, "u-ada").GetMeta().GetId()
+	revoked := mintUserToken(ctx, t, s, "u-ada").GetMeta().GetId()
+	if _, err := s.RevokeUserToken(ctx, &identityv1.RevokeUserTokenRequest{Id: revoked, UserId: "u-ada"}); err != nil {
+		t.Fatalf("RevokeUserToken: %v", err)
+	}
+	rec.take()
+
+	for name, req := range map[string]*identityv1.DeleteUserTokenRequest{
+		"unknown id":             {Id: "utok-unknown", UserId: "u-ada"},
+		"empty id":               {UserId: "u-ada"},
+		"other user's active":    {Id: active, UserId: "u-bob"},
+		"other user's revoked":   {Id: revoked, UserId: "u-bob"},
+		"revoked, empty user id": {Id: revoked},
+	} {
+		if _, err := s.DeleteUserToken(ctx, req); status.Code(err) != codes.NotFound {
+			t.Fatalf("%s: want NotFound, got %v", name, err)
+		}
+	}
+	if userTokenCount(ctx, t, s, active) != 1 || userTokenCount(ctx, t, s, revoked) != 1 {
+		t.Fatal("a refused delete removed a row")
+	}
+	rec.none(t)
+}
+
+func TestPGUserTokenDeleteConcurrentCallsDeleteOnce(t *testing.T) {
+	ctx := context.Background()
+	rec := &recordingAuditor{}
+	s := newPGServer(t).WithAudit(rec)
+	seedTokenUser(ctx, t, s, "u-ada")
+	id := mintUserToken(ctx, t, s, "u-ada").GetMeta().GetId()
+	if _, err := s.RevokeUserToken(ctx, &identityv1.RevokeUserTokenRequest{Id: id, UserId: "u-ada"}); err != nil {
+		t.Fatalf("RevokeUserToken: %v", err)
+	}
+	rec.take()
+
+	errs := make([]error, 8)
+	var wg sync.WaitGroup
+	for i := range errs {
+		wg.Go(func() {
+			_, errs[i] = s.DeleteUserToken(ctx, &identityv1.DeleteUserTokenRequest{Id: id, UserId: "u-ada"})
+		})
+	}
+	wg.Wait()
+
+	deleted := 0
+	for _, err := range errs {
+		switch status.Code(err) {
+		case codes.OK:
+			deleted++
+		case codes.NotFound:
+		default:
+			t.Fatalf("concurrent delete: %v", err)
+		}
+	}
+	if deleted != 1 {
+		t.Fatalf("%d calls deleted the token, want 1", deleted)
+	}
+	wantEvent(t, rec.only(t), audit.ActionUserTokenDelete, "u-ada", id, map[string]string{"user_id": "u-ada"})
 }
 
 func TestPGUserTokenInvalidTokens(t *testing.T) {

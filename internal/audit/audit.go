@@ -39,6 +39,7 @@ const (
 	ActionAPITokenRevoke        = "api_token.revoke"
 	ActionUserTokenMint         = "user_token.mint"
 	ActionUserTokenRevoke       = "user_token.revoke"         // #nosec G101 -- an audit action name, not a credential
+	ActionUserTokenDelete       = "user_token.delete"         // #nosec G101 -- an audit action name, not a credential
 	ActionUserTokenRevokeByKind = "user_token.revoke_by_kind" // #nosec G101 -- an audit action name, not a credential
 	ActionWorkloadCallRefused   = "workload.call_refused"
 )

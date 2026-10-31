@@ -129,6 +129,7 @@ Every verify RPC answers a plain `ok=false` for any failure, without saying why.
 | `MintApiToken`, `ListApiTokens`, `RevokeApiToken`, `VerifyApiToken` | Opaque bearer tokens for a service account, with an optional expiry and a scope of groups. The token value is returned once, at mint; only its SHA-256 hash is stored. `VerifyApiToken` returns the scope's groups by name and id, pair for pair (`group_names`, `group_ids`). |
 | `LinkOidcClient`, `UnlinkOidcClient`, `ResolveServiceAccountByOidc` | Bind an OAuth2 client (issuer and client id) to a service account, with an allowed-groups bound. A client's groups are its token's scope intersected with that bound; an empty bound grants nothing. `ResolveServiceAccountByOidc` returns them by name and id, pair for pair. |
 | `MintUserToken`, `ListUserTokens`, `RevokeUserToken`, `VerifyUserToken` | Personal tokens (prefix `snk_u_`). They prove which user is calling and carry no scope, so the user's current groups apply on every call; `VerifyUserToken` returns their names and ids, pair for pair. Each token records its `client_kind`: `mcp` for a token minted through the gateway's OAuth flow for native (MCP) clients, `cli` for one minted on the tokens page (the default when the request leaves it empty; any other value is `InvalidArgument`). `VerifyUserToken` returns it, so the gateway can tell an MCP agent token from a machine-API token. |
+| `DeleteUserToken` | Deletes a personal token that's already revoked, given `id`, `user_id` and `acting_user_id`. `user_id` must own the token. A token that isn't revoked, even an expired one, is `FailedPrecondition` and stays in place; an unknown id or another user's token is `NotFound`. The audit trail keeps the token's `mint`, `revoke` and `delete` events. |
 | `RevokeTokensByClientKind` | Revokes every live personal token of one `kind` (`mcp` or `cli`; anything else is `InvalidArgument`) and returns the number it revoked; tokens already revoked or expired aren't counted, so a second run returns 0. Only the `appliance` caller may call it: turning the appliance's MCP off revokes every agent token (`mcp`). |
 
 Scopes and allowed groups name groups by id, by exact name, or by a slug (the name lowercased, with
@@ -161,6 +162,7 @@ event holds ids, kinds and outcomes only: never a password, code, TOTP secret or
 | `api_token.mint`, `api_token.revoke` | `MintApiToken`, `RevokeApiToken` | token id | `service_account_id`, `scope`, `expires_at_unix` |
 | `workload.call_refused` | the workload-auth interceptors, for a refused call | the gRPC method | `caller`, `service_account`, `code`, `reason` |
 | `user_token.mint`, `user_token.revoke` | `MintUserToken`, `RevokeUserToken` | token id | `user_id`, `label`, `client_name`, `client_kind` (mint), `expires_at_unix` |
+| `user_token.delete` | `DeleteUserToken` | token id | `user_id` |
 | `user_token.revoke_by_kind` | `RevokeTokensByClientKind` | the kind | `client_kind`, `revoked` (the count) |
 
 The actor is the request's `acting_user_id` (or `created_by` and `acting_admin` where the request
