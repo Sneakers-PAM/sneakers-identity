@@ -12,7 +12,6 @@ import (
 
 	"github.com/Bugs5382/go-buildinfo/health"
 	log "github.com/Bugs5382/go-log"
-	otel "github.com/Bugs5382/go-otel"
 	workloadauth "github.com/Bugs5382/go-workload-identity"
 	auditv1 "github.com/Sneakers-PAM/sneakers-identity/gen/go/thirdparty/audit/v1"
 	"github.com/Sneakers-PAM/sneakers-identity/internal/audit"
@@ -22,6 +21,7 @@ import (
 	"github.com/Sneakers-PAM/sneakers-identity/internal/kratos"
 	"github.com/Sneakers-PAM/sneakers-identity/internal/secrets"
 	"github.com/Sneakers-PAM/sneakers-identity/internal/server"
+	"github.com/Sneakers-PAM/sneakers-identity/internal/telemetry"
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
@@ -43,30 +43,30 @@ func main() { //nolint:gocognit,gocyclo // wiring/bootstrap complexity
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	logger := log.New(serviceName)
+	logger := telemetry.NewLogger(serviceName, config.OTLPLogsEnabled())
 	cfg, err := config.Load()
 	if err != nil {
-		logger.Fatal().Err(err).Msg("config")
+		logger.Fatal(err, "config")
 	}
 
-	otelShutdown, err := otel.Init(ctx, serviceName, cfg.OTLPEndpoint)
+	otelSettings := telemetry.Settings{Endpoint: cfg.OTLPEndpoint, InsecureSkipVerify: cfg.OTLPInsecureSkipVerify, Logs: cfg.OTLPLogsEnabled}
+	otelShutdown, err := telemetry.Start(ctx, serviceName, otelSettings, logger)
 	if err != nil {
-		logger.Fatal().Err(err).Msg("otel init")
+		logger.Fatal(err, "otel init")
 	}
 	defer func() {
 		if err := otelShutdown(context.Background()); err != nil {
-			logger.Warn().Err(err).Msg("otel shutdown")
+			logger.Warn("otel shutdown", log.F("error", err.Error()))
 		}
 	}()
 
-	svcLog := log.NewLogger(serviceName)
 	// The port answers health from here on, while the boot waits for
 	// Postgres and runs the migrations: liveness SERVING, so the startup probe
 	// passes on a slow boot, and readiness NOT_SERVING with postgres listed
 	// down until it is reached.
-	boot, err := server.StartBootHealth(cfg.GRPCPort, svcLog, "postgres")
+	boot, err := server.StartBootHealth(cfg.GRPCPort, logger, "postgres")
 	if err != nil {
-		logger.Fatal().Err(err).Msg("boot health")
+		logger.Fatal(err, "boot health")
 	}
 
 	migrationsDir := os.Getenv("MIGRATIONS_DIR")
@@ -85,10 +85,10 @@ func main() { //nolint:gocognit,gocyclo // wiring/bootstrap complexity
 	if err != nil {
 		if ctx.Err() != nil {
 			boot.Stop()
-			logger.Info().Msg("stopped while waiting for postgres")
+			logger.Info("stopped while waiting for postgres")
 			return
 		}
-		logger.Fatal().Err(err).Msg("postgres")
+		logger.Fatal(err, "postgres")
 	}
 	defer db.Close()
 
@@ -102,11 +102,11 @@ func main() { //nolint:gocognit,gocyclo // wiring/bootstrap complexity
 	if key := os.Getenv("TOTP_ENC_KEY"); key != "" {
 		cipher, err = secrets.NewFromString(key)
 		if err != nil {
-			logger.Fatal().Err(err).Msg("totp enc key")
+			logger.Fatal(err, "totp enc key")
 		}
-		logger.Info().Msg("mfa: TOTP enabled (at-rest cipher configured)")
+		logger.Info("mfa: TOTP enabled (at-rest cipher configured)")
 	} else {
-		logger.Warn().Msg("mfa: TOTP disabled (TOTP_ENC_KEY unset)")
+		logger.Warn("mfa: TOTP disabled (TOTP_ENC_KEY unset)")
 	}
 
 	// MFA email OTP. Wire the SMTP relay only when SMTP_HOST is set
@@ -117,17 +117,17 @@ func main() { //nolint:gocognit,gocyclo // wiring/bootstrap complexity
 	if os.Getenv("SMTP_HOST") != "" {
 		cfg := email.LoadConfig()
 		if err := cfg.Check(); err != nil {
-			logger.Fatal().Err(err).Msg("smtp relay")
+			logger.Fatal(err, "smtp relay")
 		}
 		sender = email.New(cfg)
-		logger.Info().Str("tls_mode", cfg.TLSMode).Bool("verify", !cfg.TLSInsecure).Bool("custom_ca", cfg.CAPEM != "").Bool("auth", cfg.User != "").
-			Msg("mfa: email OTP relay configured (SMTP_HOST)")
+		logger.Info("mfa: email OTP relay configured (SMTP_HOST)", log.F("tls_mode", cfg.TLSMode), log.F("verify", !cfg.TLSInsecure),
+			log.F("custom_ca", cfg.CAPEM != ""), log.F("auth", cfg.User != ""))
 		if !cfg.Encrypted() || cfg.TLSInsecure {
-			logger.Warn().Str("tls_mode", cfg.TLSMode).Bool("verify", !cfg.TLSInsecure).
-				Msg("smtp: mail, and the relay password when one is set, go to the relay unencrypted or to an unverified relay")
+			logger.Warn("smtp: mail, and the relay password when one is set, go to the relay unencrypted or to an unverified relay",
+				log.F("tls_mode", cfg.TLSMode), log.F("verify", !cfg.TLSInsecure))
 		}
 	} else {
-		logger.Warn().Msg("mfa: email OTP relay not configured (SMTP_HOST unset) — codes are dev-echoed only when OTP_DEV_ECHO=1")
+		logger.Warn("mfa: email OTP relay not configured (SMTP_HOST unset) — codes are dev-echoed only when OTP_DEV_ECHO=1")
 	}
 	devEcho := os.Getenv("OTP_DEV_ECHO") == "1" || os.Getenv("OTP_DEV_ECHO") == "true"
 
@@ -151,20 +151,20 @@ func main() { //nolint:gocognit,gocyclo // wiring/bootstrap complexity
 			},
 		})
 		if werr != nil {
-			logger.Warn().Err(werr).Msg("webauthn: RP config invalid — passkeys disabled")
+			logger.Warn("webauthn: RP config invalid — passkeys disabled", log.F("error", werr.Error()))
 		} else {
 			wa = w
-			logger.Info().Str("rp_id", rpID).Msg("webauthn: passkey RP configured")
+			logger.Info("webauthn: passkey RP configured", log.F("rp_id", rpID))
 		}
 	} else {
-		logger.Warn().Msg("webauthn: disabled (WEBAUTHN_RP_ID unset/'-')")
+		logger.Warn("webauthn: disabled (WEBAUTHN_RP_ID unset/'-')")
 	}
 
 	// Ory Kratos holds the credentials: users are provisioned as Kratos
 	// identities and their row stores the identity id as the login subject.
 	adminURL := getOr("KRATOS_ADMIN_URL", "http://sneakers-kratos:4434")
 	kratosAdmin := kratos.NewAdmin(adminURL)
-	srv := grpcsvc.New(db).WithLogger(svcLog).WithCipher(cipher).WithEmail(sender, devEcho).
+	srv := grpcsvc.New(db).WithLogger(logger).WithCipher(cipher).WithEmail(sender, devEcho).
 		WithTotpIssuer(getOr("TOTP_ISSUER", "Sneakers")).WithWebauthn(wa).
 		WithKratos(kratosAdmin)
 
@@ -175,6 +175,7 @@ func main() { //nolint:gocognit,gocyclo // wiring/bootstrap complexity
 		{Name: "postgres", Required: true, Check: db.Ping, Version: server.PostgresVersion(db.Querier())},
 		{Name: "kratos", Required: true, Check: kratosAdmin.Ready},
 	}
+	deps = append(deps, telemetry.Dependencies(otelSettings)...)
 
 	// Audit: sign-ins, second factors and every user, group, role, service
 	// account and token change are recorded in the audit service.
@@ -187,59 +188,59 @@ func main() { //nolint:gocognit,gocyclo // wiring/bootstrap complexity
 		// ServiceAccount token, re-read from WORKLOAD_TOKEN_FILE on every call.
 		tokenOpt, ok, err := workloadauth.DialOptionFromEnv(os.Getenv)
 		if err != nil {
-			logger.Fatal().Err(err).Msg("workload token")
+			logger.Fatal(err, "workload token")
 		}
 		if ok {
 			dialOpts = append(dialOpts, tokenOpt)
-			logger.Info().Str("env", workloadauth.EnvTokenFile).Msg("audit: calls carry the workload token")
+			logger.Info("audit: calls carry the workload token", log.F("env", workloadauth.EnvTokenFile))
 		} else {
-			logger.Warn().Msg("audit: " + workloadauth.EnvTokenFile + " unset; calls carry no workload token (local development only)")
+			logger.Warn("audit: " + workloadauth.EnvTokenFile + " unset; calls carry no workload token (local development only)")
 		}
 		auditConn, err := grpc.NewClient(cfg.AuditAddr, dialOpts...)
 		if err != nil {
-			logger.Fatal().Err(err).Str("audit_addr", cfg.AuditAddr).Msg("dial audit")
+			logger.Fatal(err, "dial audit", log.F("audit_addr", cfg.AuditAddr))
 		}
 		defer func() { _ = auditConn.Close() }()
 		srv = srv.WithAudit(audit.NewClient(auditv1.NewAuditServiceClient(auditConn)))
 		deps = append(deps, health.Dependency{Name: "audit", Check: server.GRPCPeer(healthpb.NewHealthClient(auditConn))})
-		logger.Info().Str("audit_addr", cfg.AuditAddr).Msg("audit: recording identity events")
+		logger.Info("audit: recording identity events", log.F("audit_addr", cfg.AuditAddr))
 	} else {
-		logger.Warn().Msg("audit: disabled (AUDIT_ADDR unset); no identity events are recorded")
+		logger.Warn("audit: disabled (AUDIT_ADDR unset); no identity events are recorded")
 	}
-	logger.Info().Str("kratos_admin_url", adminURL).Msg("user directory: kratos")
+	logger.Info("user directory: kratos", log.F("kratos_admin_url", adminURL))
 
-	logger.Info().Str("port", cfg.GRPCPort).Msg("starting")
+	logger.Info("starting", log.F("port", cfg.GRPCPort))
 	// Callers are authenticated by their workload identity and checked against
 	// grpcsvc.CallerPolicy: the gateway on every method, notify on its reads.
 	var serverOpts []grpc.ServerOption
 	waCfg, waOn, err := server.WorkloadConfigFromEnv(os.Getenv)
 	if err != nil {
-		logger.Fatal().Err(err).Msg("workload auth")
+		logger.Fatal(err, "workload auth")
 	}
 	if waOn {
-		verifier, err := workloadauth.NewVerifier(waCfg, svcLog)
+		verifier, err := workloadauth.NewVerifier(waCfg, logger)
 		if err != nil {
-			logger.Fatal().Err(err).Msg("workload auth verifier")
+			logger.Fatal(err, "workload auth verifier")
 		}
 		go verifier.Run(ctx)
 		policy := grpcsvc.CallerPolicy()
 		serverOpts = append(serverOpts,
-			grpc.ChainUnaryInterceptor(workloadauth.UnaryServerInterceptor(verifier, policy, svcLog, workloadauth.WithDenyHook(srv.AuditDenial))),
-			grpc.ChainStreamInterceptor(workloadauth.StreamServerInterceptor(verifier, policy, svcLog, workloadauth.WithDenyHook(srv.AuditDenial))))
+			grpc.ChainUnaryInterceptor(workloadauth.UnaryServerInterceptor(verifier, policy, logger, workloadauth.WithDenyHook(srv.AuditDenial))),
+			grpc.ChainStreamInterceptor(workloadauth.StreamServerInterceptor(verifier, policy, logger, workloadauth.WithDenyHook(srv.AuditDenial))))
 		// No caller can be checked before the issuer's key set has loaded, so
 		// readiness waits for it too (see server.WorkloadIdentity).
 		deps = append(deps, server.WorkloadIdentity(verifier))
-		logger.Info().Str("issuer", waCfg.Issuer).Strs("allowed_service_accounts", waCfg.AllowedServiceAccounts).Msg("workload auth: on")
+		logger.Info("workload auth: on", log.F("issuer", waCfg.Issuer), log.F("allowed_service_accounts", waCfg.AllowedServiceAccounts))
 	} else {
-		go workloadauth.WarnDisabled(ctx, svcLog, workloadauth.DisabledWarnInterval)
+		go workloadauth.WarnDisabled(ctx, logger, workloadauth.DisabledWarnInterval)
 	}
 
-	checker, err := server.NewChecker(svcLog, deps)
+	checker, err := server.NewChecker(logger, deps)
 	if err != nil {
-		logger.Fatal().Err(err).Msg("health checker")
+		logger.Fatal(err, "health checker")
 	}
 	boot.Stop()
-	if err := server.RunWithHealth(ctx, cfg.GRPCPort, svcLog, checker, srv.RegisterOn, serverOpts...); err != nil {
-		logger.Fatal().Err(err).Msg("server exited")
+	if err := server.RunWithHealth(ctx, cfg.GRPCPort, logger, checker, srv.RegisterOn, serverOpts...); err != nil {
+		logger.Fatal(err, "server exited")
 	}
 }

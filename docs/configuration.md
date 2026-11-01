@@ -12,6 +12,8 @@ off and their RPCs answer `Unavailable`; the service still starts.
 | `MIGRATIONS_DIR` | `migrations` | Directory holding the migration files. The container image sets `/migrations`. |
 | `GRPC_PORT` | `9090` | TCP port the gRPC server listens on (all interfaces). |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | (none) | OTLP gRPC collector for traces and metrics, as a URL: `http://collector:4317` for plaintext, `https://collector:4317` for TLS. A bare `host:port` still connects as plaintext, but the OpenTelemetry SDK, which reads this variable too, logs `parse url` errors at start. Any other scheme stops the service at start. Unset or empty runs without a collector: no export, no error log. |
+| `OTLP_INSECURE_SKIP_VERIFY` | (off) | Only `true` turns it on. Keeps TLS to an `https` collector but stops checking its certificate, so the collector isn't authenticated, and logs stay off whatever `OTLP_LOGS_ENABLED` says. |
+| `OTLP_LOGS_ENABLED` | (off) | Only `true` turns it on. Also exports logs to the collector, on the same endpoint. Stdout doesn't change. A record carries its time, level, service, message, trace ids and an allow-list of id, count, duration, class, state and short enum fields (`allowedLogFields` in `internal/telemetry`), and only JSON lines are read, so `LOG_FORMAT=console` exports nothing. |
 | `LOG_LEVEL` | `info` | `trace`, `debug`, `info`, `warn`, `error`, `fatal`, `panic` or `disabled`. |
 | `LOG_FORMAT` | `json` | `json`, `console` (or `pretty`), or `both` (JSON on stdout, console on stderr). |
 

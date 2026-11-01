@@ -57,6 +57,7 @@ fix, such as bad credentials or a failing migration, stops the boot.
 | `postgres` | yes | a ping on the pool | It holds the directory: users, groups, roles, factors and tokens. |
 | `kratos` | yes | `GET /health/ready` on `KRATOS_ADMIN_URL` | It holds the credentials; sign-in and user provisioning go through it. |
 | `audit` | no | its gRPC health check | Audit records are best effort: an event that can't be written is logged and the call still succeeds, so an unreachable audit service only makes identity `degraded`. Present only when `AUDIT_ADDR` is set. |
+| `otlp` | no | the latest export results | Telemetry is best effort: `down` while the newest export of traces, metrics, or logs when they are on, failed, which only makes identity `degraded`. Present only when `OTEL_EXPORTER_OTLP_ENDPOINT` is set. Failed exports log `otlp export failed` with the gRPC code, at most every 30 s, never the error text. |
 
 Read the report with `grpcurl -v -plaintext localhost:9090 grpc.health.v1.Health/Check` (the
 `sneakers-health` header, or the `sneakers-depstate-<name>` headers). Each change of a
