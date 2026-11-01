@@ -26,6 +26,10 @@ holds them.
   allow-list is `internal/grpcsvc/callers.go`; a new RPC gets the gateway by default.
 - `internal/config/`, `internal/server/` - the env loader and the gRPC server bootstrap, with the
   health service and readiness checks from `github.com/Bugs5382/go-buildinfo`.
+- `internal/telemetry/` - go-otel wiring: the log allow-list and redaction, the export error
+  handler and the optional `otlp` health dependency. A new log field stays out of the collector
+  until it is added to `allowedLogFields`; only ids, counts, durations, classes, states and short
+  enums belong there.
 - `proto/` - the API; `gen/go/` - the generated Go (committed, checked current in CI).
   `gen/go/thirdparty/` holds the audit client stubs, generated from the sneakers-audit proto at
   the commit pinned in `proto-refs.env` (pin-and-fetch, never a Go module import).

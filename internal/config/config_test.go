@@ -49,3 +49,18 @@ func TestLoadAuditAddr(t *testing.T) {
 		t.Fatalf("AuditAddr got %q", c.AuditAddr)
 	}
 }
+
+func TestOTLPSwitchesAreOnOnlyForTrue(t *testing.T) {
+	t.Setenv("DATABASE_DSN", "postgres://x")
+	for value, want := range map[string]bool{"": false, "1": false, "TRUE": false, "true": true} {
+		t.Setenv("OTLP_INSECURE_SKIP_VERIFY", value)
+		t.Setenv("OTLP_LOGS_ENABLED", value)
+		c, err := Load()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if c.OTLPInsecureSkipVerify != want || c.OTLPLogsEnabled != want {
+			t.Fatalf("%q: skip %v logs %v, want %v", value, c.OTLPInsecureSkipVerify, c.OTLPLogsEnabled, want)
+		}
+	}
+}
