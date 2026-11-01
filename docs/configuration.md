@@ -17,6 +17,8 @@ off and their RPCs answer `Unavailable`; the service still starts.
 | `LOG_LEVEL` | `info` | `trace`, `debug`, `info`, `warn`, `error`, `fatal`, `panic` or `disabled`. |
 | `LOG_FORMAT` | `json` | `json`, `console` (or `pretty`), or `both` (JSON on stdout, console on stderr). |
 
+Everything sent to the collector is default-deny, on go-otel's telemetry filter (`internal/telemetry`). Spans keep their ids, times, kind and status code, and only the `rpc.method` and `rpc.response.status_code` attributes; status text and exception events stay in the process. Only gRPC method names and `query <OPERATION>` keep their span name, and any other span is named `[span]`. No SQL text is recorded. Metrics carry the same two attributes, the resource carries only `service.name`, and baggage is neither read nor forwarded. Export failures print the gRPC code on stderr through the standard logger, one line every 30 seconds.
+
 ## Audit
 
 | Variable | Default | Purpose |

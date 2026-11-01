@@ -50,7 +50,7 @@ func main() { //nolint:gocognit,gocyclo // wiring/bootstrap complexity
 	}
 
 	otelSettings := telemetry.Settings{Endpoint: cfg.OTLPEndpoint, InsecureSkipVerify: cfg.OTLPInsecureSkipVerify, Logs: cfg.OTLPLogsEnabled}
-	otelShutdown, err := telemetry.Start(ctx, serviceName, otelSettings, logger)
+	otelShutdown, err := telemetry.Start(ctx, serviceName, otelSettings)
 	if err != nil {
 		logger.Fatal(err, "otel init")
 	}

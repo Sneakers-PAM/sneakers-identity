@@ -4,9 +4,12 @@
 package telemetry
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	stdlog "log"
 	"net"
+	"os"
 	"strings"
 	"sync"
 	"testing"
@@ -62,7 +65,7 @@ func startCollector(t *testing.T, c *collector) string {
 
 func start(t *testing.T, s Settings) {
 	t.Helper()
-	shutdown, err := Start(context.Background(), "identity-test", s, log.Nop())
+	shutdown, err := Start(context.Background(), "identity-test", s)
 	if err != nil {
 		t.Fatalf("start: %v", err)
 	}
@@ -182,49 +185,20 @@ func TestUnallowedFieldsNeverReachTheCollector(t *testing.T) {
 }
 
 func TestExportErrorsLeaveOutTheText(t *testing.T) {
-	rec := &recordingLogger{Logger: log.Nop()}
-	h := newErrorHandler(rec)
-	otel.SetErrorHandler(h)
-	t.Cleanup(func() { otel.SetErrorHandler(newErrorHandler(log.Nop())) })
+	var out bytes.Buffer
+	stdlog.SetOutput(&out)
+	t.Cleanup(func() { stdlog.SetOutput(os.Stderr) })
+	start(t, Settings{})
 
 	secret := "dial collector.example.org:4317 Authorization=canary"
 	otel.Handle(errors.New(secret))
 	otel.Handle(status.Error(codes.Unavailable, secret))
 
-	if rec.count() != 1 {
-		t.Fatalf("logged %d lines inside one window, want 1", rec.count())
+	line := out.String()
+	if strings.Count(line, "\n") != 1 {
+		t.Fatalf("want 1 line inside one window, got %q", line)
 	}
-	if line := rec.line(); strings.Contains(line, "canary") || strings.Contains(line, "collector.example.org") {
+	if strings.Contains(line, "canary") || strings.Contains(line, "collector.example.org") {
 		t.Fatalf("leaked: %s", line)
 	}
-}
-
-type recordingLogger struct {
-	log.Logger
-	mu    sync.Mutex
-	lines []string
-}
-
-func (r *recordingLogger) Warn(msg string, fields ...log.Field) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	for _, f := range fields {
-		msg += " " + f.Key
-		if s, ok := f.Val.(string); ok {
-			msg += "=" + s
-		}
-	}
-	r.lines = append(r.lines, msg)
-}
-
-func (r *recordingLogger) count() int {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	return len(r.lines)
-}
-
-func (r *recordingLogger) line() string {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	return strings.Join(r.lines, "\n")
 }
