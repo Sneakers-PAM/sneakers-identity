@@ -7,8 +7,8 @@ import (
 	"context"
 
 	postgres "github.com/Bugs5382/go-postgres"
-	otelpg "github.com/Bugs5382/go-postgres/otel"
 	"github.com/Sneakers-PAM/sneakers-identity/internal/server"
+	"github.com/Sneakers-PAM/sneakers-identity/internal/telemetry"
 )
 
 // openPostgres runs the migrations and connects the pool, waiting with
@@ -26,7 +26,7 @@ func openPostgres(ctx context.Context, boot *server.BootHealth, migrateDSN, migr
 	var db *postgres.DB
 	if err := postgres.WaitFor(ctx, func(ctx context.Context) error {
 		var err error
-		db, err = postgres.New(ctx, dsn, otelpg.WithTracing())
+		db, err = postgres.New(ctx, dsn, telemetry.PostgresTracing())
 		return err
 	}, wait...); err != nil {
 		return nil, err
