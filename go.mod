@@ -25,6 +25,7 @@ require (
 )
 
 require (
+	github.com/Bugs5382/go-mtls v1.0.0 // indirect
 	github.com/boombuler/barcode v1.0.1-0.20190219062509-6c824513bacc // indirect
 	github.com/cenkalti/backoff/v5 v5.0.3 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect

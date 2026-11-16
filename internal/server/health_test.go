@@ -42,7 +42,7 @@ func startWithHealth(t *testing.T, checker *health.Checker) healthpb.HealthClien
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan error, 1)
 	go func() { done <- RunWithHealth(ctx, port, log.Nop(), checker, nil) }()
-	t.Cleanup(func() { cancel(); <-done })
+	t.Cleanup(func() { cancel(); waitDone(t, done) })
 	conn, err := grpc.NewClient("127.0.0.1:"+port, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		t.Fatalf("dial: %v", err)

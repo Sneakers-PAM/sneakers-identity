@@ -6,6 +6,8 @@ package config
 import (
 	"fmt"
 	"os"
+
+	mtls "github.com/Bugs5382/go-mtls"
 )
 
 type Config struct {
@@ -19,6 +21,16 @@ type Config struct {
 	OTLPLogsEnabled bool
 	// AuditAddr is the audit service's gRPC address. Empty records no events.
 	AuditAddr string
+	// MTLSEnabled is true when MTLS_CERT_FILE, MTLS_KEY_FILE and MTLS_CA_FILE
+	// are all set: the gRPC port then requires a client certificate and the
+	// audit dial presents one. With none set the service stays plaintext, so
+	// the chart switch can roll back.
+	MTLSEnabled bool
+	MTLSFiles   mtls.Files
+	// HealthPort is the plain, health-only port served beside the mTLS port,
+	// because the kubelet gRPC probe cannot present a client certificate. It
+	// is used only when MTLSEnabled.
+	HealthPort string
 }
 
 func Load() (Config, error) {
@@ -31,9 +43,22 @@ func Load() (Config, error) {
 		OTLPInsecureSkipVerify: os.Getenv("OTLP_INSECURE_SKIP_VERIFY") == "true",
 		OTLPLogsEnabled:        OTLPLogsEnabled(),
 		AuditAddr:              os.Getenv("AUDIT_ADDR"),
+		HealthPort:             getOr("HEALTH_PORT", "9091"),
 	}
 	if c.DatabaseDSN == "" {
 		return c, fmt.Errorf("DATABASE_DSN is required")
+	}
+	// Any one of the three turns mTLS on and then all three are required, so a
+	// half-set trio stops the boot instead of quietly serving plaintext.
+	if os.Getenv("MTLS_CERT_FILE") != "" || os.Getenv("MTLS_KEY_FILE") != "" || os.Getenv("MTLS_CA_FILE") != "" {
+		files, err := mtls.FilesFromEnv()
+		if err != nil {
+			return c, fmt.Errorf("mtls: %w", err)
+		}
+		c.MTLSEnabled, c.MTLSFiles = true, files
+		if c.HealthPort == c.GRPCPort {
+			return c, fmt.Errorf("HEALTH_PORT must differ from GRPC_PORT when mTLS is on")
+		}
 	}
 	return c, nil
 }

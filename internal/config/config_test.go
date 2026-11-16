@@ -6,6 +6,8 @@ package config
 import (
 	"os"
 	"testing"
+
+	mtls "github.com/Bugs5382/go-mtls"
 )
 
 func TestLoadRequiredAndDefault(t *testing.T) {
@@ -62,5 +64,67 @@ func TestOTLPSwitchesAreOnOnlyForTrue(t *testing.T) {
 		if c.OTLPInsecureSkipVerify != want || c.OTLPLogsEnabled != want {
 			t.Fatalf("%q: skip %v logs %v, want %v", value, c.OTLPInsecureSkipVerify, c.OTLPLogsEnabled, want)
 		}
+	}
+}
+
+func clearMTLS(t *testing.T) {
+	t.Helper()
+	for _, k := range []string{"MTLS_CERT_FILE", "MTLS_KEY_FILE", "MTLS_CA_FILE"} {
+		t.Setenv(k, "")
+	}
+}
+
+func TestLoadMTLSOffByDefault(t *testing.T) {
+	t.Setenv("DATABASE_DSN", "postgres://x")
+	clearMTLS(t)
+	c, err := Load()
+	if err != nil {
+		t.Fatalf("unexpected err: %v", err)
+	}
+	if c.MTLSEnabled {
+		t.Fatal("MTLSEnabled with no MTLS_* set, want plaintext")
+	}
+	if c.HealthPort != "9091" {
+		t.Fatalf("default HealthPort got %q", c.HealthPort)
+	}
+}
+
+func TestLoadMTLSFiles(t *testing.T) {
+	t.Setenv("DATABASE_DSN", "postgres://x")
+	t.Setenv("MTLS_CERT_FILE", "/tls/tls.crt")
+	t.Setenv("MTLS_KEY_FILE", "/tls/tls.key")
+	t.Setenv("MTLS_CA_FILE", "/tls/ca.crt")
+	t.Setenv("HEALTH_PORT", "9999")
+	c, err := Load()
+	if err != nil {
+		t.Fatalf("unexpected err: %v", err)
+	}
+	want := mtls.Files{Cert: "/tls/tls.crt", Key: "/tls/tls.key", CA: "/tls/ca.crt"}
+	if !c.MTLSEnabled || c.MTLSFiles != want {
+		t.Fatalf("got %+v", c)
+	}
+	if c.HealthPort != "9999" {
+		t.Fatalf("HealthPort got %q", c.HealthPort)
+	}
+}
+
+// A half-set trio must stop the boot instead of quietly serving plaintext.
+func TestLoadMTLSPartialFailsClosed(t *testing.T) {
+	t.Setenv("DATABASE_DSN", "postgres://x")
+	clearMTLS(t)
+	t.Setenv("MTLS_CERT_FILE", "/tls/tls.crt")
+	if _, err := Load(); err == nil {
+		t.Fatal("expected an error when only some MTLS_* variables are set")
+	}
+}
+
+func TestLoadMTLSHealthPortMustDiffer(t *testing.T) {
+	t.Setenv("DATABASE_DSN", "postgres://x")
+	t.Setenv("MTLS_CERT_FILE", "/tls/tls.crt")
+	t.Setenv("MTLS_KEY_FILE", "/tls/tls.key")
+	t.Setenv("MTLS_CA_FILE", "/tls/ca.crt")
+	t.Setenv("HEALTH_PORT", "9090")
+	if _, err := Load(); err == nil {
+		t.Fatal("expected an error when HEALTH_PORT equals GRPC_PORT under mTLS")
 	}
 }
