@@ -14,6 +14,7 @@ import (
 	"net"
 	"time"
 
+	"github.com/Bugs5382/go-buildinfo/grpcbuildinfo"
 	"github.com/Bugs5382/go-buildinfo/health"
 	log "github.com/Bugs5382/go-log"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
@@ -47,6 +48,15 @@ func RunWithLogger(ctx context.Context, port string, lg log.Logger, register fun
 // RunWithHealth is RunWithLogger with readiness following checker's
 // dependencies. A nil checker is always ready.
 func RunWithHealth(ctx context.Context, port string, lg log.Logger, checker *health.Checker, register func(*grpc.Server), opts ...grpc.ServerOption) error {
+	return RunWithHealthPort(ctx, port, "", lg, checker, register, opts...)
+}
+
+// RunWithHealthPort is RunWithHealth that also serves the health service,
+// alone and without transport security, on healthPort when it is not empty.
+// With mutual TLS in opts the kubelet's gRPC probe cannot reach the main
+// port, so it probes this one. It carries the same readiness report and
+// liveness service as the main port and nothing else.
+func RunWithHealthPort(ctx context.Context, port, healthPort string, lg log.Logger, checker *health.Checker, register func(*grpc.Server), opts ...grpc.ServerOption) error {
 	hs, bi, err := newHealth(checker)
 	if err != nil {
 		return fmt.Errorf("health: %w", err)
@@ -88,6 +98,12 @@ func RunWithHealth(ctx context.Context, port string, lg log.Logger, checker *hea
 		register(s)
 	}
 
+	hsrv, hlis, err := newHealthOnly(healthPort, lg, hs, bi, checker)
+	if err != nil {
+		_ = lis.Close()
+		return err
+	}
+
 	biCtx, stopBI := context.WithCancel(ctx)
 	defer stopBI()
 	go bi.Run(biCtx)
@@ -95,7 +111,7 @@ func RunWithHealth(ctx context.Context, port string, lg log.Logger, checker *hea
 		go checker.Run(biCtx)
 	}
 
-	errCh := make(chan error, 1)
+	errCh := make(chan error, 2)
 	go func() {
 		if err := s.Serve(lis); err != nil {
 			errCh <- err
@@ -103,6 +119,17 @@ func RunWithHealth(ctx context.Context, port string, lg log.Logger, checker *hea
 		}
 		errCh <- nil
 	}()
+	serveHealthOnly(hsrv, hlis, s, errCh)
+	stopHealth := func(graceful bool) {
+		if hsrv == nil {
+			return
+		}
+		if graceful {
+			hsrv.GracefulStop()
+			return
+		}
+		hsrv.Stop()
+	}
 
 	select {
 	case <-ctx.Done():
@@ -110,16 +137,55 @@ func RunWithHealth(ctx context.Context, port string, lg log.Logger, checker *hea
 		stopped := make(chan struct{})
 		go func() {
 			s.GracefulStop()
+			stopHealth(true)
 			close(stopped)
 		}()
 		select {
 		case <-stopped:
 		case <-time.After(gracefulStopTimeout):
 			s.Stop()
+			stopHealth(false)
 		}
-		<-errCh
+		if err := <-errCh; err != nil {
+			lg.Warn("server stopped with an error while shutting down", log.F("error", err.Error()))
+		}
 		return nil
 	case err := <-errCh:
+		stopHealth(false)
 		return err
 	}
+}
+
+// newHealthOnly builds the plain server that serves only the health service on
+// healthPort, with the same readiness report and liveness as the main port. An
+// empty healthPort returns nils: there is no such server.
+func newHealthOnly(healthPort string, lg log.Logger, hs healthpb.HealthServer, bi *grpcbuildinfo.Server, checker *health.Checker) (*grpc.Server, net.Listener, error) {
+	if healthPort == "" {
+		return nil, nil, nil
+	}
+	lis, err := net.Listen("tcp", ":"+healthPort)
+	if err != nil {
+		return nil, nil, fmt.Errorf("listen health: %w", err)
+	}
+	srv := grpc.NewServer(
+		grpc.ChainUnaryInterceptor(RecoveryUnaryInterceptor(lg), bi.UnaryServerInterceptor(), reportUnaryInterceptor(checker)),
+		grpc.ChainStreamInterceptor(RecoveryStreamInterceptor(lg), bi.StreamServerInterceptor()),
+	)
+	healthpb.RegisterHealthServer(srv, hs)
+	lg.Info("health-only port serving without TLS", log.F("port", healthPort))
+	return srv, lis, nil
+}
+
+// serveHealthOnly serves hsrv on lis in the background. A failure is sent on
+// errCh and takes the main server down with it. A nil hsrv is a no-op.
+func serveHealthOnly(hsrv *grpc.Server, lis net.Listener, main *grpc.Server, errCh chan<- error) {
+	if hsrv == nil {
+		return
+	}
+	go func() {
+		if err := hsrv.Serve(lis); err != nil {
+			errCh <- err
+			main.Stop()
+		}
+	}()
 }

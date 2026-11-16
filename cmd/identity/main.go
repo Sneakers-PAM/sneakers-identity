@@ -12,6 +12,7 @@ import (
 
 	"github.com/Bugs5382/go-buildinfo/health"
 	log "github.com/Bugs5382/go-log"
+	mtls "github.com/Bugs5382/go-mtls"
 	workloadauth "github.com/Bugs5382/go-workload-identity"
 	auditv1 "github.com/Sneakers-PAM/sneakers-identity/gen/go/thirdparty/audit/v1"
 	"github.com/Sneakers-PAM/sneakers-identity/internal/audit"
@@ -60,11 +61,33 @@ func main() { //nolint:gocognit,gocyclo // wiring/bootstrap complexity
 		}
 	}()
 
+	// Mutual TLS: with MTLS_CERT_FILE, MTLS_KEY_FILE and MTLS_CA_FILE set the
+	// gRPC port requires a client certificate and the audit dial presents one;
+	// the kubelet probe cannot, so health also has its own plain port. Unset,
+	// everything stays plaintext on GRPC_PORT.
+	var (
+		mtlsProvider *mtls.Provider
+		healthPort   string
+		bootPort     = cfg.GRPCPort
+	)
+	if cfg.MTLSEnabled {
+		mtlsProvider, err = mtls.NewProvider(cfg.MTLSFiles, mtls.WithErrorHandler(func(err error) {
+			logger.Error(err, "mtls: certificate renewal failed; keeping the last good files")
+		}))
+		if err != nil {
+			logger.Fatal(err, "mtls")
+		}
+		healthPort, bootPort = cfg.HealthPort, cfg.HealthPort
+		logger.Info("mtls: on; gRPC port requires a client certificate", log.F("port", cfg.GRPCPort), log.F("health_port", healthPort))
+	} else {
+		logger.Warn("mtls: off (MTLS_CERT_FILE, MTLS_KEY_FILE and MTLS_CA_FILE unset); gRPC is plaintext")
+	}
+
 	// The port answers health from here on, while the boot waits for
 	// Postgres and runs the migrations: liveness SERVING, so the startup probe
 	// passes on a slow boot, and readiness NOT_SERVING with postgres listed
 	// down until it is reached.
-	boot, err := server.StartBootHealth(cfg.GRPCPort, logger, "postgres")
+	boot, err := server.StartBootHealth(bootPort, logger, "postgres")
 	if err != nil {
 		logger.Fatal(err, "boot health")
 	}
@@ -184,6 +207,11 @@ func main() { //nolint:gocognit,gocyclo // wiring/bootstrap complexity
 			grpc.WithTransportCredentials(insecure.NewCredentials()),
 			grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
 		}
+		if mtlsProvider != nil {
+			// Verifies the audit server's certificate and name, and presents
+			// ours. Replaces the plaintext credentials above.
+			dialOpts[0] = mtlsProvider.DialOption()
+		}
 		// The audit service authenticates identity by its projected
 		// ServiceAccount token, re-read from WORKLOAD_TOKEN_FILE on every call.
 		tokenOpt, ok, err := workloadauth.DialOptionFromEnv(os.Getenv)
@@ -213,6 +241,9 @@ func main() { //nolint:gocognit,gocyclo // wiring/bootstrap complexity
 	// Callers are authenticated by their workload identity and checked against
 	// grpcsvc.CallerPolicy: the gateway on every method, notify on its reads.
 	var serverOpts []grpc.ServerOption
+	if mtlsProvider != nil {
+		serverOpts = append(serverOpts, mtlsProvider.ServerOption())
+	}
 	waCfg, waOn, err := server.WorkloadConfigFromEnv(os.Getenv)
 	if err != nil {
 		logger.Fatal(err, "workload auth")
@@ -240,7 +271,7 @@ func main() { //nolint:gocognit,gocyclo // wiring/bootstrap complexity
 		logger.Fatal(err, "health checker")
 	}
 	boot.Stop()
-	if err := server.RunWithHealth(ctx, cfg.GRPCPort, logger, checker, srv.RegisterOn, serverOpts...); err != nil {
+	if err := server.RunWithHealthPort(ctx, cfg.GRPCPort, healthPort, logger, checker, srv.RegisterOn, serverOpts...); err != nil {
 		logger.Fatal(err, "server exited")
 	}
 }
